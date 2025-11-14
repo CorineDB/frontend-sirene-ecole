@@ -150,7 +150,7 @@ const getRoleColor = (slug: string): string => {
 const loadRoles = async () => {
   loading.value = true
   try {
-    const response = await roleService.getRoles()
+    const response = await roleService.getAllRoles()
     if (response.success && response.data) {
       roles.value = response.data
     } else {
@@ -158,7 +158,7 @@ const loadRoles = async () => {
     }
   } catch (error: any) {
     console.error('Failed to load roles:', error)
-    notificationStore.error('Erreur', 'Impossible de charger les rôles')
+    notificationStore.error('Erreur', error.response?.data?.message || 'Impossible de charger les rôles')
   } finally {
     loading.value = false
   }

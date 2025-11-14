@@ -31,6 +31,22 @@ export interface UpdateRoleData {
   description?: string
 }
 
+export interface PaginatedResponse<T> {
+  current_page: number
+  data: T[]
+  first_page_url: string
+  from: number
+  last_page: number
+  last_page_url: string
+  links: Array<{ url: string | null; label: string; active: boolean }>
+  next_page_url: string | null
+  path: string
+  per_page: number
+  prev_page_url: string | null
+  to: number
+  total: number
+}
+
 export interface ApiResponse<T> {
   success: boolean
   message: string
@@ -43,10 +59,30 @@ export interface ApiResponse<T> {
  */
 class RoleService {
   /**
-   * Get all roles
+   * Get all roles with pagination
    */
-  async getRoles(): Promise<ApiResponse<Role[]>> {
-    const response = await apiClient.get('/roles')
+  async getRoles(page: number = 1, perPage: number = 15): Promise<ApiResponse<PaginatedResponse<Role>>> {
+    const response = await apiClient.get('/roles', {
+      params: { page, per_page: perPage }
+    })
+    return response.data
+  }
+
+  /**
+   * Get all roles without pagination (for backward compatibility)
+   */
+  async getAllRoles(): Promise<ApiResponse<Role[]>> {
+    const response = await apiClient.get('/roles', {
+      params: { per_page: 1000 } // Get a large number to simulate "all"
+    })
+    // Extract roles from paginated response
+    if (response.data.success && response.data.data) {
+      return {
+        success: response.data.success,
+        message: response.data.message,
+        data: response.data.data.data // Extract roles array from pagination
+      }
+    }
     return response.data
   }
 
