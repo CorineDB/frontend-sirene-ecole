@@ -300,21 +300,10 @@ const handleSubmit = async () => {
 }
 
 const close = () => {
-  // Reset all form states
-  formData.value = {
-    nom: '',
-    slug: '',
-    description: ''
-  }
-  errors.value = {}
-  selectedPermissions.value = []
-  loading.value = false
-  loadingPermissions.value = false
-
   emit('close')
 }
 
-// Watch for modal opening
+// Watch for modal opening/closing
 watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
     // Load permissions when modal opens
@@ -339,6 +328,17 @@ watch(() => props.isOpen, async (isOpen) => {
       selectedPermissions.value = []
     }
     errors.value = {}
+  } else {
+    // Reset all form states when modal closes
+    formData.value = {
+      nom: '',
+      slug: '',
+      description: ''
+    }
+    errors.value = {}
+    selectedPermissions.value = []
+    loading.value = false
+    loadingPermissions.value = false
   }
 })
 
