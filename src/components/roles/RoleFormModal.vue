@@ -22,9 +22,10 @@
           </div>
           <button
             @click="close"
-            class="text-gray-400 hover:text-gray-600 transition-colors"
+            class="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+            aria-label="Fermer le modal"
           >
-            <X :size="24" />
+            <X :size="24" aria-hidden="true" />
           </button>
         </div>
 
@@ -41,10 +42,12 @@
               type="text"
               required
               placeholder="Ex: Administrateur"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus-visible:ring-2 focus-visible:ring-blue-600"
               :class="{ 'border-red-500': errors.nom }"
+              :aria-invalid="!!errors.nom"
+              :aria-describedby="errors.nom ? 'nom-error' : undefined"
             />
-            <p v-if="errors.nom" class="text-sm text-red-600 mt-1">{{ errors.nom }}</p>
+            <p v-if="errors.nom" id="nom-error" class="text-sm text-red-600 mt-1" role="alert">{{ errors.nom }}</p>
           </div>
 
           <!-- Description -->
@@ -57,10 +60,12 @@
               v-model="formData.description"
               rows="3"
               placeholder="Description du rôle et de ses responsabilités"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus-visible:ring-2 focus-visible:ring-blue-600 resize-none"
               :class="{ 'border-red-500': errors.description }"
+              :aria-invalid="!!errors.description"
+              :aria-describedby="errors.description ? 'description-error' : undefined"
             ></textarea>
-            <p v-if="errors.description" class="text-sm text-red-600 mt-1">{{ errors.description }}</p>
+            <p v-if="errors.description" id="description-error" class="text-sm text-red-600 mt-1" role="alert">{{ errors.description }}</p>
           </div>
 
           <!-- Permissions -->

@@ -22,14 +22,16 @@
                 type="tel"
                 v-model="phone"
                 placeholder="+226 XX XX XX XX"
-                class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus-visible:ring-2 focus-visible:ring-blue-600 transition-all"
                 required
+                aria-label="Numéro de téléphone"
+                aria-describedby="phone-help"
               />
             </div>
-            <p class="mt-2 text-sm text-gray-500">
+            <p id="phone-help" class="mt-2 text-sm text-gray-500">
               Un code de vérification sera envoyé à ce numéro
             </p>
-            <p v-if="errorMessage" class="mt-2 text-sm text-red-600">
+            <p v-if="errorMessage" class="mt-2 text-sm text-red-600" role="alert" aria-live="assertive">
               {{ errorMessage }}
             </p>
           </div>

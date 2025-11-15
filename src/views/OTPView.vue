@@ -4,9 +4,10 @@
       <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
         <button
           @click="goBack"
-          class="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          class="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+          aria-label="Retour à la page de connexion"
         >
-          <ArrowLeft :size="16" />
+          <ArrowLeft :size="16" aria-hidden="true" />
           <span class="text-sm">Retour</span>
         </button>
 
@@ -23,22 +24,27 @@
         </div>
 
         <form @submit.prevent="handleVerifyOTP" class="space-y-6">
-          <div class="flex justify-center gap-2" @paste="handlePaste">
+          <div class="flex justify-center gap-2" @paste="handlePaste" role="group" aria-labelledby="otp-label">
             <input
               v-for="(digit, index) in otp"
               :key="index"
               :ref="(el) => setInputRef(el, index)"
               type="text"
+              inputmode="numeric"
+              pattern="[0-9]"
               maxlength="1"
               :value="digit"
               @input="(e) => handleChange(index, (e.target as HTMLInputElement).value)"
               @keydown="(e) => handleKeyDown(index, e)"
-              class="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              class="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus-visible:ring-2 focus-visible:ring-blue-600 transition-all"
               :autofocus="index === 0"
+              :aria-label="`Chiffre ${index + 1} du code OTP`"
+              :aria-describedby="errorMessage ? 'otp-error' : undefined"
             />
           </div>
+          <span id="otp-label" class="sr-only">Code OTP à 6 chiffres</span>
 
-          <p v-if="errorMessage" class="text-sm text-center text-red-600">
+          <p v-if="errorMessage" id="otp-error" class="text-sm text-center text-red-600" role="alert" aria-live="assertive">
             {{ errorMessage }}
           </p>
 
@@ -55,7 +61,8 @@
           <p class="text-sm text-gray-600 mb-2">Vous n'avez pas reçu le code ?</p>
           <button
             @click="handleResendOTP"
-            class="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+            class="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors focus:outline-none focus-visible:underline focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1"
+            aria-label="Renvoyer le code OTP"
           >
             Renvoyer le code
           </button>
