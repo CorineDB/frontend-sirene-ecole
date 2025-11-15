@@ -159,3 +159,67 @@ export interface ApiPaginatedResponse<T> {
     pagination: ApiPagination
   }
 }
+
+// ==================== Users Management ====================
+
+export interface ApiUserData {
+  id: string
+  email: string | null
+  telephone: string | null
+  nom_utilisateur: string
+  type: string // ADMIN, USER, ECOLE, TECHNICIEN
+  role?: ApiRole
+  role_id?: string
+  doit_changer_mot_de_passe?: boolean
+  mot_de_passe_change?: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface ApiUsersListResponse {
+  success: boolean
+  message?: string
+  data?: {
+    users: ApiUserData[]
+    pagination?: ApiPagination
+  }
+}
+
+export interface ApiUserDetailResponse {
+  success: boolean
+  message?: string
+  data?: ApiUserData
+}
+
+export interface CreateUserRequest {
+  nom_utilisateur: string
+  email?: string | null
+  telephone?: string | null
+  mot_de_passe: string
+  type: string
+  role_id?: string
+}
+
+export interface UpdateUserRequest {
+  nom_utilisateur?: string
+  email?: string | null
+  telephone?: string | null
+  type?: string
+  role_id?: string
+}
+
+export interface UpdateProfileRequest {
+  nom_utilisateur?: string
+  email?: string | null
+  telephone?: string | null
+}
+
+export interface ChangePasswordRequest {
+  ancien_mot_de_passe: string
+  nouveau_mot_de_passe: string
+  confirmation_mot_de_passe: string
+}
+
+export interface AssignRoleRequest {
+  role_id: string
+}
