@@ -87,25 +87,6 @@
             <p v-if="errors.telephone" id="telephone-error" class="text-sm text-red-600 mt-1" role="alert">{{ errors.telephone }}</p>
           </div>
 
-          <!-- Mot de passe (uniquement en création) -->
-          <div v-if="!isEditMode">
-            <label for="mot_de_passe" class="block text-sm font-semibold text-gray-700 mb-2">
-              Mot de passe <span class="text-red-500">*</span>
-            </label>
-            <input
-              id="mot_de_passe"
-              v-model="formData.mot_de_passe"
-              type="password"
-              :required="!isEditMode"
-              placeholder="••••••••"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus-visible:ring-2 focus-visible:ring-blue-600"
-              :class="{ 'border-red-500': errors.mot_de_passe }"
-              :aria-invalid="!!errors.mot_de_passe"
-              :aria-describedby="errors.mot_de_passe ? 'password-error' : undefined"
-            />
-            <p v-if="errors.mot_de_passe" id="password-error" class="text-sm text-red-600 mt-1" role="alert">{{ errors.mot_de_passe }}</p>
-          </div>
-
           <!-- Rôle -->
           <div>
             <label for="role_id" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -191,7 +172,6 @@ const formData = ref<CreateUserRequest & UpdateUserRequest>({
   nom_utilisateur: '',
   email: '',
   telephone: '',
-  mot_de_passe: '',
   role_id: ''
 })
 
@@ -225,10 +205,6 @@ const validateForm = (): boolean => {
 
   if (!formData.value.telephone?.trim()) {
     errors.value.telephone = 'Le téléphone est requis'
-  }
-
-  if (!isEditMode.value && !formData.value.mot_de_passe?.trim()) {
-    errors.value.mot_de_passe = 'Le mot de passe est requis'
   }
 
   if (formData.value.email && !formData.value.email.includes('@')) {
@@ -267,7 +243,6 @@ const handleSubmit = async () => {
         nom_utilisateur: formData.value.nom_utilisateur,
         email: formData.value.email || null,
         telephone: formData.value.telephone || null,
-        mot_de_passe: formData.value.mot_de_passe!,
         role_id: formData.value.role_id || undefined
       }
 
@@ -307,8 +282,7 @@ watch(() => props.isOpen, async (isOpen) => {
         nom_utilisateur: props.user.nom_utilisateur,
         email: props.user.user_info?.email || props.user.email || '',
         telephone: props.user.user_info?.telephone || props.user.telephone || '',
-        role_id: props.user.role?.id || '',
-        mot_de_passe: '' // Never pre-fill password
+        role_id: props.user.role?.id || ''
       }
     } else {
       // Reset form for creating
@@ -316,7 +290,6 @@ watch(() => props.isOpen, async (isOpen) => {
         nom_utilisateur: '',
         email: '',
         telephone: '',
-        mot_de_passe: '',
         role_id: ''
       }
     }
@@ -327,7 +300,6 @@ watch(() => props.isOpen, async (isOpen) => {
       nom_utilisateur: '',
       email: '',
       telephone: '',
-      mot_de_passe: '',
       role_id: ''
     }
     errors.value = {}

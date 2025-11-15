@@ -247,7 +247,7 @@ export interface CreateUserRequest {
   nom_utilisateur: string
   email?: string | null
   telephone?: string | null
-  mot_de_passe: string
+  mot_de_passe?: string
   type?: string
   role_id?: string
 }
