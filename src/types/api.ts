@@ -336,3 +336,81 @@ export interface ApiSirenModelsListResponse {
     pagination?: ApiPagination
   }
 }
+
+export interface ApiSirenModelResponse {
+  success: boolean
+  message?: string
+  data?: ApiSirenModel
+}
+
+export interface CreateSirenModelRequest {
+  model_name: string
+  model_code: string
+  description?: string | null
+}
+
+export interface UpdateSirenModelRequest {
+  model_name?: string
+  model_code?: string
+  description?: string | null
+}
+
+// ==================== Affectation & Panne ====================
+
+export interface AffecterSirenRequest {
+  ecole_id?: string
+  date_affectation?: string
+  notes?: string | null
+}
+
+export interface DeclarerPanneRequest {
+  description: string
+  date_panne?: string
+  gravite?: string // 'faible', 'moyenne', 'elevee'
+}
+
+// ==================== Programmations ====================
+
+export interface ApiProgrammation {
+  id: string
+  sirene_id: string
+  nom: string
+  heure_debut: string
+  heure_fin?: string | null
+  jours_semaine?: string[] | null // ['lundi', 'mardi', ...]
+  actif: boolean
+  created_at?: string
+  updated_at?: string
+  deleted_at?: string | null
+}
+
+export interface CreateProgrammationRequest {
+  nom: string
+  heure_debut: string
+  heure_fin?: string | null
+  jours_semaine?: string[] | null
+  actif?: boolean
+}
+
+export interface UpdateProgrammationRequest {
+  nom?: string
+  heure_debut?: string
+  heure_fin?: string | null
+  jours_semaine?: string[] | null
+  actif?: boolean
+}
+
+export interface ApiProgrammationsListResponse {
+  success: boolean
+  message?: string
+  data?: {
+    programmations: ApiProgrammation[]
+    pagination?: ApiPagination
+  }
+}
+
+export interface ApiProgrammationResponse {
+  success: boolean
+  message?: string
+  data?: ApiProgrammation
+}

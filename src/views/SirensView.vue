@@ -64,18 +64,18 @@
           </div>
 
           <h3 class="text-lg font-bold text-gray-900 mb-1">
-            {{ siren.serial_number }}
+            {{ siren.serial_number || 'N/A' }}
           </h3>
-          <p class="text-sm text-gray-600 mb-4">{{ siren.siren_models.model_name }}</p>
+          <p class="text-sm text-gray-600 mb-4">{{ siren.siren_models?.model_name || 'Modèle inconnu' }}</p>
 
           <div class="space-y-2 text-sm">
             <div class="flex items-center gap-2 text-gray-600">
               <Package :size="16" class="text-gray-400" />
-              <span>Modèle: {{ siren.siren_models.model_code }}</span>
+              <span>Modèle: {{ siren.siren_models?.model_code || 'N/A' }}</span>
             </div>
             <div class="flex items-center gap-2 text-gray-600">
               <Calendar :size="16" class="text-gray-400" />
-              <span>Fabriquée le {{ formatDate(siren.manufacturing_date) }}</span>
+              <span>Fabriquée le {{ formatDate(siren.date_fabrication) }}</span>
             </div>
           </div>
 
@@ -119,22 +119,10 @@ import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import SirenFormModal from '../components/sirens/SirenFormModal.vue'
 import { Bell, Package, Calendar, Plus, Edit } from 'lucide-vue-next'
+import { useSirens } from '@/composables/useSirens'
 import type { ApiSiren } from '@/types/api'
 
-interface Siren {
-  id: string
-  serial_number: string
-  manufacturing_date: string
-  status: string
-  notes: string | null
-  siren_models: {
-    model_name: string
-    model_code: string
-  }
-}
-
-const sirens = ref<Siren[]>([])
-const loading = ref(true)
+const { sirens, loading, loadSirens } = useSirens()
 const filterStatus = ref('all')
 const isModalOpen = ref(false)
 const selectedSiren = ref<ApiSiren | null>(null)
@@ -155,84 +143,29 @@ const statusLabels: Record<string, string> = {
   available: 'Disponible',
 }
 
-const stats = computed(() => [
-  { label: 'Total', count: sirens.value.length, color: 'from-blue-500 to-blue-600' },
-  { label: 'En stock', count: sirens.value.filter(s => s.status === 'in_stock' || s.status === 'available').length, color: 'from-cyan-500 to-cyan-600' },
-  { label: 'Installées', count: sirens.value.filter(s => s.status === 'installed').length, color: 'from-green-500 to-green-600' },
-  { label: 'Maintenance', count: sirens.value.filter(s => s.status === 'maintenance').length, color: 'from-orange-500 to-orange-600' },
-])
+const stats = computed(() => {
+  const totalSirens = sirens.value.length
+  const enStock = sirens.value.filter(s => s.status === 'in_stock' || s.status === 'available').length
+  const installees = sirens.value.filter(s => s.status === 'installed').length
+  const maintenance = sirens.value.filter(s => s.status === 'maintenance').length
+
+  return [
+    { label: 'Total', count: totalSirens, color: 'from-blue-500 to-blue-600' },
+    { label: 'En stock', count: enStock, color: 'from-cyan-500 to-cyan-600' },
+    { label: 'Installées', count: installees, color: 'from-green-500 to-green-600' },
+    { label: 'Maintenance', count: maintenance, color: 'from-orange-500 to-orange-600' },
+  ]
+})
 
 const filteredSirens = computed(() => {
-  return sirens.value.filter(siren =>
-    filterStatus.value === 'all' || siren.status === filterStatus.value
-  )
+  if (filterStatus.value === 'all') {
+    return sirens.value
+  }
+  return sirens.value.filter(siren => siren.status === filterStatus.value)
 })
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('fr-FR')
-}
-
-const fetchSirens = async () => {
-  setTimeout(() => {
-    sirens.value = [
-      {
-        id: '1',
-        serial_number: 'SRN-2024-001',
-        manufacturing_date: '2024-01-10',
-        status: 'available',
-        notes: null,
-        siren_models: {
-          model_name: 'SchoolBell Pro',
-          model_code: 'SBP-100',
-        },
-      },
-      {
-        id: '2',
-        serial_number: 'SRN-2024-002',
-        manufacturing_date: '2024-01-15',
-        status: 'installed',
-        notes: 'Installée à École Wemtenga',
-        siren_models: {
-          model_name: 'SchoolBell Pro',
-          model_code: 'SBP-100',
-        },
-      },
-      {
-        id: '3',
-        serial_number: 'SRN-2024-003',
-        manufacturing_date: '2024-02-01',
-        status: 'installed',
-        notes: 'Installée au Lycée Municipal',
-        siren_models: {
-          model_name: 'EduAlert Max',
-          model_code: 'EAM-200',
-        },
-      },
-      {
-        id: '4',
-        serial_number: 'SRN-2024-004',
-        manufacturing_date: '2024-02-10',
-        status: 'maintenance',
-        notes: 'En réparation',
-        siren_models: {
-          model_name: 'SchoolBell Pro',
-          model_code: 'SBP-100',
-        },
-      },
-      {
-        id: '5',
-        serial_number: 'SRN-2024-005',
-        manufacturing_date: '2024-03-05',
-        status: 'available',
-        notes: null,
-        siren_models: {
-          model_name: 'EduAlert Max',
-          model_code: 'EAM-200',
-        },
-      },
-    ]
-    loading.value = false
-  }, 500)
 }
 
 const openCreateModal = () => {
@@ -240,17 +173,8 @@ const openCreateModal = () => {
   isModalOpen.value = true
 }
 
-const openEditModal = (siren: Siren) => {
-  // Convert local Siren to ApiSiren format
-  selectedSiren.value = {
-    id: siren.id,
-    modele_id: '', // This would need to be fetched from the API
-    serial_number: siren.serial_number,
-    date_fabrication: siren.manufacturing_date,
-    status: siren.status,
-    notes: siren.notes,
-    siren_models: siren.siren_models,
-  } as ApiSiren
+const openEditModal = (siren: ApiSiren) => {
+  selectedSiren.value = siren
   isModalOpen.value = true
 }
 
@@ -259,17 +183,17 @@ const closeModal = () => {
   selectedSiren.value = null
 }
 
-const handleSirenCreated = () => {
+const handleSirenCreated = async () => {
   closeModal()
-  fetchSirens()
+  await loadSirens()
 }
 
-const handleSirenUpdated = () => {
+const handleSirenUpdated = async () => {
   closeModal()
-  fetchSirens()
+  await loadSirens()
 }
 
-onMounted(() => {
-  fetchSirens()
+onMounted(async () => {
+  await loadSirens()
 })
 </script>
