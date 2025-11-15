@@ -243,13 +243,22 @@ export interface ApiUserDetailResponse {
   data?: ApiUserData
 }
 
+// Format avec userInfoData imbriqué (nouveau format backend)
+export interface UserInfoData {
+  nom: string
+  prenom: string
+  telephone: string
+}
+
 export interface CreateUserRequest {
-  nom_utilisateur: string
+  nom_utilisateur?: string
   email?: string | null
   telephone?: string | null
   mot_de_passe?: string
   type?: string
   role_id?: string
+  // Nouveau format avec userInfoData
+  userInfoData?: UserInfoData
 }
 
 export interface UpdateUserRequest {
@@ -258,6 +267,8 @@ export interface UpdateUserRequest {
   telephone?: string | null
   type?: string
   role_id?: string
+  // Nouveau format avec userInfoData
+  userInfoData?: UserInfoData
 }
 
 export interface UpdateProfileRequest {

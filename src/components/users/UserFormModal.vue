@@ -147,7 +147,6 @@ import roleService, { type Role } from '@/services/roleService'
 import type { ApiUserData, CreateUserRequest, UpdateUserRequest } from '@/types/api'
 import type { ApiAxiosError } from '@/types/api'
 import { useNotificationStore } from '@/stores/notifications'
-import { transformUserPayload, type UserPayloadWithUserInfoData } from '@/utils'
 
 interface Props {
   isOpen: boolean
@@ -168,7 +167,16 @@ const { createUser, updateUser } = useUsers()
 
 const isEditMode = computed(() => !!props.user)
 
-const formData = ref<UserPayloadWithUserInfoData>({
+interface FormData {
+  role_id?: string
+  userInfoData: {
+    nom: string
+    prenom: string
+    telephone: string
+  }
+}
+
+const formData = ref<FormData>({
   role_id: '',
   userInfoData: {
     nom: '',
@@ -224,15 +232,15 @@ const handleSubmit = async () => {
   loading.value = true
 
   try {
-    // Transformer le payload au format attendu par le backend
-    const transformedPayload = transformUserPayload(formData.value)
-
     if (isEditMode.value && props.user) {
-      // Update existing user
+      // Update existing user - envoyer le format avec userInfoData
       const updateData: UpdateUserRequest = {
-        nom_utilisateur: transformedPayload.nom_utilisateur,
-        telephone: transformedPayload.telephone,
-        role_id: transformedPayload.role_id
+        role_id: formData.value.role_id || undefined,
+        userInfoData: {
+          nom: formData.value.userInfoData.nom,
+          prenom: formData.value.userInfoData.prenom,
+          telephone: formData.value.userInfoData.telephone
+        }
       }
 
       const response = await updateUser(props.user.id, updateData)
@@ -242,11 +250,14 @@ const handleSubmit = async () => {
         close()
       }
     } else {
-      // Create new user
+      // Create new user - envoyer le format avec userInfoData
       const createData: CreateUserRequest = {
-        nom_utilisateur: transformedPayload.nom_utilisateur,
-        telephone: transformedPayload.telephone,
-        role_id: transformedPayload.role_id
+        role_id: formData.value.role_id || undefined,
+        userInfoData: {
+          nom: formData.value.userInfoData.nom,
+          prenom: formData.value.userInfoData.prenom,
+          telephone: formData.value.userInfoData.telephone
+        }
       }
 
       const response = await createUser(createData)
