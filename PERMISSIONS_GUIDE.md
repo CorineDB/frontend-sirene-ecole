@@ -30,10 +30,10 @@ const {
   hasAllPermissions,    // Vérifier toutes les permissions
   hasRole,              // Vérifier un rôle
   hasAnyRole,           // Vérifier au moins un rôle
-  isSuperAdmin,         // Est super admin ?
-  isAdmin,              // Est admin (super ou country) ?
-  isSchool,             // Est école ?
-  isTechnician,         // Est technicien ?
+  isAdmin,              // Est admin ?
+  isUser,               // Est utilisateur de base ?
+  isEcole,              // Est école ?
+  isTechnicien,         // Est technicien ?
 } = usePermissions()
 ```
 

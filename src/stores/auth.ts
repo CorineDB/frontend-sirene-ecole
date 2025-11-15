@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import authService, { type RequestOtpData, type VerifyOtpData, type ChangePasswordData } from '../services/authService'
+import type { ApiUser, ApiAxiosError } from '../types/api'
 import { AUTH_CONFIG } from '../config/api'
 import router from '../router'
 import { useNotificationStore } from './notifications'
@@ -58,7 +59,7 @@ const mapUserTypeToRole = (type: string): string => {
 /**
  * Transformer les données utilisateur de l'API vers le format frontend
  */
-const transformApiUser = (apiUser: any): User => {
+const transformApiUser = (apiUser: ApiUser): User => {
   return {
     id: apiUser.id,
     email: apiUser.email,
@@ -132,8 +133,9 @@ export const useAuthStore = defineStore('auth', () => {
         notificationStore.error('Erreur', response.message)
         return { success: false, message: response.message }
       }
-    } catch (err: any) {
-      const message = err.response?.data?.message || 'Erreur lors de la demande OTP'
+    } catch (err) {
+      const axiosError = err as ApiAxiosError
+      const message = axiosError.response?.data?.message || 'Erreur lors de la demande OTP'
       error.value = message
       const notificationStore = useNotificationStore()
       notificationStore.error('Erreur', message)
@@ -216,8 +218,9 @@ export const useAuthStore = defineStore('auth', () => {
         error.value = response.message
         return { success: false, message: response.message }
       }
-    } catch (err: any) {
-      const message = err.response?.data?.message || 'Code OTP invalide'
+    } catch (err) {
+      const axiosError = err as ApiAxiosError
+      const message = axiosError.response?.data?.message || 'Code OTP invalide'
       error.value = message
       const notificationStore = useNotificationStore()
       notificationStore.error('Erreur de connexion', message)
@@ -265,8 +268,9 @@ export const useAuthStore = defineStore('auth', () => {
         error.value = response.message
         return { success: false, message: response.message }
       }
-    } catch (err: any) {
-      const message = err.response?.data?.message || 'Erreur de connexion'
+    } catch (err) {
+      const axiosError = err as ApiAxiosError
+      const message = axiosError.response?.data?.message || 'Erreur de connexion'
       error.value = message
       return { success: false, message }
     } finally {
@@ -312,15 +316,16 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('✓ User successfully loaded and saved. isAuthenticated:', isAuthenticated.value)
       console.log('=== fetchUser() END SUCCESS ===')
       return { success: true }
-    } catch (err: any) {
+    } catch (err) {
+      const axiosError = err as ApiAxiosError
       console.error('=== fetchUser() ERROR ===')
-      console.error('Error type:', err.name)
-      console.error('Error message:', err.message)
-      console.error('HTTP Status:', err.response?.status)
-      console.error('Error response data:', err.response?.data)
-      console.error('Full error:', err)
+      console.error('Error type:', axiosError.name)
+      console.error('Error message:', axiosError.message)
+      console.error('HTTP Status:', axiosError.response?.status)
+      console.error('Error response data:', axiosError.response?.data)
+      console.error('Full error:', axiosError)
 
-      const message = err.response?.data?.message || 'Erreur lors du chargement du profil'
+      const message = axiosError.response?.data?.message || 'Erreur lors du chargement du profil'
       error.value = message
 
       // NE PAS appeler clearAuth() ici car on est en train de se connecter
@@ -365,8 +370,9 @@ export const useAuthStore = defineStore('auth', () => {
         error.value = response.message
         return { success: false, message: response.message }
       }
-    } catch (err: any) {
-      const message = err.response?.data?.message || 'Erreur lors du changement de mot de passe'
+    } catch (err) {
+      const axiosError = err as ApiAxiosError
+      const message = axiosError.response?.data?.message || 'Erreur lors du changement de mot de passe'
       error.value = message
       return { success: false, message }
     } finally {

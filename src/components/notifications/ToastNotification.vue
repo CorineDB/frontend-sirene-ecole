@@ -9,8 +9,11 @@
   >
     <div
       v-if="visible"
+      role="alert"
+      aria-live="polite"
+      aria-atomic="true"
       :class="[
-        'max-w-sm w-full rounded-lg shadow-lg pointer-events-auto overflow-hidden',
+        'w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg rounded-lg shadow-lg pointer-events-auto overflow-hidden',
         'border-l-4',
         colorClasses
       ]"
@@ -20,7 +23,12 @@
       <div class="p-4">
         <div class="flex items-start">
           <div class="flex-shrink-0">
-            <component :is="icon" :class="['w-6 h-6', iconColorClass]" />
+            <component
+              :is="icon"
+              :class="['w-6 h-6', iconColorClass]"
+              :aria-label="`Icône de ${notification.type}`"
+              role="img"
+            />
           </div>
           <div class="ml-3 w-0 flex-1 pt-0.5">
             <p class="text-sm font-semibold text-gray-900">
@@ -33,9 +41,10 @@
           <div class="ml-4 flex-shrink-0 flex">
             <button
               @click="close"
-              class="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none transition-colors"
+              class="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded transition-colors"
+              aria-label="Fermer la notification"
             >
-              <X :size="20" />
+              <X :size="20" aria-hidden="true" />
             </button>
           </div>
         </div>

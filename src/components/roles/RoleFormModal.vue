@@ -22,9 +22,10 @@
           </div>
           <button
             @click="close"
-            class="text-gray-400 hover:text-gray-600 transition-colors"
+            class="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+            aria-label="Fermer le modal"
           >
-            <X :size="24" />
+            <X :size="24" aria-hidden="true" />
           </button>
         </div>
 
@@ -41,10 +42,12 @@
               type="text"
               required
               placeholder="Ex: Administrateur"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus-visible:ring-2 focus-visible:ring-blue-600"
               :class="{ 'border-red-500': errors.nom }"
+              :aria-invalid="!!errors.nom"
+              :aria-describedby="errors.nom ? 'nom-error' : undefined"
             />
-            <p v-if="errors.nom" class="text-sm text-red-600 mt-1">{{ errors.nom }}</p>
+            <p v-if="errors.nom" id="nom-error" class="text-sm text-red-600 mt-1" role="alert">{{ errors.nom }}</p>
           </div>
 
           <!-- Description -->
@@ -57,10 +60,12 @@
               v-model="formData.description"
               rows="3"
               placeholder="Description du rôle et de ses responsabilités"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus-visible:ring-2 focus-visible:ring-blue-600 resize-none"
               :class="{ 'border-red-500': errors.description }"
+              :aria-invalid="!!errors.description"
+              :aria-describedby="errors.description ? 'description-error' : undefined"
             ></textarea>
-            <p v-if="errors.description" class="text-sm text-red-600 mt-1">{{ errors.description }}</p>
+            <p v-if="errors.description" id="description-error" class="text-sm text-red-600 mt-1" role="alert">{{ errors.description }}</p>
           </div>
 
           <!-- Permissions -->
@@ -140,6 +145,7 @@ import { ref, watch, computed } from 'vue'
 import { X } from 'lucide-vue-next'
 import roleService, { type Role, type Permission, type CreateRoleData, type UpdateRoleData } from '../../services/roleService'
 import { useNotificationStore } from '../../stores/notifications'
+import type { ApiAxiosError } from '../../types/api'
 
 interface Props {
   isOpen: boolean
@@ -191,8 +197,9 @@ const loadPermissions = async () => {
     if (response.success && response.data) {
       allPermissions.value = response.data
     }
-  } catch (error: any) {
-    console.error('Failed to load permissions:', error)
+  } catch (error) {
+    const axiosError = error as ApiAxiosError
+    console.error('Failed to load permissions:', axiosError)
     notificationStore.error('Erreur', 'Impossible de charger les permissions')
   } finally {
     loadingPermissions.value = false
@@ -253,14 +260,14 @@ const handleSubmit = async () => {
           await roleService.syncPermissions(props.role.id, selectedPermissions.value)
         }
         notificationStore.success('Rôle mis à jour', `Le rôle "${response.data.nom}" a été mis à jour avec succès`)
-        emit('updated', response.data)
         close()
+        emit('updated', response.data)
       } else {
         notificationStore.error('Erreur', response.message || 'Impossible de mettre à jour le rôle')
       }
     } else {
       // Create new role with permissions
-      const createData: any = {
+      const createData: CreateRoleData = {
         nom: formData.value.nom,
         slug: autoSlug,
         description: formData.value.description,
@@ -271,20 +278,21 @@ const handleSubmit = async () => {
 
       if (response.success && response.data) {
         notificationStore.success('Rôle créé', `Le rôle "${response.data.nom}" a été créé avec succès`)
-        emit('created', response.data)
         close()
+        emit('created', response.data)
       } else {
         notificationStore.error('Erreur', response.message || 'Impossible de créer le rôle')
       }
     }
-  } catch (error: any) {
-    console.error('Failed to save role:', error)
-    const message = error.response?.data?.message || (isEditMode.value ? 'Impossible de mettre à jour le rôle' : 'Impossible de créer le rôle')
+  } catch (error) {
+    const axiosError = error as ApiAxiosError
+    console.error('Failed to save role:', axiosError)
+    const message = axiosError.response?.data?.message || (isEditMode.value ? 'Impossible de mettre à jour le rôle' : 'Impossible de créer le rôle')
     notificationStore.error('Erreur', message)
 
     // Handle validation errors from backend
-    if (error.response?.data?.errors) {
-      errors.value = error.response.data.errors
+    if (axiosError.response?.data?.errors) {
+      errors.value = axiosError.response.data.errors
     }
   } finally {
     loading.value = false
@@ -292,21 +300,10 @@ const handleSubmit = async () => {
 }
 
 const close = () => {
-  // Reset all form states
-  formData.value = {
-    nom: '',
-    slug: '',
-    description: ''
-  }
-  errors.value = {}
-  selectedPermissions.value = []
-  loading.value = false
-  loadingPermissions.value = false
-
   emit('close')
 }
 
-// Watch for modal opening
+// Watch for modal opening/closing
 watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
     // Load permissions when modal opens
@@ -331,6 +328,17 @@ watch(() => props.isOpen, async (isOpen) => {
       selectedPermissions.value = []
     }
     errors.value = {}
+  } else {
+    // Reset all form states when modal closes
+    formData.value = {
+      nom: '',
+      slug: '',
+      description: ''
+    }
+    errors.value = {}
+    selectedPermissions.value = []
+    loading.value = false
+    loadingPermissions.value = false
   }
 })
 

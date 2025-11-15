@@ -123,6 +123,7 @@ import { ref, computed, watch } from 'vue'
 import { X, Search, Shield } from 'lucide-vue-next'
 import roleService, { type Role, type Permission } from '../../services/roleService'
 import { useNotificationStore } from '../../stores/notifications'
+import type { ApiAxiosError } from '../../types/api'
 
 interface Props {
   isOpen: boolean
@@ -189,10 +190,11 @@ const loadPermissions = async () => {
       console.error('API returned error:', response)
       notificationStore.error('Erreur', response.message || 'Impossible de charger les permissions')
     }
-  } catch (error: any) {
-    console.error('Failed to load permissions:', error)
-    console.error('Error details:', error.response?.data)
-    notificationStore.error('Erreur', error.response?.data?.message || 'Impossible de charger les permissions')
+  } catch (error) {
+    const axiosError = error as ApiAxiosError
+    console.error('Failed to load permissions:', axiosError)
+    console.error('Error details:', axiosError.response?.data)
+    notificationStore.error('Erreur', axiosError.response?.data?.message || 'Impossible de charger les permissions')
   } finally {
     loading.value = false
   }
@@ -212,9 +214,10 @@ const savePermissions = async () => {
     } else {
       notificationStore.error('Erreur', response.message || 'Impossible de mettre à jour les permissions')
     }
-  } catch (error: any) {
-    console.error('Failed to save permissions:', error)
-    notificationStore.error('Erreur', error.response?.data?.message || 'Impossible de mettre à jour les permissions')
+  } catch (error) {
+    const axiosError = error as ApiAxiosError
+    console.error('Failed to save permissions:', axiosError)
+    notificationStore.error('Erreur', axiosError.response?.data?.message || 'Impossible de mettre à jour les permissions')
   } finally {
     saving.value = false
   }

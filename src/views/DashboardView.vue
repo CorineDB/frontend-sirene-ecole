@@ -118,7 +118,7 @@ import {
 } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
-const { hasPermission, isAdmin, isSuperAdmin } = usePermissions()
+const { hasPermission, isAdmin } = usePermissions()
 
 const stats = ref({
   total_schools: 47,

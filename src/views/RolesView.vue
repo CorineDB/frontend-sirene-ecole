@@ -126,10 +126,11 @@ import Can from '../components/permissions/Can.vue'
 import { Shield, Plus, Check, Settings, Edit, Trash2 } from 'lucide-vue-next'
 import roleService, { type Role } from '../services/roleService'
 import { useNotificationStore } from '../stores/notifications'
+import { useAsyncAction } from '../composables/useAsyncAction'
 
 const notificationStore = useNotificationStore()
+const { loading, execute } = useAsyncAction()
 
-const loading = ref(false)
 const roles = ref<Role[]>([])
 
 const isFormModalOpen = ref(false)
@@ -148,19 +149,18 @@ const getRoleColor = (slug: string): string => {
 }
 
 const loadRoles = async () => {
-  loading.value = true
-  try {
-    const response = await roleService.getAllRoles()
-    if (response.success && response.data) {
-      roles.value = response.data
-    } else {
-      notificationStore.error('Erreur', response.message || 'Impossible de charger les rôles')
+  const response = await execute(
+    () => roleService.getAllRoles(),
+    {
+      errorTitle: 'Erreur',
+      errorMessage: 'Impossible de charger les rôles'
     }
-  } catch (error: any) {
-    console.error('Failed to load roles:', error)
-    notificationStore.error('Erreur', error.response?.data?.message || 'Impossible de charger les rôles')
-  } finally {
-    loading.value = false
+  )
+
+  if (response?.success && response.data) {
+    roles.value = response.data
+  } else if (response && !response.success) {
+    notificationStore.error('Erreur', response.message || 'Impossible de charger les rôles')
   }
 }
 
@@ -205,17 +205,19 @@ const confirmDelete = async (role: Role) => {
     return
   }
 
-  try {
-    const response = await roleService.deleteRole(role.id)
-    if (response.success) {
-      notificationStore.success('Rôle supprimé', `Le rôle "${role.nom}" a été supprimé`)
-      roles.value = roles.value.filter(r => r.id !== role.id)
-    } else {
-      notificationStore.error('Erreur', response.message || 'Impossible de supprimer le rôle')
+  const response = await execute(
+    () => roleService.deleteRole(role.id),
+    {
+      errorTitle: 'Erreur',
+      errorMessage: 'Impossible de supprimer le rôle'
     }
-  } catch (error: any) {
-    console.error('Failed to delete role:', error)
-    notificationStore.error('Erreur', error.response?.data?.message || 'Impossible de supprimer le rôle')
+  )
+
+  if (response?.success) {
+    notificationStore.success('Rôle supprimé', `Le rôle "${role.nom}" a été supprimé`)
+    roles.value = roles.value.filter(r => r.id !== role.id)
+  } else if (response && !response.success) {
+    notificationStore.error('Erreur', response.message || 'Impossible de supprimer le rôle')
   }
 }
 
