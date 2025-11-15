@@ -44,19 +44,18 @@
 
           <!-- Role Selection -->
           <div>
-            <label for="role_select" class="block text-sm font-semibold text-gray-700 mb-2">
+            <label for="role_select" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
               Sélectionner un nouveau rôle
+              <Loader2 v-if="loadingRoles" :size="16" class="animate-spin text-blue-600" aria-label="Chargement des rôles" />
             </label>
-            <div v-if="loadingRoles" class="text-center py-4">
-              <span class="text-gray-500">Chargement des rôles...</span>
-            </div>
             <select
-              v-else
               id="role_select"
               v-model="selectedRoleId"
+              :disabled="loadingRoles"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus-visible:ring-2 focus-visible:ring-blue-600"
+              :class="{ 'opacity-50 cursor-not-allowed': loadingRoles }"
             >
-              <option value="">Aucun rôle</option>
+              <option value="">{{ loadingRoles ? 'Chargement des rôles...' : 'Aucun rôle' }}</option>
               <option
                 v-for="role in availableRoles"
                 :key="role.id"
@@ -131,7 +130,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { X } from 'lucide-vue-next'
+import { X, Loader2 } from 'lucide-vue-next'
 import { useUsers } from '@/composables/useUsers'
 import roleService, { type Role } from '@/services/roleService'
 import type { ApiUserData } from '@/types/api'
