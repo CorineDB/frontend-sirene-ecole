@@ -1,4 +1,5 @@
 import apiClient from './api'
+import type { ApiAuthResponse, ApiMeResponse } from '../types/api'
 
 export interface RequestOtpData {
   telephone: string
@@ -20,16 +21,8 @@ export interface ChangePasswordData {
   nouveau_mot_de_passe_confirmation: string
 }
 
-export interface AuthResponse {
-  success: boolean
-  message: string
-  data?: {
-    access_token?: string
-    token_type?: string
-    expires_in?: number
-    user?: any
-  }
-}
+// Utilisation du type ApiAuthResponse depuis types/api.ts
+export type AuthResponse = ApiAuthResponse
 
 /**
  * Authentication Service
@@ -63,8 +56,8 @@ class AuthService {
   /**
    * Get current authenticated user
    */
-  async me(): Promise<any> {
-    const response = await apiClient.get('/auth/me')
+  async me(): Promise<ApiMeResponse> {
+    const response = await apiClient.get<ApiMeResponse>('/auth/me')
     return response.data
   }
 

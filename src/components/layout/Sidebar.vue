@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import {
@@ -54,7 +54,7 @@ import {
 interface NavItem {
   label: string
   to: string
-  icon: any
+  icon: Component
   roles: string[]
 }
 
