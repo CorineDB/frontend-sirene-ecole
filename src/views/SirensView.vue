@@ -6,6 +6,13 @@
           <h1 class="text-3xl font-bold text-gray-900">Sirènes</h1>
           <p class="text-gray-600 mt-1">Inventaire des sirènes</p>
         </div>
+        <button
+          @click="openCreateModal"
+          class="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all flex items-center gap-2"
+        >
+          <Plus :size="20" />
+          Ajouter une sirène
+        </button>
       </div>
 
       <!-- Statistics Cards -->
@@ -75,6 +82,16 @@
           <div v-if="siren.notes" class="mt-4 p-3 bg-gray-50 rounded-lg">
             <p class="text-xs text-gray-600">{{ siren.notes }}</p>
           </div>
+
+          <div class="mt-4 pt-4 border-t border-gray-200 flex items-center justify-end gap-2">
+            <button
+              @click="openEditModal(siren)"
+              class="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1"
+            >
+              <Edit :size="14" />
+              Modifier
+            </button>
+          </div>
         </div>
       </div>
 
@@ -85,13 +102,24 @@
         <p class="text-gray-600">Aucune sirène ne correspond à vos critères</p>
       </div>
     </div>
+
+    <!-- Siren Form Modal -->
+    <SirenFormModal
+      :is-open="isModalOpen"
+      :siren="selectedSiren"
+      @close="closeModal"
+      @created="handleSirenCreated"
+      @updated="handleSirenUpdated"
+    />
   </DashboardLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
-import { Bell, Package, Calendar } from 'lucide-vue-next'
+import SirenFormModal from '../components/sirens/SirenFormModal.vue'
+import { Bell, Package, Calendar, Plus, Edit } from 'lucide-vue-next'
+import type { ApiSiren } from '@/types/api'
 
 interface Siren {
   id: string
@@ -108,6 +136,8 @@ interface Siren {
 const sirens = ref<Siren[]>([])
 const loading = ref(true)
 const filterStatus = ref('all')
+const isModalOpen = ref(false)
+const selectedSiren = ref<ApiSiren | null>(null)
 
 const statusColors: Record<string, string> = {
   in_stock: 'bg-blue-100 text-blue-700',
@@ -203,6 +233,40 @@ const fetchSirens = async () => {
     ]
     loading.value = false
   }, 500)
+}
+
+const openCreateModal = () => {
+  selectedSiren.value = null
+  isModalOpen.value = true
+}
+
+const openEditModal = (siren: Siren) => {
+  // Convert local Siren to ApiSiren format
+  selectedSiren.value = {
+    id: siren.id,
+    modele_id: '', // This would need to be fetched from the API
+    serial_number: siren.serial_number,
+    date_fabrication: siren.manufacturing_date,
+    status: siren.status,
+    notes: siren.notes,
+    siren_models: siren.siren_models,
+  } as ApiSiren
+  isModalOpen.value = true
+}
+
+const closeModal = () => {
+  isModalOpen.value = false
+  selectedSiren.value = null
+}
+
+const handleSirenCreated = () => {
+  closeModal()
+  fetchSirens()
+}
+
+const handleSirenUpdated = () => {
+  closeModal()
+  fetchSirens()
 }
 
 onMounted(() => {
