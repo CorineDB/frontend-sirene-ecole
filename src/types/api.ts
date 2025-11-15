@@ -275,3 +275,64 @@ export interface ChangePasswordRequest {
 export interface AssignRoleRequest {
   role_id: string
 }
+
+// ==================== Sirènes ====================
+
+export interface ApiSirenModel {
+  id: string
+  model_name: string
+  model_code: string
+  description?: string | null
+  created_at?: string
+  updated_at?: string
+  deleted_at?: string | null
+}
+
+export interface ApiSiren {
+  id: string
+  modele_id: string
+  serial_number?: string
+  date_fabrication: string
+  status?: string
+  notes?: string | null
+  created_at?: string
+  updated_at?: string
+  deleted_at?: string | null
+  siren_models?: ApiSirenModel
+}
+
+export interface CreateSirenRequest {
+  modele_id: string
+  date_fabrication: string
+  notes?: string | null
+}
+
+export interface UpdateSirenRequest {
+  modele_id?: string
+  date_fabrication?: string
+  notes?: string | null
+}
+
+export interface ApiSirensListResponse {
+  success: boolean
+  message?: string
+  data?: {
+    sirens: ApiSiren[]
+    pagination?: ApiPagination
+  }
+}
+
+export interface ApiSirenResponse {
+  success: boolean
+  message?: string
+  data?: ApiSiren
+}
+
+export interface ApiSirenModelsListResponse {
+  success: boolean
+  message?: string
+  data?: {
+    models: ApiSirenModel[]
+    pagination?: ApiPagination
+  }
+}
