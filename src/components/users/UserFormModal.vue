@@ -305,8 +305,8 @@ watch(() => props.isOpen, async (isOpen) => {
       // Populate form with user data for editing
       formData.value = {
         nom_utilisateur: props.user.nom_utilisateur,
-        email: props.user.email || '',
-        telephone: props.user.telephone || '',
+        email: props.user.user_info?.email || props.user.email || '',
+        telephone: props.user.user_info?.telephone || props.user.telephone || '',
         role_id: props.user.role?.id || '',
         mot_de_passe: '' // Never pre-fill password
       }

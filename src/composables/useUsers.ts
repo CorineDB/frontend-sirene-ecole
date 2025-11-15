@@ -39,6 +39,8 @@ export function useUsers() {
 
     if (result?.success && result.data) {
       users.value = result.data.users || []
+      console.log('✅ Utilisateurs chargés:', users.value.length)
+
       if (result.data.pagination) {
         currentPage.value = result.data.pagination.current_page
         perPage.value = result.data.pagination.per_page
@@ -47,6 +49,8 @@ export function useUsers() {
       } else {
         totalUsers.value = result.data.users?.length || 0
       }
+    } else {
+      console.warn('Aucun utilisateur chargé - Vérifier la réponse API:', result)
     }
 
     return result

@@ -93,8 +93,12 @@
                 </div>
               </td>
               <td class="px-6 py-4">
-                <p v-if="user.email" class="text-sm text-gray-900">{{ user.email }}</p>
-                <p v-if="user.telephone" class="text-sm text-gray-600">{{ user.telephone }}</p>
+                <p v-if="user.user_info?.email || user.email" class="text-sm text-gray-900">
+                  {{ user.user_info?.email || user.email }}
+                </p>
+                <p v-if="user.user_info?.telephone || user.telephone" class="text-sm text-gray-600">
+                  {{ user.user_info?.telephone || user.telephone }}
+                </p>
               </td>
               <td class="px-6 py-4">
                 <span :class="`inline-block px-3 py-1 rounded-full text-xs font-semibold ${typeColors[user.type]}`">
