@@ -92,19 +92,16 @@
             <label for="role_id" class="block text-sm font-semibold text-gray-700 mb-2">
               Rôle
             </label>
-            <div v-if="loadingRoles" class="text-center py-4">
-              <span class="text-gray-500">Chargement des rôles...</span>
-            </div>
             <select
-              v-else
               id="role_id"
               v-model="formData.role_id"
+              :disabled="loadingRoles"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus-visible:ring-2 focus-visible:ring-blue-600"
-              :class="{ 'border-red-500': errors.role_id }"
+              :class="{ 'border-red-500': errors.role_id, 'opacity-50 cursor-not-allowed': loadingRoles }"
               :aria-invalid="!!errors.role_id"
               :aria-describedby="errors.role_id ? 'role-error' : undefined"
             >
-              <option value="">Aucun rôle</option>
+              <option value="">{{ loadingRoles ? 'Chargement des rôles...' : 'Aucun rôle' }}</option>
               <option
                 v-for="role in availableRoles"
                 :key="role.id"
