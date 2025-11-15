@@ -229,7 +229,7 @@ const typeLabels: Record<string, string> = {
 }
 
 const stats = computed(() => {
-  const usersByType = users.value.reduce((acc, user) => {
+  const usersByType = (users.value || []).reduce((acc, user) => {
     acc[user.type] = (acc[user.type] || 0) + 1
     return acc
   }, {} as Record<string, number>)

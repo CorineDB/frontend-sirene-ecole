@@ -38,14 +38,14 @@ export function useUsers() {
     )
 
     if (result?.success && result.data) {
-      users.value = result.data.users
+      users.value = result.data.users || []
       if (result.data.pagination) {
         currentPage.value = result.data.pagination.current_page
         perPage.value = result.data.pagination.per_page
         lastPage.value = result.data.pagination.last_page
         totalUsers.value = result.data.pagination.total
       } else {
-        totalUsers.value = result.data.users.length
+        totalUsers.value = result.data.users?.length || 0
       }
     }
 

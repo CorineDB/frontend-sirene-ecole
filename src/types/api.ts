@@ -162,18 +162,40 @@ export interface ApiPaginatedResponse<T> {
 
 // ==================== Users Management ====================
 
+export interface ApiUserInfo {
+  id: string
+  user_id: string
+  nom: string
+  prenom: string
+  telephone: string
+  email: string | null
+  ville_id: string | null
+  adresse: string | null
+  created_at?: string
+  updated_at?: string
+  deleted_at?: string | null
+}
+
 export interface ApiUserData {
   id: string
-  email: string | null
-  telephone: string | null
   nom_utilisateur: string
+  identifiant: string
   type: string // ADMIN, USER, ECOLE, TECHNICIEN
+  user_account_type_id: string | null
+  user_account_type_type: string | null
   role?: ApiRole
   role_id?: string
+  actif: boolean
+  statut: number
   doit_changer_mot_de_passe?: boolean
   mot_de_passe_change?: boolean
   created_at?: string
   updated_at?: string
+  deleted_at?: string | null
+  user_info?: ApiUserInfo
+  // Anciens champs pour compatibilité ascendante
+  email?: string | null
+  telephone?: string | null
 }
 
 export interface ApiUsersListResponse {
