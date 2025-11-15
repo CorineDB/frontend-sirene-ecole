@@ -260,8 +260,8 @@ const handleSubmit = async () => {
           await roleService.syncPermissions(props.role.id, selectedPermissions.value)
         }
         notificationStore.success('Rôle mis à jour', `Le rôle "${response.data.nom}" a été mis à jour avec succès`)
-        emit('updated', response.data)
         close()
+        emit('updated', response.data)
       } else {
         notificationStore.error('Erreur', response.message || 'Impossible de mettre à jour le rôle')
       }
@@ -278,8 +278,8 @@ const handleSubmit = async () => {
 
       if (response.success && response.data) {
         notificationStore.success('Rôle créé', `Le rôle "${response.data.nom}" a été créé avec succès`)
-        emit('created', response.data)
         close()
+        emit('created', response.data)
       } else {
         notificationStore.error('Erreur', response.message || 'Impossible de créer le rôle')
       }
