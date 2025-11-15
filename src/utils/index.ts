@@ -4,7 +4,7 @@
 
 export {
   transformUserPayload,
-  transformUserPayloadStrict,
   transformUserPayloadBatch,
-  type UserPayloadWithUserInfoData
+  type UserPayloadWithUserInfoData,
+  type TransformedUserPayload
 } from './userPayloadTransformer'
