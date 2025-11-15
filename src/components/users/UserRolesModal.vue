@@ -47,16 +47,14 @@
             <label for="role_select" class="block text-sm font-semibold text-gray-700 mb-2">
               Sélectionner un nouveau rôle
             </label>
-            <div v-if="loadingRoles" class="text-center py-4">
-              <span class="text-gray-500">Chargement des rôles...</span>
-            </div>
             <select
-              v-else
               id="role_select"
               v-model="selectedRoleId"
+              :disabled="loadingRoles"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus-visible:ring-2 focus-visible:ring-blue-600"
+              :class="{ 'opacity-50 cursor-not-allowed': loadingRoles }"
             >
-              <option value="">Aucun rôle</option>
+              <option value="">{{ loadingRoles ? 'Chargement des rôles...' : 'Aucun rôle' }}</option>
               <option
                 v-for="role in availableRoles"
                 :key="role.id"
