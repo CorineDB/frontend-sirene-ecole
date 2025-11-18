@@ -42,21 +42,8 @@ export function useSirens() {
     //console.log(result.data);
 
     if (result?.success && result.data) {
-      /* sirens.value = result.data.sirens || []
-      console.log('✅ Sirènes chargées:', sirens.value.length, sirens.value)
-
-      if (result.data.pagination) {
-        currentPage.value = result.data.pagination.current_page
-        perPage.value = result.data.pagination.per_page
-        lastPage.value = result.data.pagination.last_page
-        totalSirens.value = result.data.pagination.total
-      } else {
-        totalSirens.value = result.data.sirens?.length || 0
-      } */
-
-
       sirens.value = result.data.data || []
-      console.log('✅ Utilisateurs chargés:', sirens.value.length)
+      console.log('✅ Sirènes chargées:', sirens.value.length, sirens.value)
 
       // Adjust pagination parsing to match the provided API response format
       currentPage.value = result.data.current_page

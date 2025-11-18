@@ -105,19 +105,12 @@
         </p>
       </div>
 
-      <!-- Modal placeholder (will show alert for now) -->
-      <div v-if="formModalOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="formModalOpen = false">
-        <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4" @click.stop>
-          <h2 class="text-2xl font-bold text-gray-900 mb-4">Nouvelle école</h2>
-          <p class="text-gray-600 mb-4">Formulaire de création d'école (à implémenter)</p>
-          <button
-            @click="formModalOpen = false"
-            class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Fermer
-          </button>
-        </div>
-      </div>
+      <!-- École Form Modal -->
+      <EcoleFormModal
+        :is-open="formModalOpen"
+        @close="closeFormModal"
+        @created="handleEcoleCreated"
+      />
     </div>
   </DashboardLayout>
 </template>
@@ -126,7 +119,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
+import EcoleFormModal from '../components/schools/EcoleFormModal.vue'
 import { Building2, Plus, Search, MapPin, Phone, Mail } from 'lucide-vue-next'
+import ecoleService, { type Ecole } from '../services/ecoleService'
+import { useNotificationStore } from '../stores/notifications'
 
 interface School {
   id: string
@@ -140,6 +136,8 @@ interface School {
   status: string
   created_at: string
 }
+
+const notificationStore = useNotificationStore()
 
 const schools = ref<School[]>([])
 const loading = ref(true)
@@ -155,8 +153,11 @@ const typeColors: Record<string, string> = {
 }
 
 const statusColors: Record<string, string> = {
+  actif: 'bg-green-100 text-green-700',
   active: 'bg-green-100 text-green-700',
+  inactif: 'bg-gray-100 text-gray-700',
   inactive: 'bg-gray-100 text-gray-700',
+  suspendu: 'bg-red-100 text-red-700',
   suspended: 'bg-red-100 text-red-700',
 }
 
@@ -173,72 +174,59 @@ const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('fr-FR')
 }
 
+const closeFormModal = () => {
+  formModalOpen.value = false
+}
+
+const handleEcoleCreated = (ecole: Ecole) => {
+  // Reload schools after creation
+  fetchSchools()
+  closeFormModal()
+}
+
 const fetchSchools = async () => {
-  setTimeout(() => {
-    schools.value = [
-      {
-        id: '1',
-        name: 'École Primaire Wemtenga',
-        type: 'primaire',
-        phone: '+22670123456',
-        email: 'contact@wemtenga.bf',
-        address: '123 Avenue Kwame Nkrumah',
-        city: 'Ouagadougou',
-        region: 'Centre',
-        status: 'active',
-        created_at: '2024-01-15T10:00:00Z',
-      },
-      {
-        id: '2',
-        name: 'Lycée Municipal de Ouaga',
-        type: 'secondaire',
-        phone: '+22670234567',
-        email: 'contact@lycee-muni.bf',
-        address: '456 Boulevard de la Révolution',
-        city: 'Ouagadougou',
-        region: 'Centre',
-        status: 'active',
-        created_at: '2024-02-10T10:00:00Z',
-      },
-      {
-        id: '3',
-        name: 'Collège Sainte Marie',
-        type: 'secondaire',
-        phone: '+22670345678',
-        email: 'info@saintemarie.bf',
-        address: '789 Rue de la Paix',
-        city: 'Bobo-Dioulasso',
-        region: 'Hauts-Bassins',
-        status: 'active',
-        created_at: '2024-03-05T10:00:00Z',
-      },
-      {
-        id: '4',
-        name: 'École Maternelle Les Papillons',
-        type: 'maternelle',
-        phone: '+22670456789',
-        email: 'papillons@école.bf',
-        address: '12 Avenue de l\'Indépendance',
-        city: 'Koudougou',
-        region: 'Centre-Ouest',
-        status: 'active',
-        created_at: '2024-04-12T10:00:00Z',
-      },
-      {
-        id: '5',
-        name: 'Lycée Technique de Ouahigouya',
-        type: 'secondaire',
-        phone: '+22670567890',
-        email: 'technique@ouahigouya.bf',
-        address: '34 Route Nationale',
-        city: 'Ouahigouya',
-        region: 'Nord',
-        status: 'active',
-        created_at: '2024-05-20T10:00:00Z',
-      },
-    ]
+  loading.value = true
+  try {
+    const response = await ecoleService.getAll(100)
+    if (response.success && response.data?.data) {
+      // Map Ecole to School format
+      schools.value = response.data.data.map((ecole: Ecole) => ({
+        id: ecole.id,
+        name: ecole.nom,
+        type: ecole.types_etablissement[0] || 'primaire',
+        phone: ecole.telephone_contact,
+        email: ecole.email_contact || null,
+        address: ecole.sitePrincipal?.adresse || 'N/A',
+        city: ecole.sitePrincipal?.ville?.nom || 'N/A',
+        region: ecole.sitePrincipal?.ville?.pays?.nom || 'N/A',
+        status: ecole.statut,
+        created_at: ecole.created_at || new Date().toISOString(),
+      }))
+    } else {
+      // Use mock data if API fails
+      schools.value = [
+        {
+          id: '1',
+          name: 'École Primaire Wemtenga',
+          type: 'primaire',
+          phone: '+22670123456',
+          email: 'contact@wemtenga.bf',
+          address: '123 Avenue Kwame Nkrumah',
+          city: 'Ouagadougou',
+          region: 'Centre',
+          status: 'actif',
+          created_at: '2024-01-15T10:00:00Z',
+        },
+      ]
+    }
+  } catch (error: any) {
+    console.error('Failed to load schools:', error)
+    notificationStore.error('Erreur', 'Impossible de charger les écoles')
+    // Use mock data on error
+    schools.value = []
+  } finally {
     loading.value = false
-  }, 500)
+  }
 }
 
 onMounted(() => {

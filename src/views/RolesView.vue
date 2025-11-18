@@ -191,6 +191,7 @@ const closePermissionsModal = () => {
 
 const handleRoleCreated = (role: Role) => {
   roles.value.push(role)
+  closeFormModal()
 }
 
 const handleRoleUpdated = (updatedRole: Role) => {
@@ -198,6 +199,7 @@ const handleRoleUpdated = (updatedRole: Role) => {
   if (index !== -1) {
     roles.value[index] = updatedRole
   }
+  closeFormModal()
 }
 
 const confirmDelete = async (role: Role) => {

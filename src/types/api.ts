@@ -334,14 +334,14 @@ export interface ApiSiren {
   modele_id: string
   ecole_id?: string | null // Added based on JSON
   site_id?: string | null // Added based on JSON
-  serial_number?: string
+  numero_serie?: string
   date_fabrication: string
   status?: 'en_stock' | 'reserve' | 'installe' | 'en_panne' | 'hors_service'
   notes?: string | null
   created_at?: string
   updated_at?: string
   deleted_at?: string | null
-  siren_models?: ApiSirenModel
+  modele_sirene?: ApiSirenModel // Added based on JSON
   ecole?: ApiEcole // Added based on JSON
   site?: ApiSite // Added based on JSON
 }
@@ -365,7 +365,7 @@ export interface ApiSirensListResponse {
   message?: string
   data?: {
     current_page: number
-    data: ApiUserData[] // This is the array of users
+    data: ApiSiren[] // This is the array of sirens
     first_page_url?: string
     from?: number | null
     last_page: number

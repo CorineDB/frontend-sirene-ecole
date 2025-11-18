@@ -58,14 +58,14 @@
           </div>
 
           <h3 class="text-lg font-bold text-gray-900 mb-1">
-            {{ siren.serial_number || 'N/A' }}
+            {{ siren.numero_serie || 'N/A' }}
           </h3>
-          <p class="text-sm text-gray-600 mb-4">{{ siren.siren_models?.nom || 'Modèle inconnu' }}</p>
+          <p class="text-sm text-gray-600 mb-4">{{ siren.modele_sirene?.nom || 'Modèle inconnu' }}</p>
 
           <div class="space-y-2 text-sm">
             <div class="flex items-center gap-2 text-gray-600">
               <Package :size="16" class="text-gray-400" />
-              <span>Modèle: {{ siren.siren_models?.reference || 'N/A' }}</span>
+              <span>Modèle: {{ siren.modele_sirene?.reference || 'N/A' }}</span>
             </div>
             <div class="flex items-center gap-2 text-gray-600">
               <Calendar :size="16" class="text-gray-400" />
@@ -83,8 +83,8 @@
               </div>
             </div>
             <!-- Specifications -->
-            <div v-if="siren.siren_models?.specifications && Object.keys(siren.siren_models.specifications).length > 0" class="space-y-1 mt-2">
-              <div v-for="(value, key) in siren.siren_models.specifications" :key="key" class="flex items-center gap-2 text-gray-600">
+            <div v-if="siren.modele_sirene?.specifications && Object.keys(siren.modele_sirene.specifications).length > 0" class="space-y-1 mt-2">
+              <div v-for="(value, key) in siren.modele_sirene?.specifications" :key="key" class="flex items-center gap-2 text-gray-600">
                 <ClipboardList :size="16" class="text-gray-400" />
                 <span class="font-semibold">{{ key }}:</span>
                 <span>{{ value }}</span>
@@ -107,29 +107,6 @@
               </button>
             </Can>
           </div>
-        </div>
-      </div>
-
-      <!-- Pagination -->
-      <div v-if="lastPage > 1" class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-        <p class="text-sm text-gray-600">
-          Page {{ currentPage }} sur {{ lastPage }} - Total: {{ totalSirens }} sirènes
-        </p>
-        <div class="flex gap-2">
-          <button
-            @click="handlePageChange(currentPage - 1)"
-            :disabled="currentPage === 1"
-            class="px-3 py-1 border border-gray-300 rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-          >
-            Précédent
-          </button>
-          <button
-            @click="handlePageChange(currentPage + 1)"
-            :disabled="currentPage === lastPage"
-            class="px-3 py-1 border border-gray-300 rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-          >
-            Suivant
-          </button>
         </div>
       </div>
 
@@ -161,7 +138,7 @@ import { Can } from '@/components/permissions'
 import { useSirens } from '@/composables/useSirens'
 import type { ApiSiren } from '@/types/api'
 
-const { sirens, loading, loadSirens, totalSirens, currentPage, lastPage } = useSirens()
+const { sirens, loading, loadSirens } = useSirens()
 const filterStatus = ref('all')
 const isModalOpen = ref(false)
 const selectedSiren = ref<ApiSiren | null>(null)
@@ -204,34 +181,19 @@ const closeModal = () => {
 
 const handleSirenCreated = async () => {
   closeModal()
-  await loadSirens({ status: filterStatus.value === 'all' ? undefined : filterStatus.value })
+  await loadSirens()
 }
 
 const handleSirenUpdated = async () => {
   closeModal()
-  await loadSirens({
-    page: currentPage.value,
-    status: filterStatus.value === 'all' ? undefined : filterStatus.value,
-  })
+  await loadSirens()
 }
 
-const handlePageChange = (page: number) => {
-  if (page > 0 && page <= lastPage.value) {
-    loadSirens({
-      page,
-      status: filterStatus.value === 'all' ? undefined : filterStatus.value,
-    })
-  }
-}
 
-watch(filterStatus, (newStatus) => {
-  loadSirens({
-    page: 1,
-    status: newStatus === 'all' ? undefined : newStatus,
-  })
-})
+
+
 
 onMounted(async () => {
-  await loadSirens({ status: filterStatus.value === 'all' ? undefined : filterStatus.value })
+  await loadSirens()
 })
 </script>

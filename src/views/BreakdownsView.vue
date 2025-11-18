@@ -80,7 +80,7 @@
             </div>
             <div v-if="breakdown.sirens" class="flex items-center gap-2 text-sm text-gray-600">
               <Bell :size="16" class="text-gray-400" />
-              <span>Sirène {{ breakdown.sirens.serial_number }}</span>
+              <span>Sirène {{ breakdown.sirens.numero_serie }}</span>
             </div>
           </div>
 
@@ -151,7 +151,7 @@ interface Breakdown {
     }
   }
   sirens: {
-    serial_number: string
+    numero_serie: string
   } | null
 }
 
@@ -238,7 +238,7 @@ const fetchBreakdowns = async () => {
           },
         },
         sirens: {
-          serial_number: 'SRN-2024-002',
+          numero_serie: 'SRN-2024-002',
         },
       },
       {
@@ -256,7 +256,7 @@ const fetchBreakdowns = async () => {
           },
         },
         sirens: {
-          serial_number: 'SRN-2024-003',
+          numero_serie: 'SRN-2024-003',
         },
       },
       {
@@ -306,7 +306,7 @@ const fetchBreakdowns = async () => {
           },
         },
         sirens: {
-          serial_number: 'SRN-2024-001',
+          numero_serie: 'SRN-2024-001',
         },
       },
     ]
