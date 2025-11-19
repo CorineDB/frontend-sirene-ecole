@@ -91,6 +91,35 @@
 
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">
+              Ville d'affectation <span class="text-red-600">*</span>
+            </label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <select
+                v-model="selectedPays"
+                @change="onPaysChange"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="">Sélectionner un pays</option>
+                <option v-for="p in pays" :key="p.id" :value="p.id">
+                  {{ p.nom }}
+                </option>
+              </select>
+              <select
+                v-model="formData.ville_id"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                :class="{ 'border-red-500': errors.ville_id }"
+              >
+                <option value="">Sélectionner une ville</option>
+                <option v-for="ville in villesFiltered" :key="ville.id" :value="ville.id">
+                  {{ ville.nom }}
+                </option>
+              </select>
+            </div>
+            <p v-if="errors.ville_id" class="text-sm text-red-600 mt-1">{{ errors.ville_id }}</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
               Adresse <span class="text-red-600">*</span>
             </label>
             <textarea
@@ -106,6 +135,19 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Date d'embauche <span class="text-red-600">*</span>
+              </label>
+              <input
+                v-model="formData.date_embauche"
+                type="date"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                :class="{ 'border-red-500': errors.date_embauche }"
+              />
+              <p v-if="errors.date_embauche" class="text-sm text-red-600 mt-1">{{ errors.date_embauche }}</p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
                 Spécialité <span class="text-red-600">*</span>
               </label>
               <input
@@ -117,23 +159,23 @@
               />
               <p v-if="errors.specialite" class="text-sm text-red-600 mt-1">{{ errors.specialite }}</p>
             </div>
+          </div>
 
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">
-                Disponibilité
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              Disponibilité
+            </label>
+            <div class="flex items-center h-12">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input
+                  v-model="formData.disponibilite"
+                  type="checkbox"
+                  class="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                />
+                <span class="text-sm font-medium text-gray-900">
+                  {{ formData.disponibilite ? 'Disponible' : 'Indisponible' }}
+                </span>
               </label>
-              <div class="flex items-center h-12">
-                <label class="flex items-center gap-3 cursor-pointer">
-                  <input
-                    v-model="formData.disponibilite"
-                    type="checkbox"
-                    class="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
-                  />
-                  <span class="text-sm font-medium text-gray-900">
-                    {{ formData.disponibilite ? 'Disponible' : 'Indisponible' }}
-                  </span>
-                </label>
-              </div>
             </div>
           </div>
         </div>
@@ -163,10 +205,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { X } from 'lucide-vue-next'
 import technicienService, { type InscriptionTechnicienRequest, type Technicien, type UpdateTechnicienRequest } from '../../services/technicienService'
 import villeService, { type Ville } from '../../services/villeService'
+import paysService, { type Pays } from '../../services/paysService'
 import { useNotificationStore } from '../../stores/notifications'
 
 interface Props {
@@ -187,7 +230,14 @@ const notificationStore = useNotificationStore()
 
 const loading = ref(false)
 const villes = ref<Ville[]>([])
+const pays = ref<Pays[]>([])
+const selectedPays = ref<string>('')
 const editMode = ref(false)
+
+const villesFiltered = computed(() => {
+  if (!selectedPays.value) return []
+  return villes.value.filter(v => v.pays_id === selectedPays.value)
+})
 
 const formData = ref<InscriptionTechnicienRequest>({
   user: {
@@ -199,8 +249,10 @@ const formData = ref<InscriptionTechnicienRequest>({
       adresse: ''
     }
   },
+  ville_id: '',
   specialite: '',
-  disponibilite: true
+  disponibilite: true,
+  date_embauche: new Date().toISOString().split('T')[0]
 })
 
 const errors = ref<Record<string, string>>({})
@@ -217,6 +269,23 @@ const loadVilles = async () => {
   }
 }
 
+const loadPays = async () => {
+  try {
+    const response = await paysService.getAllPays()
+    if (response.success && response.data) {
+      pays.value = response.data
+    }
+  } catch (error: any) {
+    console.error('Failed to load pays:', error)
+    notificationStore.error('Erreur', 'Impossible de charger les pays')
+  }
+}
+
+const onPaysChange = () => {
+  // Reset ville_id when pays changes
+  formData.value.ville_id = ''
+}
+
 
 const validateForm = (): boolean => {
   errors.value = {}
@@ -226,6 +295,8 @@ const validateForm = (): boolean => {
   if (!formData.value.user.userInfoData.telephone.trim()) errors.value['user.userInfoData.telephone'] = 'Le téléphone est requis'
   if (!formData.value.user.userInfoData.ville_id) errors.value['user.userInfoData.ville_id'] = 'La ville est requise'
   if (!formData.value.user.userInfoData.adresse.trim()) errors.value['user.userInfoData.adresse'] = 'L\'adresse est requise'
+  if (!formData.value.ville_id) errors.value.ville_id = 'La ville d\'affectation est requise'
+  if (!formData.value.date_embauche) errors.value.date_embauche = 'La date d\'embauche est requise'
   if (!formData.value.specialite.trim()) errors.value.specialite = 'La spécialité est requise'
 
   return Object.keys(errors.value).length === 0
@@ -297,10 +368,13 @@ const close = () => {
         adresse: ''
       }
     },
+    ville_id: '',
     specialite: '',
-    disponibilite: true
+    disponibilite: true,
+    date_embauche: new Date().toISOString().split('T')[0]
   }
   errors.value = {}
+  selectedPays.value = ''
   loading.value = false
   editMode.value = false
 
@@ -321,8 +395,17 @@ const initializeForm = () => {
           adresse: userInfo?.adresse || ''
         }
       },
+      ville_id: userInfo?.ville_id || '',
       specialite: props.technicien.specialite,
-      disponibilite: props.technicien.disponibilite
+      disponibilite: props.technicien.disponibilite,
+      date_embauche: props.technicien.date_embauche || new Date().toISOString().split('T')[0]
+    }
+    // Set selectedPays if ville_id is set
+    if (userInfo?.ville_id) {
+      const ville = villes.value.find(v => v.id === userInfo.ville_id)
+      if (ville) {
+        selectedPays.value = ville.pays_id
+      }
     }
   } else {
     editMode.value = false
@@ -331,15 +414,17 @@ const initializeForm = () => {
 
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
-    initializeForm()
+    loadPays()
     loadVilles()
+    setTimeout(() => initializeForm(), 100)
   }
 })
 
 onMounted(() => {
   if (props.isOpen) {
-    initializeForm()
+    loadPays()
     loadVilles()
+    setTimeout(() => initializeForm(), 100)
   }
 })
 </script>
