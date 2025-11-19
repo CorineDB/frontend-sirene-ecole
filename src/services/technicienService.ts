@@ -120,10 +120,10 @@ export interface PaginatedResponse<T> {
 
 class TechnicienService {
   /**
-   * Inscrire un nouveau technicien (public endpoint)
+   * Create a new technician
    */
   async inscrire(data: InscriptionTechnicienRequest): Promise<ApiResponse<Technicien>> {
-    const response = await apiClient.post('/techniciens/inscription', data)
+    const response = await apiClient.post('/techniciens/', data)
     return response.data
   }
 
