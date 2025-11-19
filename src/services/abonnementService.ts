@@ -80,6 +80,16 @@ class AbonnementService {
     const response = await apiClient.post(`/abonnements/${abonnementId}/annuler`)
     return response.data
   }
+
+  /**
+   * Télécharger le QR code d'un abonnement
+   */
+  async telechargerQrCode(abonnementId: string): Promise<Blob> {
+    const response = await apiClient.get(`/abonnements/${abonnementId}/qr-code`, {
+      responseType: 'blob'
+    })
+    return response.data
+  }
 }
 
 export default new AbonnementService()

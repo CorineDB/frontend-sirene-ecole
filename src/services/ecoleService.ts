@@ -120,11 +120,13 @@ export interface Ecole {
   statut: 'actif' | 'inactif' | 'suspendu'
   date_inscription: string
   sites?: Site[]
+  sites_annexe?: Site[]
+  site_principal?: Site
+  // Legacy - keep for backward compatibility
   sitePrincipal?: Site
   abonnements?: Abonnement[]
   abonnementsActifs?: Abonnement[]
   abonnementsEnAttente?: Abonnement[]
-  // Legacy - keep for backward compatibility
   abonnementActif?: Abonnement
   abonnement_actif?: Abonnement
   abonnement_en_attente?: Abonnement

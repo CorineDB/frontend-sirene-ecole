@@ -38,6 +38,7 @@ declare global {
 export interface CinetPayConfig {
   apiKey: string
   siteId: number
+  mode: 'TEST' | 'PRODUCTION'
   notifyUrl: string
   returnUrl: string
 }
@@ -115,12 +116,18 @@ class CinetPayService {
       throw new Error('CinetPay SDK not loaded')
     }
 
-    // Configure SDK
+    // Configure SDK avec le mode depuis la configuration backend
     window.CinetPay.setConfig({
       apikey: config.apiKey,
       site_id: config.siteId,
-      mode: 'PRODUCTION',
+      mode: config.mode,
       notify_url: config.notifyUrl,
+    })
+
+    console.log('CinetPay configuré:', {
+      site_id: config.siteId,
+      mode: config.mode,
+      notify_url: config.notifyUrl
     })
 
     // Return a promise that resolves when payment is complete
@@ -141,8 +148,8 @@ class CinetPayService {
         reject(new Error('Fenêtre de paiement fermée'))
       })
 
-      // Open payment checkout
-      window.CinetPay.getCheckout({
+      // Préparer les données pour le checkout
+      const checkoutData: any = {
         transaction_id: paymentData.transaction_id,
         amount: paymentData.amount,
         currency: paymentData.currency || 'XOF',
@@ -150,17 +157,44 @@ class CinetPayService {
         description: paymentData.description,
         customer_name: paymentData.customer_name,
         customer_surname: paymentData.customer_surname,
-        customer_email: paymentData.customer_email,
         customer_phone_number: paymentData.customer_phone_number,
-        customer_address: paymentData.customer_address,
-        customer_city: paymentData.customer_city,
-        customer_country: paymentData.customer_country,
-        customer_state: paymentData.customer_state,
-        customer_zip_code: paymentData.customer_zip_code,
-        metadata: paymentData.metadata ? JSON.stringify(paymentData.metadata) : undefined,
         lang: paymentData.lang || 'FR',
-        invoice_data: paymentData.invoice_data,
-      })
+      }
+
+      // Ajouter les champs optionnels uniquement s'ils existent
+      if (paymentData.customer_email) {
+        checkoutData.customer_email = paymentData.customer_email
+      }
+      if (paymentData.customer_address) {
+        checkoutData.customer_address = paymentData.customer_address
+      }
+      if (paymentData.customer_city) {
+        checkoutData.customer_city = paymentData.customer_city
+      }
+      if (paymentData.customer_country) {
+        checkoutData.customer_country = paymentData.customer_country
+      }
+      if (paymentData.customer_state) {
+        checkoutData.customer_state = paymentData.customer_state
+      }
+      if (paymentData.customer_zip_code) {
+        checkoutData.customer_zip_code = paymentData.customer_zip_code
+      }
+
+      // Metadata doit être une chaîne JSON
+      if (paymentData.metadata) {
+        checkoutData.metadata = JSON.stringify(paymentData.metadata)
+      }
+
+      // Invoice data - stringifier aussi pour éviter les problèmes
+      if (paymentData.invoice_data) {
+        checkoutData.invoice_data = paymentData.invoice_data
+      }
+
+      console.log('Données envoyées au SDK CinetPay:', checkoutData)
+
+      // Open payment checkout
+      window.CinetPay.getCheckout(checkoutData)
     })
   }
 
@@ -175,7 +209,7 @@ class CinetPayService {
   }
 
   /**
-   * Format phone number for CinetPay
+   * Format phone number for CinetPay (format international requis)
    */
   formatPhoneNumber(phone: string | undefined): string {
     if (!phone) {
@@ -185,9 +219,27 @@ class CinetPayService {
     // Remove spaces and special characters
     let cleaned = phone.replace(/[^0-9+]/g, '')
 
-    // Add + if missing
+    // Remove leading zeros
+    cleaned = cleaned.replace(/^0+/, '')
+
+    // Add Benin country code if no country code present
     if (!cleaned.startsWith('+')) {
-      cleaned = '+' + cleaned
+      if (cleaned.length === 8 || cleaned.length === 9) {
+        // Numéro béninois sans indicatif
+        cleaned = '+229' + cleaned
+      } else if (cleaned.startsWith('229') && cleaned.length === 11) {
+        // Avec 229 mais sans +
+        cleaned = '+' + cleaned
+      } else {
+        // Par défaut, ajouter juste +
+        cleaned = '+' + cleaned
+      }
+    }
+
+    // Valider le format final
+    if (cleaned.length < 10) {
+      console.warn('Phone number too short:', cleaned, '- using default')
+      return '+2290000000000'
     }
 
     return cleaned
@@ -200,6 +252,59 @@ class CinetPayService {
     const shortId = abonnementId.substring(0, 8).toUpperCase()
     const timestamp = Date.now()
     return `ABN-${shortId}-${timestamp}`
+  }
+
+  /**
+   * Simuler un paiement réussi (DEVELOPMENT ONLY)
+   * Simule un paiement accepté sans passer par CinetPay
+   */
+  async simulerPaiementReussi(paymentData: {
+    transaction_id: string
+    amount: number
+    metadata?: any
+  }): Promise<CinetPayResponse> {
+    console.log('🎭 SIMULATION: Paiement simulé', paymentData)
+
+    // Simuler un délai de traitement (2 secondes)
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    // Simuler une réponse acceptée de CinetPay
+    const simulatedResponse: CinetPayResponse = {
+      status: 'ACCEPTED',
+      amount: paymentData.amount,
+      currency: 'XOF',
+      transaction_id: paymentData.transaction_id,
+      payment_method: 'SIMULATED_MOBILE_MONEY',
+      description: 'Paiement simulé pour test',
+      metadata: paymentData.metadata,
+      operator_id: 'SIM_OPERATOR',
+      payment_date: new Date().toISOString(),
+    }
+
+    console.log('✅ SIMULATION: Paiement accepté', simulatedResponse)
+
+    // Envoyer la notification simulée au backend
+    try {
+      await apiClient.post('/cinetpay/notify', {
+        cpm_trans_id: paymentData.transaction_id,
+        cpm_trans_status: 'ACCEPTED',
+        cpm_amount: paymentData.amount,
+        cpm_currency: 'XOF',
+        cpm_payment_token: 'SIMULATED_TOKEN_' + Date.now(),
+        cpm_site_id: (await this.getConfig()).siteId,
+        payment_method: 'SIMULATED_MOBILE_MONEY',
+        cel_phone_num: '+2290000000000',
+        cpm_phone_prefixe: '229',
+        cpm_language: 'FR',
+        payment_date: new Date().toISOString(),
+        metadata: JSON.stringify(paymentData.metadata || {}),
+      })
+      console.log('📡 SIMULATION: Notification envoyée au backend')
+    } catch (error) {
+      console.error('❌ SIMULATION: Erreur envoi notification', error)
+    }
+
+    return simulatedResponse
   }
 }
 

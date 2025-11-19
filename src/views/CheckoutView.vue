@@ -50,7 +50,7 @@
               </div>
               <div class="flex items-center gap-2">
                 <MapPin :size="18" class="text-gray-400" />
-                <span class="text-sm text-gray-600">{{ ecole.sitePrincipal?.ville?.nom || 'N/A' }}</span>
+                <span class="text-sm text-gray-600">{{ site?.ville?.nom || 'N/A' }}</span>
               </div>
             </div>
           </div>
@@ -101,6 +101,60 @@
                 </div>
               </div>
 
+              <!-- Site Details -->
+              <div v-if="site" class="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                  <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <MapPin :size="24" class="text-blue-600" />
+                    Détails du site
+                  </h3>
+                </div>
+                <div class="p-6 space-y-4">
+                  <div>
+                    <p class="text-sm text-gray-500 mb-1">Nom du site</p>
+                    <p class="font-medium text-gray-900">{{ site.nom }}</p>
+                  </div>
+                  <div>
+                    <p class="text-sm text-gray-500 mb-1">Adresse</p>
+                    <p class="font-medium text-gray-900">{{ site.adresse }}</p>
+                  </div>
+                  <div v-if="site.ville">
+                    <p class="text-sm text-gray-500 mb-1">Ville</p>
+                    <p class="font-medium text-gray-900">{{ site.ville.nom }}</p>
+                  </div>
+
+                  <!-- Sirène Details -->
+                  <div v-if="site.sirene" class="pt-4 border-t border-gray-200">
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+                      <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                          <Bell :size="20" class="text-white" />
+                        </div>
+                        <div class="flex-1">
+                          <p class="text-xs text-purple-600 font-semibold">Sirène</p>
+                          <p class="text-base font-bold text-purple-900">{{ site.sirene.numero_serie }}</p>
+                        </div>
+                        <span
+                          :class="[
+                            'px-2 py-1 rounded-full font-semibold text-xs',
+                            site.sirene.statut === 'en_stock' ? 'bg-gray-100 text-gray-700' :
+                            site.sirene.statut === 'reserve' ? 'bg-yellow-100 text-yellow-700' :
+                            site.sirene.statut === 'installe' ? 'bg-green-100 text-green-700' :
+                            site.sirene.statut === 'en_panne' ? 'bg-red-100 text-red-700' :
+                            'bg-blue-100 text-blue-700'
+                          ]"
+                        >
+                          {{ site.sirene.statut?.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'N/A' }}
+                        </span>
+                      </div>
+                      <div v-if="site.sirene.modeleSirene || site.sirene.modele" class="text-xs text-gray-600">
+                        <span class="font-semibold">Modèle:</span> {{ site.sirene.modeleSirene?.nom || site.sirene.modele?.nom }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Payment Methods -->
               <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
                 <div class="p-6 border-b border-gray-200">
@@ -146,15 +200,26 @@
                     </div>
                   </div>
 
-                  <!-- Payment Button -->
-                  <button
-                    v-if="paymentUrl"
-                    @click="proceedToPayment"
-                    class="w-full mt-6 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg"
-                  >
-                    <Lock :size="20" />
-                    Payer maintenant
-                  </button>
+                  <!-- Payment Buttons -->
+                  <div class="space-y-3 mt-6">
+                    <!-- Real Payment Button -->
+                    <button
+                      @click="proceedToPayment"
+                      class="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg"
+                    >
+                      <Lock :size="20" />
+                      Payer maintenant
+                    </button>
+
+                    <!-- Simulate Payment Button (DEV ONLY) -->
+                    <button
+                      @click="simulateSuccessfulPayment"
+                      class="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold text-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg border-2 border-green-300"
+                    >
+                      🎭
+                      <span>Simuler paiement réussi (DEV)</span>
+                    </button>
+                  </div>
 
                   <!-- QR Code -->
                   <div v-if="abonnement.qr_code_path" class="mt-6 pt-6 border-t border-gray-200">
@@ -207,7 +272,7 @@ import { useRouter, useRoute } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import {
   Building2, Phone, Mail, MapPin, FileText, Calendar, CreditCard,
-  Smartphone, CheckCircle, Lock, Shield, Info, AlertCircle
+  Smartphone, CheckCircle, Lock, Shield, Info, AlertCircle, Bell
 } from 'lucide-vue-next'
 import ecoleService, { type Ecole, type Abonnement } from '../services/ecoleService'
 import { useNotificationStore } from '../stores/notifications'
@@ -218,6 +283,7 @@ const notificationStore = useNotificationStore()
 
 const ecole = ref<Ecole | null>(null)
 const abonnement = ref<Abonnement | null>(null)
+const site = ref<any | null>(null) // Site correspondant à l'abonnement
 const loading = ref(true)
 const error = ref<string | null>(null)
 const paymentUrl = ref<string | null>(null)
@@ -319,19 +385,45 @@ const loadData = async () => {
 
     // Find the abonnement from all sites' sirens
     let foundAbonnement = null
-    for (const site of ecole.value.sites || []) {
-      if (!site.sirene) continue
+    let foundSite = null
 
-      const sireneAbonnement = site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente
+    // Check principal site first
+    if (ecole.value.site_principal?.sirene) {
+      const sireneAbonnement = ecole.value.site_principal.sirene.abonnementEnAttente ||
+                              ecole.value.site_principal.sirene.abonnement_en_attente
       if (sireneAbonnement?.id === abonnementId) {
         foundAbonnement = sireneAbonnement
-        break
+        foundSite = ecole.value.site_principal
       }
 
-      const sireneAbonnementActif = site.sirene.abonnementActif || site.sirene.abonnement_actif
-      if (sireneAbonnementActif?.id === abonnementId) {
-        foundAbonnement = sireneAbonnementActif
-        break
+      if (!foundAbonnement) {
+        const sireneAbonnementActif = ecole.value.site_principal.sirene.abonnementActif ||
+                                     ecole.value.site_principal.sirene.abonnement_actif
+        if (sireneAbonnementActif?.id === abonnementId) {
+          foundAbonnement = sireneAbonnementActif
+          foundSite = ecole.value.site_principal
+        }
+      }
+    }
+
+    // Then check annexes sites
+    if (!foundAbonnement && ecole.value.sites_annexe) {
+      for (const siteAnnexe of ecole.value.sites_annexe) {
+        if (!siteAnnexe.sirene) continue
+
+        const sireneAbonnement = siteAnnexe.sirene.abonnementEnAttente || siteAnnexe.sirene.abonnement_en_attente
+        if (sireneAbonnement?.id === abonnementId) {
+          foundAbonnement = sireneAbonnement
+          foundSite = siteAnnexe
+          break
+        }
+
+        const sireneAbonnementActif = siteAnnexe.sirene.abonnementActif || siteAnnexe.sirene.abonnement_actif
+        if (sireneAbonnementActif?.id === abonnementId) {
+          foundAbonnement = sireneAbonnementActif
+          foundSite = siteAnnexe
+          break
+        }
       }
     }
 
@@ -341,6 +433,7 @@ const loadData = async () => {
     }
 
     abonnement.value = foundAbonnement
+    site.value = foundSite
     paymentUrl.value = getPaymentUrl(foundAbonnement.notes)
 
   } catch (err: any) {
@@ -382,31 +475,47 @@ const proceedToPayment = async () => {
     }
 
     // Préparer les données de paiement pour le SDK Seamless
-    const paymentData = {
+    const paymentData: any = {
       transaction_id: transactionId,
       amount: typeof abonnement.value.montant === 'string'
         ? parseInt(abonnement.value.montant)
         : abonnement.value.montant,
       currency: 'XOF',
       channels: 'ALL',
-      description: `Paiement abonnement sirène - ${abonnement.value.numero_abonnement}`,
-      customer_name: ecole.value.nom_complet || ecole.value.nom,
-      customer_surname: ecole.value.sitePrincipal?.nom || 'Site Principal',
-      customer_email: ecole.value.email_contact || 'noreply@sirene-ecole.com',
+      description: `Paiement abonnement sirene ${abonnement.value.numero_abonnement}`,
+      customer_name: ecole.value.responsable_nom || ecole.value.nom,
+      customer_surname: ecole.value.responsable_prenom || '',
       customer_phone_number: cinetpayService.formatPhoneNumber(ecole.value.telephone_contact),
-      customer_address: ecole.value.sitePrincipal?.adresse || 'N/A',
-      customer_city: ecole.value.sitePrincipal?.ville?.nom || 'N/A',
-      customer_country: ecole.value.sitePrincipal?.ville?.pays?.code_iso || 'BJ',
-      customer_state: ecole.value.sitePrincipal?.ville?.nom || 'N/A',
-      customer_zip_code: ecole.value.sitePrincipal?.ville?.pays?.indicatif_tel || '000',
-      metadata: metadata,
       lang: 'FR',
-      invoice_data: {
-        'Site': ecole.value.sitePrincipal?.nom || 'N/A',
-        'Période': `${formatDate(abonnement.value.date_debut)} - ${formatDate(abonnement.value.date_fin)}`,
-        'Reste à payer': formatMontant(abonnement.value.montant) + ' FCFA',
-      },
+      metadata: metadata,
     }
+
+    // Ajouter les champs optionnels seulement s'ils ont des valeurs valides
+    if (ecole.value.email_contact && ecole.value.email_contact.includes('@')) {
+      paymentData.customer_email = ecole.value.email_contact
+    }
+
+    if (site.value?.adresse) {
+      paymentData.customer_address = site.value.adresse
+    }
+
+    if (site.value?.ville?.nom) {
+      paymentData.customer_city = site.value.ville.nom
+      paymentData.customer_state = site.value.ville.nom
+    }
+
+    if (site.value?.ville?.pays?.code_iso) {
+      paymentData.customer_country = site.value.ville.pays.code_iso
+    }
+
+    // Invoice data simplifié
+    paymentData.invoice_data = {
+      Ecole: ecole.value.nom,
+      Abonnement: abonnement.value.numero_abonnement,
+      Periode: `${formatDate(abonnement.value.date_debut)} au ${formatDate(abonnement.value.date_fin)}`,
+    }
+
+    console.log('Payment data being sent to CinetPay:', paymentData)
 
     // Initier le paiement avec le SDK Seamless (modal sur la même page)
     const result = await cinetpayService.initierPaiement(paymentData)
@@ -435,6 +544,67 @@ const proceedToPayment = async () => {
     } else {
       notificationStore.error('Erreur', error.message || 'Impossible d\'initier le paiement')
     }
+  } finally {
+    loading.value = false
+  }
+}
+
+const simulateSuccessfulPayment = async () => {
+  if (!abonnement.value || !ecole.value) {
+    notificationStore.error('Erreur', 'Données manquantes')
+    return
+  }
+
+  try {
+    loading.value = true
+    notificationStore.info('Simulation', 'Simulation du paiement en cours...')
+
+    // Importer le service CinetPay
+    const cinetpayService = (await import('../services/cinetpayService')).default
+
+    // Générer l'ID de transaction
+    const transactionId = cinetpayService.generateTransactionId(abonnement.value.id)
+
+    // Préparer les métadonnées
+    const metadata = {
+      abonnement_id: abonnement.value.id,
+      numero_abonnement: abonnement.value.numero_abonnement,
+      ecole_id: ecole.value.id,
+      ecole_nom: ecole.value.nom,
+      site_id: abonnement.value.site_id,
+      sirene_id: abonnement.value.sirene_id,
+      date_debut: abonnement.value.date_debut,
+      date_fin: abonnement.value.date_fin,
+      montant: abonnement.value.montant,
+      type_paiement: 'ABONNEMENT_INITIAL',
+    }
+
+    // Simuler le paiement
+    const result = await cinetpayService.simulerPaiementReussi({
+      transaction_id: transactionId,
+      amount: typeof abonnement.value.montant === 'string'
+        ? parseInt(abonnement.value.montant)
+        : abonnement.value.montant,
+      metadata: metadata,
+    })
+
+    // Paiement simulé réussi
+    notificationStore.success('Simulation réussie', 'Paiement simulé avec succès ! L\'abonnement devrait être activé.')
+
+    // Rediriger vers la page de callback avec le statut
+    router.push({
+      path: '/paiement/callback',
+      query: {
+        status: 'success',
+        message: 'Paiement simulé avec succès',
+        transaction_id: result.transaction_id,
+        simulated: 'true'
+      }
+    })
+
+  } catch (error: any) {
+    console.error('Failed to simulate payment:', error)
+    notificationStore.error('Erreur', error.message || 'Impossible de simuler le paiement')
   } finally {
     loading.value = false
   }

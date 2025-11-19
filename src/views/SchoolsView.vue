@@ -196,9 +196,9 @@ const fetchSchools = async () => {
         type: ecole.types_etablissement[0] || 'primaire',
         phone: ecole.telephone_contact,
         email: ecole.email_contact || null,
-        address: ecole.sitePrincipal?.adresse || 'N/A',
-        city: ecole.sitePrincipal?.ville?.nom || 'N/A',
-        region: ecole.sitePrincipal?.ville?.pays?.nom || 'N/A',
+        address: ecole.site_principal?.adresse || 'N/A',
+        city: ecole.site_principal?.ville?.nom || 'N/A',
+        region: ecole.site_principal?.ville?.pays?.nom || 'N/A',
         status: ecole.statut,
         created_at: ecole.created_at || new Date().toISOString(),
       }))

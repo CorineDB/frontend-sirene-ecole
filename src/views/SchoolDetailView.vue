@@ -122,9 +122,9 @@
               <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <MapPin :size="20" class="text-blue-600" />
               </div>
-              <p class="text-sm text-gray-600">Total sites</p>
+              <p class="text-sm text-gray-600">Sites Annexes</p>
             </div>
-            <p class="text-3xl font-bold text-gray-900">{{ ecole.sites?.length || 0 }}</p>
+            <p class="text-3xl font-bold text-gray-900">{{ ecole.sites_annexe?.length || 0 }}</p>
           </div>
 
           <div class="bg-white rounded-xl p-6 border border-gray-200">
@@ -134,7 +134,7 @@
               </div>
               <p class="text-sm text-gray-600">Sirènes</p>
             </div>
-            <p class="text-3xl font-bold text-gray-900">{{ ecole.sites?.length || 0 }}</p>
+            <p class="text-3xl font-bold text-gray-900">{{ ecole.sites_annexe?.length || 0 }}</p>
           </div>
 
           <div class="bg-white rounded-xl p-6 border border-gray-200">
@@ -168,16 +168,218 @@
           </div>
         </div>
 
-        <!-- Tous les Sites (Principal + Annexes) -->
-        <div v-if="ecole.sites && ecole.sites.length > 0" class="bg-white rounded-xl border border-gray-200">
-          <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-cyan-50">
+        <!-- Site Principal -->
+        <div v-if="ecole.site_principal" class="bg-white rounded-xl border border-gray-200">
+          <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
             <div class="flex items-center justify-between">
               <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <MapPin :size="24" class="text-blue-600" />
-                Sites de l'école
+                <Building2 :size="24" class="text-blue-600" />
+                Site Principal
+              </h3>
+              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">
+                <Star :size="16" />
+                Principal
+              </span>
+            </div>
+          </div>
+
+          <div class="p-6">
+            <div
+              class="bg-white rounded-xl p-6 border-2 border-blue-300 bg-blue-50/30 hover:shadow-lg transition-all"
+            >
+              <!-- Header -->
+              <div class="flex items-start justify-between mb-4">
+                <div class="flex items-start gap-3 flex-1">
+                  <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Building2 :size="20" class="text-blue-600" />
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="font-bold text-gray-900 mb-1">{{ ecole.site_principal.nom }}</h4>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Details -->
+              <div class="space-y-3 mb-4">
+                <div class="flex items-start gap-2 text-sm">
+                  <MapPin :size="16" class="text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div class="flex-1">
+                    <p class="text-gray-600">{{ ecole.site_principal.adresse }}</p>
+                    <p v-if="ecole.site_principal.ville" class="text-gray-500 text-xs mt-1">
+                      {{ ecole.site_principal.ville.nom }}
+                    </p>
+                  </div>
+                </div>
+
+                <div v-if="ecole.site_principal.latitude && ecole.site_principal.longitude" class="flex items-center gap-2 text-sm text-gray-600">
+                  <Navigation :size="16" class="text-gray-400 flex-shrink-0" />
+                  <span class="font-mono text-xs">
+                    {{ Number(ecole.site_principal.latitude).toFixed(6) }}, {{ Number(ecole.site_principal.longitude).toFixed(6) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Sirène installée -->
+              <div
+                v-if="ecole.site_principal.sirene"
+                class="mt-4 pt-4 border-t border-gray-200 space-y-3"
+              >
+                <!-- Info Sirène -->
+                <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+                  <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Bell :size="20" class="text-white" />
+                    </div>
+                    <div class="flex-1">
+                      <p class="text-xs text-purple-600 font-semibold">Sirène installée</p>
+                      <p class="text-base font-bold text-purple-900">{{ ecole.site_principal.sirene.numero_serie }}</p>
+                    </div>
+                    <span
+                      :class="[
+                        'px-2 py-1 rounded-full font-semibold text-xs flex-shrink-0',
+                        ecole.site_principal.sirene.statut === 'en_stock' ? 'bg-gray-100 text-gray-700' :
+                        ecole.site_principal.sirene.statut === 'reserve' ? 'bg-yellow-100 text-yellow-700' :
+                        ecole.site_principal.sirene.statut === 'installe' ? 'bg-green-100 text-green-700' :
+                        ecole.site_principal.sirene.statut === 'en_panne' ? 'bg-red-100 text-red-700' :
+                        ecole.site_principal.sirene.statut === 'hors_service' ? 'bg-red-200 text-red-900' :
+                        'bg-blue-100 text-blue-700'
+                      ]"
+                    >
+                      {{ formatStatut(ecole.site_principal.sirene.statut) }}
+                    </span>
+                  </div>
+
+                  <div v-if="ecole.site_principal.sirene.modeleSirene || ecole.site_principal.sirene.modele" class="text-xs text-gray-600">
+                    <span class="font-semibold">Modèle:</span> {{ ecole.site_principal.sirene.modeleSirene?.nom || ecole.site_principal.sirene.modele?.nom }}
+                  </div>
+                </div>
+
+                <!-- Abonnement en attente -->
+                <div
+                  v-if="ecole.site_principal.sirene.abonnementEnAttente || ecole.site_principal.sirene.abonnement_en_attente"
+                  class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-4 border-2 border-amber-300"
+                >
+                  <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                      <Clock :size="18" class="text-amber-600" />
+                      <div>
+                        <p class="text-xs font-semibold text-amber-800">Abonnement en attente</p>
+                        <p class="text-xs text-gray-600 mt-0.5">
+                          {{ (ecole.site_principal.sirene.abonnementEnAttente || ecole.site_principal.sirene.abonnement_en_attente)?.numero_abonnement }}
+                        </p>
+                      </div>
+                    </div>
+                    <span class="px-2 py-1 bg-amber-200 text-amber-900 rounded-full font-semibold text-xs">
+                      EN ATTENTE
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-600">Montant:</span>
+                    <span class="font-bold text-amber-900">
+                      {{ formatMontant((ecole.site_principal.sirene.abonnementEnAttente || ecole.site_principal.sirene.abonnement_en_attente)?.montant) }} FCFA
+                    </span>
+                  </div>
+                  <div class="mt-3 flex gap-2">
+                    <button
+                      @click="goToCheckout(ecole.id, (ecole.site_principal.sirene.abonnementEnAttente || ecole.site_principal.sirene.abonnement_en_attente)!.id)"
+                      class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold transition-colors text-sm"
+                    >
+                      <CreditCard :size="16" />
+                      Payer maintenant
+                    </button>
+                    <button
+                      @click="partagerQrCode((ecole.site_principal.sirene.abonnementEnAttente || ecole.site_principal.sirene.abonnement_en_attente)!)"
+                      class="px-3 py-2 bg-white border-2 border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors text-sm"
+                      title="Partager le QR code"
+                    >
+                      <Share2 :size="16" />
+                    </button>
+                    <button
+                      @click="regenererQrCode((ecole.site_principal.sirene.abonnementEnAttente || ecole.site_principal.sirene.abonnement_en_attente)!.id)"
+                      :disabled="regeneratingQrCode[(ecole.site_principal.sirene.abonnementEnAttente || ecole.site_principal.sirene.abonnement_en_attente)!.id]"
+                      class="px-3 py-2 bg-white border-2 border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Régénérer le QR code"
+                    >
+                      <RefreshCw
+                        :size="16"
+                        :class="{ 'animate-spin': regeneratingQrCode[(ecole.site_principal.sirene.abonnementEnAttente || ecole.site_principal.sirene.abonnement_en_attente)!.id] }"
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Abonnement actif -->
+                <div
+                  v-else-if="ecole.site_principal.sirene.abonnementActif || ecole.site_principal.sirene.abonnement_actif"
+                  class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border-2 border-green-300"
+                >
+                  <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                      <CheckCircle :size="18" class="text-green-600" />
+                      <div>
+                        <p class="text-xs font-semibold text-green-800">Abonnement actif</p>
+                        <p class="text-xs text-gray-600 mt-0.5">
+                          {{ (ecole.site_principal.sirene.abonnementActif || ecole.site_principal.sirene.abonnement_actif)?.numero_abonnement }}
+                        </p>
+                      </div>
+                    </div>
+                    <span class="px-2 py-1 bg-green-200 text-green-900 rounded-full font-semibold text-xs">
+                      ACTIF
+                    </span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <p class="text-gray-500">Expire le:</p>
+                      <p class="font-semibold text-gray-900">
+                        {{ formatDate((ecole.site_principal.sirene.abonnementActif || ecole.site_principal.sirene.abonnement_actif)?.date_fin) }}
+                      </p>
+                    </div>
+                    <div>
+                      <p class="text-gray-500">Montant:</p>
+                      <p class="font-semibold text-green-900">
+                        {{ formatMontant((ecole.site_principal.sirene.abonnementActif || ecole.site_principal.sirene.abonnement_actif)?.montant) }} FCFA
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pas d'abonnement -->
+                <div v-else class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <div class="flex items-center gap-2">
+                    <AlertCircle :size="16" class="text-gray-400" />
+                    <span class="text-sm text-gray-600">Aucun abonnement</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- No Sirene -->
+              <div v-else class="mt-4 pt-4 border-t border-gray-200">
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200 flex items-center gap-2">
+                  <AlertCircle :size="16" class="text-gray-400" />
+                  <span class="text-sm text-gray-600">Aucune sirène installée</span>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <p class="text-xs text-gray-500">
+                  <span v-if="ecole.site_principal.created_at">Créé le {{ formatDate(ecole.site_principal.created_at) }}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sites Annexes -->
+        <div v-if="ecole.sites_annexe && ecole.sites_annexe.length > 0" class="bg-white rounded-xl border border-gray-200">
+          <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <MapPin :size="24" class="text-green-600" />
+                Sites Annexes
               </h3>
               <span class="text-sm font-semibold text-gray-600">
-                {{ ecole.sites.length }} site{{ ecole.sites.length > 1 ? 's' : '' }}
+                {{ ecole.sites_annexe.length }} site{{ ecole.sites_annexe.length > 1 ? 's' : '' }}
               </span>
             </div>
           </div>
@@ -185,38 +387,18 @@
           <div class="p-6">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div
-                v-for="site in ecole.sites"
+                v-for="site in ecole.sites_annexe"
                 :key="site.id"
-                class="bg-white rounded-xl p-6 border-2 hover:shadow-lg transition-all"
-                :class="site.est_principale ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'"
+                class="bg-white rounded-xl p-6 border-2 border-gray-200 hover:shadow-lg transition-all"
               >
                 <!-- Header -->
                 <div class="flex items-start justify-between mb-4">
                   <div class="flex items-start gap-3 flex-1">
-                    <div
-                      class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                      :class="site.est_principale ? 'bg-blue-100' : 'bg-green-100'"
-                    >
-                      <Building2
-                        :size="20"
-                        :class="site.est_principale ? 'text-blue-600' : 'text-green-600'"
-                      />
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Building2 :size="20" class="text-green-600" />
                     </div>
                     <div class="flex-1">
                       <h4 class="font-bold text-gray-900 mb-1">{{ site.nom }}</h4>
-                      <span
-                        v-if="site.est_principale"
-                        class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700"
-                      >
-                        <Star :size="12" />
-                        Site Principal
-                      </span>
-                      <span
-                        v-else
-                        class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700"
-                      >
-                        Site Annexe
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -257,17 +439,20 @@
                       <span
                         :class="[
                           'px-2 py-1 rounded-full font-semibold text-xs flex-shrink-0',
-                          site.sirene.statut === 'DISPONIBLE' ? 'bg-green-100 text-green-700' :
-                          site.sirene.statut === 'EN_SERVICE' ? 'bg-blue-100 text-blue-700' :
-                          'bg-red-100 text-red-700'
+                          site.sirene.statut === 'en_stock' ? 'bg-gray-100 text-gray-700' :
+                          site.sirene.statut === 'reserve' ? 'bg-yellow-100 text-yellow-700' :
+                          site.sirene.statut === 'installe' ? 'bg-green-100 text-green-700' :
+                          site.sirene.statut === 'en_panne' ? 'bg-red-100 text-red-700' :
+                          site.sirene.statut === 'hors_service' ? 'bg-red-200 text-red-900' :
+                          'bg-blue-100 text-blue-700'
                         ]"
                       >
-                        {{ site.sirene.statut }}
+                        {{ formatStatut(site.sirene.statut) }}
                       </span>
                     </div>
 
-                    <div v-if="site.sirene.modele" class="text-xs text-gray-600">
-                      <span class="font-semibold">Modèle:</span> {{ site.sirene.modele.nom }}
+                    <div v-if="site.sirene.modeleSirene || site.sirene.modele" class="text-xs text-gray-600">
+                      <span class="font-semibold">Modèle:</span> {{ site.sirene.modeleSirene?.nom || site.sirene.modele?.nom }}
                     </div>
                   </div>
 
@@ -427,17 +612,41 @@ const loading = ref(true)
 const regeneratingQrCode = ref<Record<string, boolean>>({})
 
 const activeSubscriptionsCount = computed(() => {
-  if (!ecole.value?.sites) return 0
-  return ecole.value.sites.filter(site =>
-    site.sirene && (site.sirene.abonnementActif || site.sirene.abonnement_actif)
-  ).length
+  let count = 0
+
+  // Count from principal site
+  if (ecole.value?.site_principal?.sirene &&
+      (ecole.value.site_principal.sirene.abonnementActif || ecole.value.site_principal.sirene.abonnement_actif)) {
+    count++
+  }
+
+  // Count from annexes
+  if (ecole.value?.sites_annexe) {
+    count += ecole.value.sites_annexe.filter(site =>
+      site.sirene && (site.sirene.abonnementActif || site.sirene.abonnement_actif)
+    ).length
+  }
+
+  return count
 })
 
 const pendingSubscriptionsCount = computed(() => {
-  if (!ecole.value?.sites) return 0
-  return ecole.value.sites.filter(site =>
-    site.sirene && (site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)
-  ).length
+  let count = 0
+
+  // Count from principal site
+  if (ecole.value?.site_principal?.sirene &&
+      (ecole.value.site_principal.sirene.abonnementEnAttente || ecole.value.site_principal.sirene.abonnement_en_attente)) {
+    count++
+  }
+
+  // Count from annexes
+  if (ecole.value?.sites_annexe) {
+    count += ecole.value.sites_annexe.filter(site =>
+      site.sirene && (site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)
+    ).length
+  }
+
+  return count
 })
 
 const formatDate = (dateString: string | undefined) => {
@@ -456,6 +665,15 @@ const formatMontant = (montant: number | string | undefined) => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(amount)
+}
+
+const formatStatut = (statut: string | undefined) => {
+  if (!statut) return 'N/A'
+  // Remplacer les underscores par des espaces et mettre en ucfirst
+  return statut
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
 }
 
 const loadEcole = async () => {
@@ -518,12 +736,10 @@ const partagerQrCode = async (abonnement: any) => {
       return
     }
 
-    const qrCodeUrl = `${getBackendUrl()}/storage/${abonnement.qr_code_path}`
     const checkoutUrl = `${window.location.origin}/checkout/${ecole.value?.id}/${abonnement.id}`
 
-    // Télécharger le QR code en blob
-    const response = await fetch(qrCodeUrl)
-    const blob = await response.blob()
+    // Télécharger le QR code via l'API (évite les problèmes CORS)
+    const blob = await abonnementService.telechargerQrCode(abonnement.id)
     const file = new File([blob], `qr-code-${abonnement.numero_abonnement}.png`, { type: 'image/png' })
 
     // Essayer d'utiliser l'API Web Share si disponible
