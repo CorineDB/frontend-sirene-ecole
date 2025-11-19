@@ -58,18 +58,47 @@
             </div>
           </div>
 
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">
-              Téléphone <span class="text-red-600">*</span>
-            </label>
-            <input
-              v-model="formData.user.userInfoData.telephone"
-              type="tel"
-              placeholder="Ex: 2290158810589"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              :class="{ 'border-red-500': errors['user.userInfoData.telephone'] }"
-            />
-            <p v-if="errors['user.userInfoData.telephone']" class="text-sm text-red-600 mt-1">{{ errors['user.userInfoData.telephone'] }}</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Pays <span class="text-red-600">*</span>
+              </label>
+              <select
+                v-model="selectedPaysContact"
+                @change="onPaysContactChange"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                :class="{ 'border-red-500': errors.pays_contact }"
+              >
+                <option value="">Sélectionner un pays</option>
+                <option v-for="p in pays" :key="p.id" :value="p.id">
+                  {{ p.nom }} ({{ p.code_iso }} {{ p.indicatif_tel }})
+                </option>
+              </select>
+              <p v-if="errors.pays_contact" class="text-sm text-red-600 mt-1">{{ errors.pays_contact }}</p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Téléphone <span class="text-red-600">*</span>
+              </label>
+              <div class="flex gap-2">
+                <input
+                  v-if="selectedPaysContactObj"
+                  type="text"
+                  :value="selectedPaysContactObj.indicatif_tel"
+                  disabled
+                  class="w-24 px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-semibold"
+                />
+                <input
+                  v-model="formData.user.userInfoData.telephone"
+                  type="tel"
+                  placeholder="Ex: 90158810589"
+                  class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  :class="{ 'border-red-500': errors['user.userInfoData.telephone'] }"
+                />
+              </div>
+              <p v-if="errors['user.userInfoData.telephone']" class="text-sm text-red-600 mt-1">{{ errors['user.userInfoData.telephone'] }}</p>
+            </div>
           </div>
 
           <div>
@@ -80,9 +109,10 @@
               v-model="formData.user.userInfoData.ville_id"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               :class="{ 'border-red-500': errors['user.userInfoData.ville_id'] }"
+              :disabled="!selectedPaysContact"
             >
-              <option value="">Sélectionner une ville</option>
-              <option v-for="ville in villes" :key="ville.id" :value="ville.id">
+              <option value="">{{ selectedPaysContact ? 'Sélectionner une ville' : 'Sélectionnez d\'abord un pays' }}</option>
+              <option v-for="ville in villesContactFiltered" :key="ville.id" :value="ville.id">
                 {{ ville.nom }}
               </option>
             </select>
@@ -232,11 +262,22 @@ const loading = ref(false)
 const villes = ref<Ville[]>([])
 const pays = ref<Pays[]>([])
 const selectedPays = ref<string>('')
+const selectedPaysContact = ref<string>('')
 const editMode = ref(false)
 
 const villesFiltered = computed(() => {
   if (!selectedPays.value) return []
   return villes.value.filter(v => v.pays_id === selectedPays.value)
+})
+
+const villesContactFiltered = computed(() => {
+  if (!selectedPaysContact.value) return []
+  return villes.value.filter(v => v.pays_id === selectedPaysContact.value)
+})
+
+const selectedPaysContactObj = computed(() => {
+  if (!selectedPaysContact.value) return null
+  return pays.value.find(p => p.id === selectedPaysContact.value) || null
 })
 
 const formData = ref<InscriptionTechnicienRequest>({
@@ -286,10 +327,16 @@ const onPaysChange = () => {
   formData.value.ville_id = ''
 }
 
+const onPaysContactChange = () => {
+  // Reset ville_id when pays contact changes
+  formData.value.user.userInfoData.ville_id = ''
+}
+
 
 const validateForm = (): boolean => {
   errors.value = {}
 
+  if (!selectedPaysContact.value) errors.value.pays_contact = 'Le pays est requis'
   if (!formData.value.user.userInfoData.nom.trim()) errors.value['user.userInfoData.nom'] = 'Le nom est requis'
   if (!formData.value.user.userInfoData.prenom.trim()) errors.value['user.userInfoData.prenom'] = 'Le prénom est requis'
   if (!formData.value.user.userInfoData.telephone.trim()) errors.value['user.userInfoData.telephone'] = 'Le téléphone est requis'
@@ -375,6 +422,7 @@ const close = () => {
   }
   errors.value = {}
   selectedPays.value = ''
+  selectedPaysContact.value = ''
   loading.value = false
   editMode.value = false
 
@@ -400,7 +448,14 @@ const initializeForm = () => {
       disponibilite: props.technicien.disponibilite,
       date_embauche: props.technicien.date_embauche || new Date().toISOString().split('T')[0]
     }
-    // Set selectedPays if ville_id is set
+    // Set selectedPaysContact if ville_id is set
+    if (userInfo?.ville_id) {
+      const villeContact = villes.value.find(v => v.id === userInfo.ville_id)
+      if (villeContact) {
+        selectedPaysContact.value = villeContact.pays_id
+      }
+    }
+    // Set selectedPays if ville_id is set for affectation
     if (userInfo?.ville_id) {
       const ville = villes.value.find(v => v.id === userInfo.ville_id)
       if (ville) {
