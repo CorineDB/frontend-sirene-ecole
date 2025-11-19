@@ -90,6 +90,14 @@ class AbonnementService {
     })
     return response.data
   }
+
+  /**
+   * Obtenir l'URL signée du QR code
+   */
+  async getQrCodeUrl(id: string): Promise<ApiResponse<{ qr_code_url: string, expires_at: string }>> {
+    const response = await apiClient.get(`/abonnements/${id}/qr-code-url`)
+    return response.data
+  }
 }
 
 export default new AbonnementService()

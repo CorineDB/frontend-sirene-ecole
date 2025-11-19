@@ -1,5 +1,5 @@
 <template>
-  <DashboardLayout>
+  <PublicLayout>
     <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
       <div class="max-w-2xl mx-auto">
         <!-- Success -->
@@ -73,13 +73,13 @@
         </div>
       </div>
     </div>
-  </DashboardLayout>
+  </PublicLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import DashboardLayout from '../components/layout/DashboardLayout.vue'
+import PublicLayout from '../components/layout/PublicLayout.vue'
 import { CheckCircle, Clock, AlertCircle } from 'lucide-vue-next'
 import cinetpayService from '../services/cinetpayService'
 import { useNotificationStore } from '../stores/notifications'
