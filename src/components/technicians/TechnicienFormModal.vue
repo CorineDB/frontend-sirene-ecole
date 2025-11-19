@@ -121,35 +121,6 @@
 
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">
-              Ville d'affectation <span class="text-red-600">*</span>
-            </label>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <select
-                v-model="selectedPays"
-                @change="onPaysChange"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="">Sélectionner un pays</option>
-                <option v-for="p in pays" :key="p.id" :value="p.id">
-                  {{ p.nom }}
-                </option>
-              </select>
-              <select
-                v-model="formData.ville_id"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                :class="{ 'border-red-500': errors.ville_id }"
-              >
-                <option value="">Sélectionner une ville</option>
-                <option v-for="ville in villesFiltered" :key="ville.id" :value="ville.id">
-                  {{ ville.nom }}
-                </option>
-              </select>
-            </div>
-            <p v-if="errors.ville_id" class="text-sm text-red-600 mt-1">{{ errors.ville_id }}</p>
-          </div>
-
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">
               Adresse <span class="text-red-600">*</span>
             </label>
             <textarea
@@ -261,14 +232,8 @@ const notificationStore = useNotificationStore()
 const loading = ref(false)
 const villes = ref<Ville[]>([])
 const pays = ref<Pays[]>([])
-const selectedPays = ref<string>('')
 const selectedPaysContact = ref<string>('')
 const editMode = ref(false)
-
-const villesFiltered = computed(() => {
-  if (!selectedPays.value) return []
-  return villes.value.filter(v => v.pays_id === selectedPays.value)
-})
 
 const villesContactFiltered = computed(() => {
   if (!selectedPaysContact.value) return []
@@ -290,7 +255,6 @@ const formData = ref<InscriptionTechnicienRequest>({
       adresse: ''
     }
   },
-  ville_id: '',
   specialite: '',
   disponibilite: true,
   date_embauche: new Date().toISOString().split('T')[0]
@@ -322,11 +286,6 @@ const loadPays = async () => {
   }
 }
 
-const onPaysChange = () => {
-  // Reset ville_id when pays changes
-  formData.value.ville_id = ''
-}
-
 const onPaysContactChange = () => {
   // Reset ville_id when pays contact changes
   formData.value.user.userInfoData.ville_id = ''
@@ -342,7 +301,6 @@ const validateForm = (): boolean => {
   if (!formData.value.user.userInfoData.telephone.trim()) errors.value['user.userInfoData.telephone'] = 'Le téléphone est requis'
   if (!formData.value.user.userInfoData.ville_id) errors.value['user.userInfoData.ville_id'] = 'La ville est requise'
   if (!formData.value.user.userInfoData.adresse.trim()) errors.value['user.userInfoData.adresse'] = 'L\'adresse est requise'
-  if (!formData.value.ville_id) errors.value.ville_id = 'La ville d\'affectation est requise'
   if (!formData.value.date_embauche) errors.value.date_embauche = 'La date d\'embauche est requise'
   if (!formData.value.specialite.trim()) errors.value.specialite = 'La spécialité est requise'
 
@@ -415,13 +373,11 @@ const close = () => {
         adresse: ''
       }
     },
-    ville_id: '',
     specialite: '',
     disponibilite: true,
     date_embauche: new Date().toISOString().split('T')[0]
   }
   errors.value = {}
-  selectedPays.value = ''
   selectedPaysContact.value = ''
   loading.value = false
   editMode.value = false
@@ -443,7 +399,6 @@ const initializeForm = () => {
           adresse: userInfo?.adresse || ''
         }
       },
-      ville_id: userInfo?.ville_id || '',
       specialite: props.technicien.specialite,
       disponibilite: props.technicien.disponibilite,
       date_embauche: props.technicien.date_embauche || new Date().toISOString().split('T')[0]
@@ -453,13 +408,6 @@ const initializeForm = () => {
       const villeContact = villes.value.find(v => v.id === userInfo.ville_id)
       if (villeContact) {
         selectedPaysContact.value = villeContact.pays_id
-      }
-    }
-    // Set selectedPays if ville_id is set for affectation
-    if (userInfo?.ville_id) {
-      const ville = villes.value.find(v => v.id === userInfo.ville_id)
-      if (ville) {
-        selectedPays.value = ville.pays_id
       }
     }
   } else {

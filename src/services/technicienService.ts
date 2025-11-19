@@ -81,7 +81,6 @@ export interface InscriptionTechnicienRequest {
   user: {
     userInfoData: UserInfoData
   }
-  ville_id: string
   specialite: string
   disponibilite: boolean
   date_embauche: string
