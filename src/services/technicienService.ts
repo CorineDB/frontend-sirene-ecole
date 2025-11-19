@@ -69,27 +69,25 @@ export interface Technicien {
   deleted_at?: string
 }
 
-export interface UserCreateRequest {
-  nom_utilisateur: string
-  identifiant: string
-  mot_de_passe: string
-  type: 'TECHNICIEN'
-  role_id: string
+export interface UserInfoData {
+  telephone: string
+  nom: string
+  prenom: string
+  ville_id: string
+  adresse: string
 }
 
 export interface InscriptionTechnicienRequest {
-  user: UserCreateRequest
-  ville_id: string
+  user: {
+    userInfoData: UserInfoData
+  }
   specialite: string
   disponibilite: boolean
-  date_embauche: string
 }
 
 export interface UpdateTechnicienRequest {
-  ville_id?: string
   specialite?: string
   disponibilite?: boolean
-  date_embauche?: string
 }
 
 export interface ApiResponse<T> {
