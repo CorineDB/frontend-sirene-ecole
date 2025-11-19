@@ -56,11 +56,11 @@
           <div class="space-y-2 mb-4">
             <div class="flex items-center gap-2 text-sm text-gray-600">
               <Phone :size="16" class="text-gray-400" />
-              <span>{{ tech.user?.userInfo?.telephone || 'N/A' }}</span>
+              <span>{{ getUserPhone(tech) }}</span>
             </div>
-            <div v-if="tech.ville" class="flex items-center gap-2 text-sm text-gray-600">
+            <div v-if="getUserVille(tech)" class="flex items-center gap-2 text-sm text-gray-600">
               <MapPin :size="16" class="text-gray-400" />
-              <span>{{ tech.ville.nom }}</span>
+              <span>{{ getUserVille(tech) }}</span>
             </div>
           </div>
 
@@ -68,11 +68,11 @@
             <div class="flex items-center gap-1">
               <Star :size="16" class="text-yellow-500 fill-yellow-500" />
               <span class="text-sm font-semibold text-gray-900">
-                {{ (tech.rating || 0).toFixed(1) }}
+                {{ parseFloat(tech.review || '0').toFixed(1) }}
               </span>
             </div>
             <span class="text-sm text-gray-600">
-              {{ tech.total_interventions || 0 }} interventions
+              {{ tech.statut }}
             </span>
           </div>
         </router-link>
@@ -117,9 +117,19 @@ const stats = computed(() => [
 ])
 
 const getUserFullName = (tech: Technicien) => {
-  if (!tech.user?.userInfo) return 'N/A'
-  const { nom, prenom } = tech.user.userInfo
-  return `${prenom || ''} ${nom || ''}`.trim() || 'N/A'
+  const userInfo = tech.user?.user_info || tech.user?.userInfo
+  if (!userInfo) return 'N/A'
+  return userInfo.nom_complet || `${userInfo.prenom || ''} ${userInfo.nom || ''}`.trim() || 'N/A'
+}
+
+const getUserPhone = (tech: Technicien) => {
+  const userInfo = tech.user?.user_info || tech.user?.userInfo
+  return userInfo?.telephone || 'N/A'
+}
+
+const getUserVille = (tech: Technicien) => {
+  const userInfo = tech.user?.user_info || tech.user?.userInfo
+  return userInfo?.ville?.nom || userInfo?.nom_ville || null
 }
 
 const closeFormModal = () => {

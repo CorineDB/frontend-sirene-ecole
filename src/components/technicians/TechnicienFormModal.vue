@@ -433,6 +433,7 @@ const close = () => {
 const initializeForm = () => {
   if (props.technicien) {
     editMode.value = true
+    const userInfo = props.technicien.user?.user_info || props.technicien.user?.userInfo
     formData.value = {
       user: {
         nom_utilisateur: props.technicien.user?.nom_utilisateur || '',
@@ -441,10 +442,10 @@ const initializeForm = () => {
         type: 'TECHNICIEN',
         role_id: props.technicien.user?.role_id || ''
       },
-      ville_id: props.technicien.ville_id,
+      ville_id: userInfo?.ville_id || '',
       specialite: props.technicien.specialite,
       disponibilite: props.technicien.disponibilite,
-      date_embauche: props.technicien.date_embauche
+      date_embauche: props.technicien.date_embauche || new Date().toISOString().split('T')[0]
     }
   } else {
     editMode.value = false

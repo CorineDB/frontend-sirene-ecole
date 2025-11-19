@@ -25,14 +25,21 @@ export interface UserInfo {
   nom: string
   prenom?: string
   telephone: string
-  email?: string
+  email?: string | null
+  ville_id: string
+  adresse: string
+  nom_ville?: string
+  nom_complet?: string
+  ville?: Ville
   created_at?: string
   updated_at?: string
+  deleted_at?: string | null
 }
 
 export interface User {
   id: string
   nom_utilisateur: string
+  identifiant: string
   type: string
   user_account_type_id: string
   user_account_type_type: string
@@ -41,22 +48,22 @@ export interface User {
   doit_changer_mot_de_passe: boolean
   mot_de_passe_change: boolean
   statut: number
-  userInfo?: UserInfo
+  user_info?: UserInfo
+  userInfo?: UserInfo // Support both snake_case and camelCase
   created_at?: string
   updated_at?: string
+  deleted_at?: string | null
 }
 
 export interface Technicien {
   id: string
-  user_id: string
-  ville_id: string
+  review: string
   specialite: string
   disponibilite: boolean
-  date_embauche: string
+  date_inscription: string
+  statut: 'actif' | 'inactif' | 'suspendu'
+  date_embauche: string | null
   user?: User
-  ville?: Ville
-  rating?: number
-  total_interventions?: number
   created_at?: string
   updated_at?: string
   deleted_at?: string

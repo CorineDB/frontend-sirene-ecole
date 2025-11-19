@@ -69,21 +69,21 @@
                   <Phone :size="20" class="text-gray-400 mt-0.5" />
                   <div>
                     <p class="text-sm text-gray-500">Téléphone</p>
-                    <p class="text-gray-900">{{ technicien.user?.userInfo?.telephone || 'N/A' }}</p>
+                    <p class="text-gray-900">{{ getUserPhone() }}</p>
                   </div>
                 </div>
-                <div v-if="technicien.user?.userInfo?.email" class="flex items-start gap-3">
+                <div v-if="getUserEmail()" class="flex items-start gap-3">
                   <Mail :size="20" class="text-gray-400 mt-0.5" />
                   <div>
                     <p class="text-sm text-gray-500">Email</p>
-                    <p class="text-gray-900">{{ technicien.user.userInfo.email }}</p>
+                    <p class="text-gray-900">{{ getUserEmail() }}</p>
                   </div>
                 </div>
                 <div class="flex items-start gap-3">
                   <MapPin :size="20" class="text-gray-400 mt-0.5" />
                   <div>
                     <p class="text-sm text-gray-500">Ville d'affectation</p>
-                    <p class="text-gray-900">{{ technicien.ville?.nom || 'N/A' }}</p>
+                    <p class="text-gray-900">{{ getUserVille() }}</p>
                   </div>
                 </div>
                 <div class="flex items-start gap-3">
@@ -107,12 +107,12 @@
                   <p class="text-sm text-gray-500">Note moyenne</p>
                   <div class="flex items-center gap-2">
                     <Star :size="20" class="text-yellow-500 fill-yellow-500" />
-                    <p class="text-2xl font-bold text-gray-900">{{ technicien.rating?.toFixed(1) || '0.0' }}</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ parseFloat(technicien.review || '0').toFixed(1) }}</p>
                   </div>
                 </div>
                 <div>
-                  <p class="text-sm text-gray-500">Interventions totales</p>
-                  <p class="text-2xl font-bold text-gray-900">{{ technicien.total_interventions || 0 }}</p>
+                  <p class="text-sm text-gray-500">Statut</p>
+                  <p class="text-2xl font-bold text-gray-900 capitalize">{{ technicien.statut }}</p>
                 </div>
               </div>
             </div>
@@ -291,9 +291,24 @@ const stats = computed(() => {
 })
 
 const getUserFullName = () => {
-  if (!technicien.value?.user?.userInfo) return 'N/A'
-  const { nom, prenom } = technicien.value.user.userInfo
-  return `${prenom || ''} ${nom || ''}`.trim() || 'N/A'
+  const userInfo = technicien.value?.user?.user_info || technicien.value?.user?.userInfo
+  if (!userInfo) return 'N/A'
+  return userInfo.nom_complet || `${userInfo.prenom || ''} ${userInfo.nom || ''}`.trim() || 'N/A'
+}
+
+const getUserPhone = () => {
+  const userInfo = technicien.value?.user?.user_info || technicien.value?.user?.userInfo
+  return userInfo?.telephone || 'N/A'
+}
+
+const getUserEmail = () => {
+  const userInfo = technicien.value?.user?.user_info || technicien.value?.user?.userInfo
+  return userInfo?.email || null
+}
+
+const getUserVille = () => {
+  const userInfo = technicien.value?.user?.user_info || technicien.value?.user?.userInfo
+  return userInfo?.ville?.nom || userInfo?.nom_ville || 'N/A'
 }
 
 const formatDate = (dateString: string | undefined) => {
