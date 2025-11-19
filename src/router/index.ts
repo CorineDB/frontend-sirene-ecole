@@ -41,13 +41,13 @@ const routes: RouteRecordRaw[] = [
     path: '/checkout/:ecoleId/:abonnementId',
     name: 'Checkout',
     component: () => import('../views/CheckoutView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: false } // Public pour scan QR code
   },
   {
     path: '/paiement/callback',
     name: 'PaymentCallback',
     component: () => import('../views/PaymentCallbackView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: false } // Public pour retour de paiement
   },
   {
     path: '/sirens',
