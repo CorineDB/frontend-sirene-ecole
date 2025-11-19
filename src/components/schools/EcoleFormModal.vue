@@ -489,10 +489,10 @@ const sitePrincipalLocation = computed({
 })
 
 const typesEtablissement = [
-  { value: 'maternelle', label: 'Maternelle' },
-  { value: 'primaire', label: 'Primaire' },
-  { value: 'secondaire', label: 'Secondaire' },
-  { value: 'superieur', label: 'Supérieur' }
+  { value: 'MATERNELLE', label: 'Maternelle' },
+  { value: 'PRIMAIRE', label: 'Primaire' },
+  { value: 'SECONDAIRE', label: 'Secondaire' },
+  { value: 'SUPERIEUR', label: 'Supérieur' }
 ]
 
 const formData = ref<InscriptionEcoleRequest>({

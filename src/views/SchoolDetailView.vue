@@ -144,7 +144,17 @@
               </div>
               <p class="text-sm text-gray-600">Abonnements actifs</p>
             </div>
-            <p class="text-3xl font-bold text-gray-900">{{ ecole.abonnementActif ? 1 : 0 }}</p>
+            <p class="text-3xl font-bold text-gray-900">{{ activeSubscriptionsCount }}</p>
+          </div>
+
+          <div class="bg-white rounded-xl p-6 border border-gray-200" :class="pendingSubscriptionsCount > 0 ? 'border-amber-200' : ''">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                <Clock :size="20" class="text-amber-600" />
+              </div>
+              <p class="text-sm text-gray-600">Abonnements en attente</p>
+            </div>
+            <p class="text-3xl font-bold text-gray-900">{{ pendingSubscriptionsCount }}</p>
           </div>
 
           <div class="bg-white rounded-xl p-6 border border-gray-200">
@@ -224,7 +234,7 @@
                   <div v-if="site.latitude && site.longitude" class="flex items-center gap-2 text-sm text-gray-600">
                     <Navigation :size="16" class="text-gray-400 flex-shrink-0" />
                     <span class="font-mono text-xs">
-                      {{ site.latitude.toFixed(6) }}, {{ site.longitude.toFixed(6) }}
+                      {{ Number(site.latitude).toFixed(6) }}, {{ Number(site.longitude).toFixed(6) }}
                     </span>
                   </div>
                 </div>
@@ -232,8 +242,9 @@
                 <!-- Sirène installée -->
                 <div
                   v-if="site.sirene"
-                  class="mt-4 pt-4 border-t border-gray-200"
+                  class="mt-4 pt-4 border-t border-gray-200 space-y-3"
                 >
+                  <!-- Info Sirène -->
                   <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
                     <div class="flex items-center gap-3 mb-3">
                       <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -257,6 +268,103 @@
 
                     <div v-if="site.sirene.modele" class="text-xs text-gray-600">
                       <span class="font-semibold">Modèle:</span> {{ site.sirene.modele.nom }}
+                    </div>
+                  </div>
+
+                  <!-- Abonnement en attente -->
+                  <div
+                    v-if="site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente"
+                    class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-4 border-2 border-amber-300"
+                  >
+                    <div class="flex items-start justify-between mb-3">
+                      <div class="flex items-center gap-2">
+                        <Clock :size="18" class="text-amber-600" />
+                        <div>
+                          <p class="text-xs font-semibold text-amber-800">Abonnement en attente</p>
+                          <p class="text-xs text-gray-600 mt-0.5">
+                            {{ (site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)?.numero_abonnement }}
+                          </p>
+                        </div>
+                      </div>
+                      <span class="px-2 py-1 bg-amber-200 text-amber-900 rounded-full font-semibold text-xs">
+                        EN ATTENTE
+                      </span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                      <span class="text-gray-600">Montant:</span>
+                      <span class="font-bold text-amber-900">
+                        {{ formatMontant((site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)?.montant) }} FCFA
+                      </span>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                      <button
+                        @click="goToCheckout(ecole.id, (site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id)"
+                        class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold transition-colors text-sm"
+                      >
+                        <CreditCard :size="16" />
+                        Payer maintenant
+                      </button>
+                      <button
+                        @click="partagerQrCode((site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!)"
+                        class="px-3 py-2 bg-white border-2 border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors text-sm"
+                        title="Partager le QR code"
+                      >
+                        <Share2 :size="16" />
+                      </button>
+                      <button
+                        @click="regenererQrCode((site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id)"
+                        :disabled="regeneratingQrCode[(site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id]"
+                        class="px-3 py-2 bg-white border-2 border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Régénérer le QR code"
+                      >
+                        <RefreshCw
+                          :size="16"
+                          :class="{ 'animate-spin': regeneratingQrCode[(site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id] }"
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Abonnement actif -->
+                  <div
+                    v-else-if="site.sirene.abonnementActif || site.sirene.abonnement_actif"
+                    class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border-2 border-green-300"
+                  >
+                    <div class="flex items-start justify-between mb-3">
+                      <div class="flex items-center gap-2">
+                        <CheckCircle :size="18" class="text-green-600" />
+                        <div>
+                          <p class="text-xs font-semibold text-green-800">Abonnement actif</p>
+                          <p class="text-xs text-gray-600 mt-0.5">
+                            {{ (site.sirene.abonnementActif || site.sirene.abonnement_actif)?.numero_abonnement }}
+                          </p>
+                        </div>
+                      </div>
+                      <span class="px-2 py-1 bg-green-200 text-green-900 rounded-full font-semibold text-xs">
+                        ACTIF
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <p class="text-gray-500">Expire le:</p>
+                        <p class="font-semibold text-gray-900">
+                          {{ formatDate((site.sirene.abonnementActif || site.sirene.abonnement_actif)?.date_fin) }}
+                        </p>
+                      </div>
+                      <div>
+                        <p class="text-gray-500">Montant:</p>
+                        <p class="font-semibold text-green-900">
+                          {{ formatMontant((site.sirene.abonnementActif || site.sirene.abonnement_actif)?.montant) }} FCFA
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Pas d'abonnement -->
+                  <div v-else class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div class="flex items-center gap-2">
+                      <AlertCircle :size="16" class="text-gray-400" />
+                      <span class="text-sm text-gray-600">Aucun abonnement</span>
                     </div>
                   </div>
                 </div>
@@ -303,9 +411,11 @@ import { useRouter, useRoute } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import {
   Building2, MapPin, Phone, Mail, ArrowLeft, Info, User,
-  Calendar, Bell, CheckCircle, FileText, Hash, Star, Navigation, AlertCircle
+  Calendar, Bell, CheckCircle, FileText, Hash, Star, Navigation, AlertCircle,
+  Clock, CreditCard, RefreshCw, Share2, Download
 } from 'lucide-vue-next'
 import ecoleService, { type Ecole } from '../services/ecoleService'
+import abonnementService from '../services/abonnementService'
 import { useNotificationStore } from '../stores/notifications'
 
 const router = useRouter()
@@ -314,17 +424,38 @@ const notificationStore = useNotificationStore()
 
 const ecole = ref<Ecole | null>(null)
 const loading = ref(true)
+const regeneratingQrCode = ref<Record<string, boolean>>({})
 
-const sitesAnnexes = computed(() => {
-  return ecole.value?.sites?.filter(site => !site.est_principale) || []
+const activeSubscriptionsCount = computed(() => {
+  if (!ecole.value?.sites) return 0
+  return ecole.value.sites.filter(site =>
+    site.sirene && (site.sirene.abonnementActif || site.sirene.abonnement_actif)
+  ).length
 })
 
-const formatDate = (dateString: string) => {
+const pendingSubscriptionsCount = computed(() => {
+  if (!ecole.value?.sites) return 0
+  return ecole.value.sites.filter(site =>
+    site.sirene && (site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)
+  ).length
+})
+
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return 'N/A'
   return new Date(dateString).toLocaleDateString('fr-FR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   })
+}
+
+const formatMontant = (montant: number | string | undefined) => {
+  if (!montant) return '0'
+  const amount = typeof montant === 'string' ? parseFloat(montant) : montant
+  return new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount)
 }
 
 const loadEcole = async () => {
@@ -348,6 +479,80 @@ const loadEcole = async () => {
 
 const goBack = () => {
   router.push('/schools')
+}
+
+const goToCheckout = (ecoleId: string, abonnementId: string) => {
+  router.push(`/checkout/${ecoleId}/${abonnementId}`)
+}
+
+const regenererQrCode = async (abonnementId: string) => {
+  try {
+    regeneratingQrCode.value[abonnementId] = true
+
+    const response = await abonnementService.regenererQrCode(abonnementId)
+
+    if (response.success) {
+      notificationStore.success('Succès', 'QR code régénéré avec succès')
+
+      // Recharger les données de l'école pour avoir le nouveau QR code
+      await loadEcole()
+    } else {
+      notificationStore.error('Erreur', response.message || 'Impossible de régénérer le QR code')
+    }
+  } catch (error: any) {
+    console.error('Failed to regenerate QR code:', error)
+    notificationStore.error('Erreur', error.response?.data?.message || 'Impossible de régénérer le QR code')
+  } finally {
+    regeneratingQrCode.value[abonnementId] = false
+  }
+}
+
+const getBackendUrl = () => {
+  return import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:8000'
+}
+
+const partagerQrCode = async (abonnement: any) => {
+  try {
+    if (!abonnement.qr_code_path) {
+      notificationStore.error('Erreur', 'Aucun QR code disponible')
+      return
+    }
+
+    const qrCodeUrl = `${getBackendUrl()}/storage/${abonnement.qr_code_path}`
+    const checkoutUrl = `${window.location.origin}/checkout/${ecole.value?.id}/${abonnement.id}`
+
+    // Télécharger le QR code en blob
+    const response = await fetch(qrCodeUrl)
+    const blob = await response.blob()
+    const file = new File([blob], `qr-code-${abonnement.numero_abonnement}.png`, { type: 'image/png' })
+
+    // Essayer d'utiliser l'API Web Share si disponible
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: `QR Code - ${abonnement.numero_abonnement}`,
+        text: `QR Code de paiement pour l'abonnement ${abonnement.numero_abonnement}\nMontant: ${formatMontant(abonnement.montant)} FCFA\nLien de paiement: ${checkoutUrl}`,
+        files: [file],
+      })
+      notificationStore.success('Succès', 'QR code partagé avec succès')
+    } else {
+      // Fallback: télécharger le QR code
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `qr-code-${abonnement.numero_abonnement}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(link.href)
+      notificationStore.success('Succès', 'QR code téléchargé avec succès')
+    }
+  } catch (error: any) {
+    console.error('Failed to share QR code:', error)
+    if (error.name === 'AbortError') {
+      // L'utilisateur a annulé le partage
+      return
+    }
+    notificationStore.error('Erreur', 'Impossible de partager le QR code')
+  }
 }
 
 onMounted(() => {

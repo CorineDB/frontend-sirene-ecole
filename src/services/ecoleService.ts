@@ -1,10 +1,28 @@
 import apiClient from './api'
 
 // Types
+export interface Pays {
+  id: string
+  nom: string
+  code_iso: string
+  indicatif_tel: string
+  created_at?: string
+  updated_at?: string
+}
+
 export interface Ville {
   id: string
   nom: string
   pays_id: string
+  pays?: Pays
+  created_at?: string
+  updated_at?: string
+}
+
+export interface ModeleSirene {
+  id: string
+  nom: string
+  description?: string
   created_at?: string
   updated_at?: string
 }
@@ -13,9 +31,14 @@ export interface Sirene {
   id: string
   numero_serie: string
   modele_id?: string
+  modele?: ModeleSirene
   statut?: string
   ecole_id?: string
   site_id?: string
+  abonnementActif?: Abonnement
+  abonnementEnAttente?: Abonnement
+  abonnement_actif?: Abonnement
+  abonnement_en_attente?: Abonnement
   created_at?: string
   updated_at?: string
 }
@@ -42,14 +65,17 @@ export interface Abonnement {
   ecole_id: string
   site_id: string
   sirene_id: string
+  parent_abonnement_id?: string
   date_debut: string
   date_fin: string
-  montant: number
+  montant: number | string
   statut: string
   auto_renouvellement: boolean
   notes?: string
+  qr_code_path?: string
   created_at?: string
   updated_at?: string
+  deleted_at?: string
 }
 
 export interface UserInfo {
@@ -96,7 +122,12 @@ export interface Ecole {
   sites?: Site[]
   sitePrincipal?: Site
   abonnements?: Abonnement[]
+  abonnementsActifs?: Abonnement[]
+  abonnementsEnAttente?: Abonnement[]
+  // Legacy - keep for backward compatibility
   abonnementActif?: Abonnement
+  abonnement_actif?: Abonnement
+  abonnement_en_attente?: Abonnement
   user?: User
   mot_de_passe_temporaire?: string
   created_at?: string

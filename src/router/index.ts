@@ -38,6 +38,18 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/checkout/:ecoleId/:abonnementId',
+    name: 'Checkout',
+    component: () => import('../views/CheckoutView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/paiement/callback',
+    name: 'PaymentCallback',
+    component: () => import('../views/PaymentCallbackView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/sirens',
     name: 'Sirens',
     component: () => import('../views/SirensView.vue'),
