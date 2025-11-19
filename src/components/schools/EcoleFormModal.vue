@@ -295,16 +295,26 @@
             <label class="block text-sm font-semibold text-gray-700 mb-2">
               Numéro de série de la sirène <span class="text-red-600">*</span>
             </label>
-            <select
-              v-model="formData.site_principal.sirene.numero_serie"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              :class="{ 'border-red-500': errors['site_principal.sirene.numero_serie'] }"
-            >
-              <option value="">Sélectionner une sirène disponible</option>
-              <option v-for="sirene in sirenesdisponibles" :key="sirene.numero_serie" :value="sirene.numero_serie">
-                {{ sirene.numero_serie }}
-              </option>
-            </select>
+            <div class="flex gap-2">
+              <select
+                v-model="formData.site_principal.sirene.numero_serie"
+                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                :class="{ 'border-red-500': errors['site_principal.sirene.numero_serie'] }"
+              >
+                <option value="">Sélectionner une sirène disponible</option>
+                <option v-for="sirene in sirenesdisponibles" :key="sirene.numero_serie" :value="sirene.numero_serie">
+                  {{ sirene.numero_serie }}
+                </option>
+              </select>
+              <button
+                @click="loadSirenesDisponibles"
+                type="button"
+                class="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                title="Recharger les sirènes"
+              >
+                <RefreshCw :size="20" />
+              </button>
+            </div>
             <p v-if="errors['site_principal.sirene.numero_serie']" class="text-sm text-red-600 mt-1">{{ errors['site_principal.sirene.numero_serie'] }}</p>
           </div>
         </div>
@@ -384,15 +394,25 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">
                 Numéro de série de la sirène <span class="text-red-600">*</span>
               </label>
-              <select
-                v-model="site.sirene.numero_serie"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Sélectionner une sirène</option>
-                <option v-for="sirene in sirenesdisponibles" :key="sirene.numero_serie" :value="sirene.numero_serie">
-                  {{ sirene.numero_serie }}
-                </option>
-              </select>
+              <div class="flex gap-2">
+                <select
+                  v-model="site.sirene.numero_serie"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Sélectionner une sirène</option>
+                  <option v-for="sirene in sirenesdisponibles" :key="sirene.numero_serie" :value="sirene.numero_serie">
+                    {{ sirene.numero_serie }}
+                  </option>
+                </select>
+                <button
+                  @click="loadSirenesDisponibles"
+                  type="button"
+                  class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  title="Recharger les sirènes"
+                >
+                  <RefreshCw :size="18" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -445,7 +465,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
-import { X, Plus, Building2, Trash2 } from 'lucide-vue-next'
+import { X, Plus, Building2, Trash2, RefreshCw } from 'lucide-vue-next'
 import ecoleService, { type InscriptionEcoleRequest } from '../../services/ecoleService'
 import villeService, { type Ville } from '../../services/villeService'
 import sireneService, { type Sirene } from '../../services/sireneService'
