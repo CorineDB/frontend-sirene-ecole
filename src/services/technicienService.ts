@@ -63,6 +63,7 @@ export interface Technicien {
   date_inscription: string
   statut: 'actif' | 'inactif' | 'suspendu'
   date_embauche: string | null
+  ville_id?: string
   user?: User
   created_at?: string
   updated_at?: string
@@ -88,8 +89,13 @@ export interface InscriptionTechnicienRequest {
 }
 
 export interface UpdateTechnicienRequest {
+  user?: {
+    userInfoData?: Partial<UserInfoData>
+  }
+  ville_id?: string
   specialite?: string
   disponibilite?: boolean
+  date_embauche?: string
 }
 
 export interface ApiResponse<T> {

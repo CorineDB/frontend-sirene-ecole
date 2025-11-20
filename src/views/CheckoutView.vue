@@ -1,5 +1,5 @@
 <template>
-  <DashboardLayout>
+  <PublicLayout>
     <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
       <div class="max-w-4xl mx-auto">
         <!-- Header -->
@@ -226,10 +226,12 @@
                     <p class="text-sm text-gray-600 text-center mb-3">Ou scannez le QR code</p>
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                       <img
-                        :src="`${getBackendUrl()}/storage/${abonnement.qr_code_path}`"
+                        v-if="qrCodeUrl"
+                        :src="qrCodeUrl"
                         alt="QR Code"
                         class="w-full h-auto object-contain"
                       />
+                      <div v-else class="animate-pulse bg-gray-200 h-48 rounded"></div>
                     </div>
                   </div>
 
@@ -263,18 +265,19 @@
         </div>
       </div>
     </div>
-  </DashboardLayout>
+  </PublicLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import DashboardLayout from '../components/layout/DashboardLayout.vue'
+import PublicLayout from '../components/layout/PublicLayout.vue'
 import {
   Building2, Phone, Mail, MapPin, FileText, Calendar, CreditCard,
   Smartphone, CheckCircle, Lock, Shield, Info, AlertCircle, Bell
 } from 'lucide-vue-next'
 import ecoleService, { type Ecole, type Abonnement } from '../services/ecoleService'
+import abonnementService from '../services/abonnementService'
 import { useNotificationStore } from '../stores/notifications'
 
 const router = useRouter()
@@ -287,6 +290,7 @@ const site = ref<any | null>(null) // Site correspondant à l'abonnement
 const loading = ref(true)
 const error = ref<string | null>(null)
 const paymentUrl = ref<string | null>(null)
+const qrCodeUrl = ref<string | null>(null)
 
 const formatDate = (dateString: string) => {
   if (!dateString) return 'N/A'
@@ -435,6 +439,14 @@ const loadData = async () => {
     abonnement.value = foundAbonnement
     site.value = foundSite
     paymentUrl.value = getPaymentUrl(foundAbonnement.notes)
+
+    // Load QR code signed URL if available
+    if (foundAbonnement.qr_code_path) {
+      const urlResponse = await abonnementService.getQrCodeUrl(abonnementId)
+      if (urlResponse.success && urlResponse.data) {
+        qrCodeUrl.value = urlResponse.data.qr_code_url
+      }
+    }
 
   } catch (err: any) {
     console.error('Failed to load checkout data:', err)

@@ -360,8 +360,19 @@ const handleSubmit = async () => {
     if (editMode.value && props.technicien) {
       // Update mode
       const updateData: UpdateTechnicienRequest = {
+        user: {
+          userInfoData: {
+            telephone: formData.value.user.userInfoData.telephone,
+            nom: formData.value.user.userInfoData.nom,
+            prenom: formData.value.user.userInfoData.prenom,
+            ville_id: formData.value.user.userInfoData.ville_id,
+            adresse: formData.value.user.userInfoData.adresse
+          }
+        },
+        ville_id: formData.value.ville_id,
         specialite: formData.value.specialite,
-        disponibilite: formData.value.disponibilite
+        disponibilite: formData.value.disponibilite,
+        date_embauche: formData.value.date_embauche
       }
 
       const response = await technicienService.update(props.technicien.id, updateData)
@@ -443,23 +454,23 @@ const initializeForm = () => {
           adresse: userInfo?.adresse || ''
         }
       },
-      ville_id: userInfo?.ville_id || '',
+      ville_id: props.technicien.ville_id || '',
       specialite: props.technicien.specialite,
       disponibilite: props.technicien.disponibilite,
       date_embauche: props.technicien.date_embauche || new Date().toISOString().split('T')[0]
     }
-    // Set selectedPaysContact if ville_id is set
+    // Set selectedPaysContact if ville_id is set (ville de contact)
     if (userInfo?.ville_id) {
       const villeContact = villes.value.find(v => v.id === userInfo.ville_id)
       if (villeContact) {
         selectedPaysContact.value = villeContact.pays_id
       }
     }
-    // Set selectedPays if ville_id is set for affectation
-    if (userInfo?.ville_id) {
-      const ville = villes.value.find(v => v.id === userInfo.ville_id)
-      if (ville) {
-        selectedPays.value = ville.pays_id
+    // Set selectedPays if ville_id is set (ville d'affectation)
+    if (props.technicien.ville_id) {
+      const villeAffectation = villes.value.find(v => v.id === props.technicien.ville_id)
+      if (villeAffectation) {
+        selectedPays.value = villeAffectation.pays_id
       }
     }
   } else {
