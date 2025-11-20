@@ -31,14 +31,19 @@
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">Année scolaire</label>
             <select
-              v-model="selectedCalendrierId"
-              @change="loadCalendrierData"
+              v-model="selectedAnneeScolaire"
+              @change="onAnneeScolaireChange"
               :disabled="!selectedPaysId"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
               <option value="">Sélectionner une année</option>
-              <option v-for="cal in calendriersFiltered" :key="cal.id" :value="cal.id">
-                {{ cal.annee_scolaire }}
+              <option
+                v-for="annee in annesScolairesDisponibles"
+                :key="annee.annee"
+                :value="annee.annee"
+                :class="{ 'font-semibold': annee.hasCalendrier }"
+              >
+                {{ annee.annee }}{{ annee.hasCalendrier ? ' ✓' : '' }}
               </option>
             </select>
           </div>
@@ -68,13 +73,22 @@
       </div>
 
       <!-- No calendar selected -->
-      <div v-else-if="!selectedCalendrierId" class="bg-white rounded-xl p-12 text-center border border-gray-200">
+      <div v-else-if="!selectedAnneeScolaire" class="bg-white rounded-xl p-12 text-center border border-gray-200">
         <Calendar :size="64" class="text-gray-300 mx-auto mb-4" />
         <h3 class="text-lg font-semibold text-gray-900 mb-2">
           {{ !selectedPaysId ? 'Sélectionnez un pays' : 'Sélectionnez une année scolaire' }}
         </h3>
         <p class="text-gray-600">
           {{ !selectedPaysId ? 'Choisissez un pays pour voir les calendriers disponibles' : 'Choisissez une année pour voir le calendrier national' }}
+        </p>
+      </div>
+
+      <!-- No calendar data for selected year -->
+      <div v-else-if="!selectedCalendrierId" class="bg-white rounded-xl p-12 text-center border border-gray-200">
+        <Calendar :size="64" class="text-gray-300 mx-auto mb-4" />
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Aucun calendrier disponible</h3>
+        <p class="text-gray-600 mb-4">
+          Aucun calendrier n'existe pour l'année {{ selectedAnneeScolaire }}
         </p>
       </div>
 
@@ -289,6 +303,7 @@ const ecoles = ref<Ecole[]>([])
 const periodes = ref<PeriodeVacances[]>([])
 const joursFeries = ref<JourFerie[]>([])
 const selectedPaysId = ref<string>('')
+const selectedAnneeScolaire = ref<string>('')
 const selectedCalendrierId = ref<string>('')
 const selectedEcoleId = ref<string>('')
 const currentCalendrier = ref<CalendrierScolaire | null>(null)
@@ -464,6 +479,29 @@ const getPeriodeStatusClass = (periode: PeriodeVacances) => {
   return 'bg-gray-100 text-gray-700'
 }
 
+// Générer une liste d'années scolaires disponibles
+const annesScolairesDisponibles = computed(() => {
+  const annees: Array<{ annee: string, hasCalendrier: boolean, calendrierId?: string }> = []
+  const currentYear = new Date().getFullYear()
+
+  // Générer de 5 ans avant à 5 ans après l'année actuelle
+  for (let i = -5; i <= 5; i++) {
+    const year = currentYear + i
+    const anneeScolaire = `${year}-${year + 1}`
+
+    // Vérifier si un calendrier existe pour cette année
+    const calendrier = calendriers.value.find(cal => cal.annee_scolaire === anneeScolaire)
+
+    annees.push({
+      annee: anneeScolaire,
+      hasCalendrier: !!calendrier,
+      calendrierId: calendrier?.id
+    })
+  }
+
+  return annees
+})
+
 const calendriersFiltered = computed(() => {
   return calendriers.value
 })
@@ -509,8 +547,34 @@ const loadPays = async () => {
 }
 
 
+const onAnneeScolaireChange = async () => {
+  if (!selectedAnneeScolaire.value) return
+
+  // Trouver le calendrier correspondant
+  const anneeData = annesScolairesDisponibles.value.find(a => a.annee === selectedAnneeScolaire.value)
+
+  if (anneeData?.hasCalendrier && anneeData.calendrierId) {
+    // Calendrier existe, le charger
+    selectedCalendrierId.value = anneeData.calendrierId
+    await loadCalendrierData()
+  } else {
+    // Aucun calendrier pour cette année
+    selectedCalendrierId.value = ''
+    periodes.value = []
+    joursFeries.value = []
+    currentCalendrier.value = null
+    schoolDays.value = 0
+
+    notificationStore.warning(
+      'Aucun calendrier',
+      `Aucun calendrier disponible pour l'année ${selectedAnneeScolaire.value}`
+    )
+  }
+}
+
 const onPaysChange = async () => {
   // Reset selections
+  selectedAnneeScolaire.value = ''
   selectedCalendrierId.value = ''
   selectedEcoleId.value = ''
   periodes.value = []
@@ -545,15 +609,9 @@ const onPaysChange = async () => {
     targetYear = `${year - 1}-${year}`
   }
 
-  // Find calendrier for current year
-  const currentCalendrier = calendriers.value.find(
-    cal => cal.annee_scolaire === targetYear
-  )
-
-  if (currentCalendrier) {
-    selectedCalendrierId.value = currentCalendrier.id
-    await loadCalendrierData()
-  }
+  // Auto-select année en cours
+  selectedAnneeScolaire.value = targetYear
+  await onAnneeScolaireChange()
 }
 
 const loadCalendriersByPays = async (codeIso: string) => {
