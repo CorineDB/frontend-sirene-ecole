@@ -11,17 +11,33 @@
 
       <!-- Filtres -->
       <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Pays -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Pays</label>
+            <select
+              v-model="selectedPaysId"
+              @change="onPaysChange"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Sélectionner un pays</option>
+              <option v-for="pays in paysList" :key="pays.id" :value="pays.id">
+                {{ pays.nom }}
+              </option>
+            </select>
+          </div>
+
           <!-- Année scolaire -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">Année scolaire</label>
             <select
               v-model="selectedCalendrierId"
               @change="loadCalendrierData"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              :disabled="!selectedPaysId"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
               <option value="">Sélectionner une année</option>
-              <option v-for="cal in calendriers" :key="cal.id" :value="cal.id">
+              <option v-for="cal in calendriersFiltered" :key="cal.id" :value="cal.id">
                 {{ cal.annee_scolaire }}
               </option>
             </select>
@@ -30,7 +46,7 @@
           <!-- École -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">
-              École <span class="text-xs text-gray-500">(optionnel, pour jours fériés spécifiques)</span>
+              École <span class="text-xs text-gray-500">(optionnel)</span>
             </label>
             <select
               v-model="selectedEcoleId"
@@ -54,8 +70,12 @@
       <!-- No calendar selected -->
       <div v-else-if="!selectedCalendrierId" class="bg-white rounded-xl p-12 text-center border border-gray-200">
         <Calendar :size="64" class="text-gray-300 mx-auto mb-4" />
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">Sélectionnez une année scolaire</h3>
-        <p class="text-gray-600">Choisissez une année pour voir le calendrier national</p>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">
+          {{ !selectedPaysId ? 'Sélectionnez un pays' : 'Sélectionnez une année scolaire' }}
+        </h3>
+        <p class="text-gray-600">
+          {{ !selectedPaysId ? 'Choisissez un pays pour voir les calendriers disponibles' : 'Choisissez une année pour voir le calendrier national' }}
+        </p>
       </div>
 
       <!-- Calendrier principal -->
@@ -258,14 +278,17 @@ import {
 } from 'lucide-vue-next'
 import calendrierScolaireService, { type CalendrierScolaire, type PeriodeVacances, type JourFerie } from '../services/calendrierScolaireService'
 import ecoleService, { type Ecole } from '../services/ecoleService'
+import paysService, { type Pays } from '../services/paysService'
 import { useNotificationStore } from '../stores/notifications'
 
 const notificationStore = useNotificationStore()
 
+const paysList = ref<Pays[]>([])
 const calendriers = ref<CalendrierScolaire[]>([])
 const ecoles = ref<Ecole[]>([])
 const periodes = ref<PeriodeVacances[]>([])
 const joursFeries = ref<JourFerie[]>([])
+const selectedPaysId = ref<string>('')
 const selectedCalendrierId = ref<string>('')
 const selectedEcoleId = ref<string>('')
 const currentCalendrier = ref<CalendrierScolaire | null>(null)
@@ -441,6 +464,10 @@ const getPeriodeStatusClass = (periode: PeriodeVacances) => {
   return 'bg-gray-100 text-gray-700'
 }
 
+const calendriersFiltered = computed(() => {
+  return calendriers.value
+})
+
 const periodesSorted = computed(() => {
   return [...periodes.value].sort((a, b) => {
     return new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime()
@@ -469,22 +496,75 @@ const getJourFerieTypeClass = (jourFerie: JourFerie) => {
   return 'bg-gray-100 text-gray-700'
 }
 
-const loadCalendriers = async () => {
+const loadPays = async () => {
   try {
-    const response = await calendrierScolaireService.getAll(100)
+    const response = await paysService.getAllPays()
     if (response.success && response.data) {
-      calendriers.value = response.data
-
-      // Auto-select current year
-      const currentYearResponse = await calendrierScolaireService.getCurrentYear()
-      if (currentYearResponse.success && currentYearResponse.data) {
-        selectedCalendrierId.value = currentYearResponse.data.id
-        await loadCalendrierData()
-      }
+      paysList.value = response.data
     }
   } catch (error: any) {
-    console.error('Failed to load calendriers:', error)
-    notificationStore.error('Erreur', 'Impossible de charger les calendriers scolaires')
+    console.error('Failed to load pays:', error)
+    notificationStore.error('Erreur', 'Impossible de charger les pays')
+  }
+}
+
+
+const onPaysChange = async () => {
+  // Reset selections
+  selectedCalendrierId.value = ''
+  selectedEcoleId.value = ''
+  periodes.value = []
+  joursFeries.value = []
+  currentCalendrier.value = null
+  schoolDays.value = 0
+
+  if (!selectedPaysId.value) {
+    calendriers.value = []
+    return
+  }
+
+  // Get selected pays object
+  const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
+  if (!selectedPays) return
+
+  // Load calendriers filtered by pays code ISO
+  await loadCalendriersByPays(selectedPays.code_iso)
+
+  // Auto-select calendrier de l'année en cours pour ce pays
+  const now = new Date()
+  const currentMonth = now.getMonth() + 1 // 1-12
+
+  let targetYear: string
+  if (currentMonth >= 9) {
+    // Septembre à décembre: année scolaire YYYY-(YYYY+1)
+    const year = now.getFullYear()
+    targetYear = `${year}-${year + 1}`
+  } else {
+    // Janvier à août: année scolaire (YYYY-1)-YYYY
+    const year = now.getFullYear()
+    targetYear = `${year - 1}-${year}`
+  }
+
+  // Find calendrier for current year
+  const currentCalendrier = calendriers.value.find(
+    cal => cal.annee_scolaire === targetYear
+  )
+
+  if (currentCalendrier) {
+    selectedCalendrierId.value = currentCalendrier.id
+    await loadCalendrierData()
+  }
+}
+
+const loadCalendriersByPays = async (codeIso: string) => {
+  try {
+    const response = await calendrierScolaireService.getAll(100, codeIso, undefined, true)
+    if (response.success && response.data) {
+      calendriers.value = response.data
+    }
+  } catch (error: any) {
+    console.error('Failed to load calendriers by pays:', error)
+    notificationStore.error('Erreur', 'Impossible de charger les calendriers du pays')
   }
 }
 
@@ -582,8 +662,10 @@ const calculateSchoolDays = async () => {
   }
 }
 
-onMounted(() => {
-  loadCalendriers()
-  loadEcoles()
+onMounted(async () => {
+  await Promise.all([
+    loadPays(),
+    loadEcoles()
+  ])
 })
 </script>
