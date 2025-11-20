@@ -158,6 +158,81 @@
               </div>
             </div>
           </div>
+
+          <!-- Jours Fériés Section -->
+          <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mt-8">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-gray-900">Jours Fériés</h2>
+              <button
+                @click="openJourFerieModal"
+                class="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors flex items-center gap-1"
+              >
+                <Plus :size="16" />
+                Ajouter
+              </button>
+            </div>
+
+            <div v-if="joursFeries.length === 0" class="p-12 text-center">
+              <Calendar :size="64" class="text-gray-300 mx-auto mb-4" />
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Aucun jour férié</h3>
+              <p class="text-gray-600 mb-4">Ajoutez les jours fériés spécifiques à cette école</p>
+              <button
+                @click="openJourFerieModal"
+                class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+              >
+                Ajouter un jour férié
+              </button>
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
+              <div
+                v-for="jourFerie in joursFeriesSorted"
+                :key="jourFerie.id"
+                class="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:shadow-sm transition-all"
+              >
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <h3 class="font-bold text-gray-900">{{ jourFerie.nom }}</h3>
+                      <span
+                        :class="getJourFerieTypeClass(jourFerie)"
+                        class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                      >
+                        {{ getJourFerieTypeLabel(jourFerie) }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-600">
+                      <Calendar :size="14" class="text-gray-400" />
+                      <span>{{ formatDate(jourFerie.date) }}</span>
+                    </div>
+                    <div v-if="jourFerie.recurrent" class="mt-1">
+                      <span class="text-xs text-purple-600 flex items-center gap-1">
+                        <Clock :size="12" />
+                        Récurrent
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-1">
+                    <button
+                      @click="openEditJourFerieModal(jourFerie)"
+                      class="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                      title="Modifier"
+                    >
+                      <Edit :size="16" />
+                    </button>
+                    <button
+                      @click="confirmDeleteJourFerie(jourFerie)"
+                      class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Supprimer"
+                    >
+                      <Trash2 :size="16" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Calendrier Form Modal -->
@@ -169,6 +244,16 @@
           @created="handlePeriodeCreated"
           @updated="handlePeriodeUpdated"
         />
+
+        <!-- Jour Ferie Form Modal -->
+        <JourFerieFormModal
+          :is-open="jourFerieModalOpen"
+          :ecole-id="selectedEcoleId"
+          :jour-ferie="selectedJourFerie"
+          @close="closeJourFerieModal"
+          @created="handleJourFerieCreated"
+          @updated="handleJourFerieUpdated"
+        />
       </div>
     </div>
   </DashboardLayout>
@@ -178,10 +263,12 @@
 import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import CalendrierFormModal from '../components/calendrier/CalendrierFormModal.vue'
+import JourFerieFormModal from '../components/calendrier/JourFerieFormModal.vue'
 import {
   Calendar, CalendarDays, Plus, Edit, Trash2, Clock, Palmtree, School
 } from 'lucide-vue-next'
 import calendrierService, { type PeriodeVacances } from '../services/calendrierService'
+import jourFerieService, { type JourFerie } from '../services/jourFerieService'
 import ecoleService, { type Ecole } from '../services/ecoleService'
 import { useNotificationStore } from '../stores/notifications'
 
@@ -189,10 +276,13 @@ const notificationStore = useNotificationStore()
 
 const ecoles = ref<Ecole[]>([])
 const periodes = ref<PeriodeVacances[]>([])
+const joursFeries = ref<JourFerie[]>([])
 const selectedEcoleId = ref<string>('')
 const loading = ref(false)
 const formModalOpen = ref(false)
+const jourFerieModalOpen = ref(false)
 const selectedPeriode = ref<PeriodeVacances | null>(null)
+const selectedJourFerie = ref<JourFerie | null>(null)
 
 const formatDate = (dateString: string) => {
   if (!dateString) return 'N/A'
@@ -268,11 +358,95 @@ const loadPeriodes = async () => {
     if (response.success && response.data) {
       periodes.value = response.data
     }
+    // Load jours fériés also
+    await loadJoursFeries()
   } catch (error: any) {
     console.error('Failed to load periodes:', error)
     notificationStore.error('Erreur', 'Impossible de charger les périodes')
   } finally {
     loading.value = false
+  }
+}
+
+// Jours Fériés functions
+const joursFeriesSorted = computed(() => {
+  return [...joursFeries.value].sort((a, b) => {
+    return new Date(a.date).getTime() - new Date(b.date).getTime()
+  })
+})
+
+const getJourFerieTypeLabel = (jourFerie: JourFerie) => {
+  if (jourFerie.type === 'national') return 'National'
+  if (jourFerie.type === 'mobile') return 'Mobile'
+  return 'École'
+}
+
+const getJourFerieTypeClass = (jourFerie: JourFerie) => {
+  if (jourFerie.type === 'national') return 'bg-blue-100 text-blue-700'
+  if (jourFerie.type === 'mobile') return 'bg-yellow-100 text-yellow-700'
+  return 'bg-purple-100 text-purple-700'
+}
+
+const loadJoursFeries = async () => {
+  if (!selectedEcoleId.value) return
+
+  try {
+    const response = await jourFerieService.getByEcole(selectedEcoleId.value)
+    if (response.success && response.data) {
+      joursFeries.value = response.data
+    }
+  } catch (error: any) {
+    console.error('Failed to load jours feries:', error)
+    // Silent fail, jours fériés optional
+  }
+}
+
+const openJourFerieModal = () => {
+  if (!selectedEcoleId.value) {
+    notificationStore.warning('Attention', 'Veuillez sélectionner une école')
+    return
+  }
+  selectedJourFerie.value = null
+  jourFerieModalOpen.value = true
+}
+
+const openEditJourFerieModal = (jourFerie: JourFerie) => {
+  selectedJourFerie.value = jourFerie
+  jourFerieModalOpen.value = true
+}
+
+const closeJourFerieModal = () => {
+  jourFerieModalOpen.value = false
+  selectedJourFerie.value = null
+}
+
+const handleJourFerieCreated = (jourFerie: JourFerie) => {
+  joursFeries.value.push(jourFerie)
+}
+
+const handleJourFerieUpdated = (updatedJourFerie: JourFerie) => {
+  const index = joursFeries.value.findIndex(j => j.id === updatedJourFerie.id)
+  if (index !== -1) {
+    joursFeries.value[index] = updatedJourFerie
+  }
+}
+
+const confirmDeleteJourFerie = (jourFerie: JourFerie) => {
+  if (confirm(`Êtes-vous sûr de vouloir supprimer "${jourFerie.nom}" ?`)) {
+    deleteJourFerie(jourFerie.id)
+  }
+}
+
+const deleteJourFerie = async (id: string) => {
+  try {
+    const response = await jourFerieService.deleteJourFerie(id)
+    if (response.success) {
+      joursFeries.value = joursFeries.value.filter(j => j.id !== id)
+      notificationStore.success('Supprimé', 'Le jour férié a été supprimé avec succès')
+    }
+  } catch (error: any) {
+    console.error('Failed to delete jour ferie:', error)
+    notificationStore.error('Erreur', 'Impossible de supprimer le jour férié')
   }
 }
 
