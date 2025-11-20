@@ -1,35 +1,40 @@
 import apiClient from './api'
 
 // Types
-export interface CalendrierScolaire {
-  id: string
-  annee_scolaire: string
-  date_rentree: string
-  date_fin_annee: string
-  created_at?: string
-  updated_at?: string
-}
-
 export interface PeriodeVacances {
-  id: string
   nom: string
   date_debut: string
   date_fin: string
-  calendrier_scolaire_id: string
-  created_at?: string
-  updated_at?: string
 }
 
 export interface JourFerie {
   id: string
-  nom: string
+  calendrier_id: string
+  ecole_id: string | null
+  pays_id: string | null
   date: string
-  type: 'national' | 'ecole' | 'mobile'
   recurrent: boolean
-  calendrier_scolaire_id?: string
-  ecole_id?: string
+  actif: boolean
+  intitule_journee: string
+  est_national: boolean
   created_at?: string
   updated_at?: string
+  deleted_at?: string | null
+}
+
+export interface CalendrierScolaire {
+  id: string
+  pays_id: string
+  annee_scolaire: string
+  description: string | null
+  date_rentree: string
+  date_fin_annee: string
+  periodes_vacances: PeriodeVacances[]
+  jours_feries_defaut: JourFerie[]
+  actif: boolean
+  created_at?: string
+  updated_at?: string
+  deleted_at?: string | null
 }
 
 export interface CreateCalendrierScolaireRequest {
