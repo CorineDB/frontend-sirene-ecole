@@ -497,12 +497,12 @@ const initializeForm = () => {
   }
 }
 
-watch(() => props.isOpen, async (isOpen) => {
+watch([() => props.isOpen, () => props.technicien], async ([isOpen, technicien]) => {
   if (isOpen) {
     await Promise.all([loadPays(), loadVilles()])
     initializeForm()
   }
-})
+}, { deep: true })
 
 onMounted(async () => {
   if (props.isOpen) {
