@@ -58,11 +58,24 @@ export interface ApiResponse<T> {
 class CalendrierScolaireService {
   /**
    * Obtenir tous les calendriers scolaires
+   * @param perPage Nombre d'entrées par page
+   * @param codeIso Code ISO du pays (ex: CI, FR, BF)
+   * @param anneeScolaire Année scolaire (ex: 2024-2025)
+   * @param actif Filtrer uniquement les calendriers actifs
    */
-  async getAll(perPage: number = 15): Promise<ApiResponse<CalendrierScolaire[]>> {
-    const response = await apiClient.get('/calendrier-scolaire', {
-      params: { per_page: perPage }
-    })
+  async getAll(
+    perPage: number = 100,
+    codeIso?: string,
+    anneeScolaire?: string,
+    actif?: boolean
+  ): Promise<ApiResponse<CalendrierScolaire[]>> {
+    const params: any = { per_page: perPage }
+
+    if (codeIso) params.code_iso = codeIso
+    if (anneeScolaire) params.annee_scolaire = anneeScolaire
+    if (actif !== undefined) params.actif = actif
+
+    const response = await apiClient.get('/calendrier-scolaire', { params })
     return response.data
   }
 

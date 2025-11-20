@@ -465,8 +465,7 @@ const getPeriodeStatusClass = (periode: PeriodeVacances) => {
 }
 
 const calendriersFiltered = computed(() => {
-  if (!selectedPaysId.value) return []
-  return calendriers.value.filter(cal => cal.pays_id === selectedPaysId.value)
+  return calendriers.value
 })
 
 const periodesSorted = computed(() => {
@@ -509,17 +508,6 @@ const loadPays = async () => {
   }
 }
 
-const loadCalendriers = async () => {
-  try {
-    const response = await calendrierScolaireService.getAll(100)
-    if (response.success && response.data) {
-      calendriers.value = response.data
-    }
-  } catch (error: any) {
-    console.error('Failed to load calendriers:', error)
-    notificationStore.error('Erreur', 'Impossible de charger les calendriers scolaires')
-  }
-}
 
 const onPaysChange = async () => {
   // Reset selections
@@ -530,7 +518,17 @@ const onPaysChange = async () => {
   currentCalendrier.value = null
   schoolDays.value = 0
 
-  if (!selectedPaysId.value) return
+  if (!selectedPaysId.value) {
+    calendriers.value = []
+    return
+  }
+
+  // Get selected pays object
+  const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
+  if (!selectedPays) return
+
+  // Load calendriers filtered by pays code ISO
+  await loadCalendriersByPays(selectedPays.code_iso)
 
   // Auto-select calendrier de l'année en cours pour ce pays
   const now = new Date()
@@ -547,14 +545,26 @@ const onPaysChange = async () => {
     targetYear = `${year - 1}-${year}`
   }
 
-  // Find calendrier for current year and selected pays
-  const currentCalendrier = calendriersFiltered.value.find(
+  // Find calendrier for current year
+  const currentCalendrier = calendriers.value.find(
     cal => cal.annee_scolaire === targetYear
   )
 
   if (currentCalendrier) {
     selectedCalendrierId.value = currentCalendrier.id
     await loadCalendrierData()
+  }
+}
+
+const loadCalendriersByPays = async (codeIso: string) => {
+  try {
+    const response = await calendrierScolaireService.getAll(100, codeIso, undefined, true)
+    if (response.success && response.data) {
+      calendriers.value = response.data
+    }
+  } catch (error: any) {
+    console.error('Failed to load calendriers by pays:', error)
+    notificationStore.error('Erreur', 'Impossible de charger les calendriers du pays')
   }
 }
 
@@ -655,7 +665,6 @@ const calculateSchoolDays = async () => {
 onMounted(async () => {
   await Promise.all([
     loadPays(),
-    loadCalendriers(),
     loadEcoles()
   ])
 })
