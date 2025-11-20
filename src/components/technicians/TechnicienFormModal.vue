@@ -444,6 +444,15 @@ const initializeForm = () => {
   if (props.technicien) {
     editMode.value = true
     const userInfo = props.technicien.user?.user_info || props.technicien.user?.userInfo
+
+    console.log('🔍 Initializing form with technicien:', {
+      technicien: props.technicien,
+      userInfo,
+      ville_id_affectation: props.technicien.ville_id,
+      villes_loaded: villes.value.length,
+      pays_loaded: pays.value.length
+    })
+
     formData.value = {
       user: {
         userInfoData: {
@@ -459,38 +468,46 @@ const initializeForm = () => {
       disponibilite: props.technicien.disponibilite,
       date_embauche: props.technicien.date_embauche || new Date().toISOString().split('T')[0]
     }
+
     // Set selectedPaysContact if ville_id is set (ville de contact)
     if (userInfo?.ville_id) {
       const villeContact = villes.value.find(v => v.id === userInfo.ville_id)
+      console.log('🏙️ Ville contact:', { ville_id: userInfo.ville_id, found: villeContact })
       if (villeContact) {
         selectedPaysContact.value = villeContact.pays_id
       }
     }
+
     // Set selectedPays if ville_id is set (ville d'affectation)
     if (props.technicien.ville_id) {
       const villeAffectation = villes.value.find(v => v.id === props.technicien.ville_id)
+      console.log('🏢 Ville affectation:', { ville_id: props.technicien.ville_id, found: villeAffectation })
       if (villeAffectation) {
         selectedPays.value = villeAffectation.pays_id
       }
     }
+
+    console.log('✅ Form initialized:', {
+      formData: formData.value,
+      selectedPays: selectedPays.value,
+      selectedPaysContact: selectedPaysContact.value
+    })
   } else {
     editMode.value = false
   }
 }
 
-watch(() => props.isOpen, (isOpen) => {
+watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
-    loadPays()
-    loadVilles()
-    setTimeout(() => initializeForm(), 100)
+    await Promise.all([loadPays(), loadVilles()])
+    initializeForm()
   }
 })
 
-onMounted(() => {
+onMounted(async () => {
   if (props.isOpen) {
-    loadPays()
-    loadVilles()
-    setTimeout(() => initializeForm(), 100)
+    await Promise.all([loadPays(), loadVilles()])
+    initializeForm()
   }
 })
 </script>
