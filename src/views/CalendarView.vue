@@ -623,6 +623,7 @@ const createCalendrier = async () => {
   try {
     loading.value = true
     const response = await calendrierScolaireService.create({
+      pays_id: selectedPaysId.value,
       annee_scolaire: selectedAnneeScolaire.value,
       date_rentree: dateRentree,
       date_fin_annee: dateFinAnnee
