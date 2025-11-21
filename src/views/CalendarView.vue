@@ -752,5 +752,11 @@ onMounted(async () => {
     loadPays(),
     loadEcoles()
   ])
+
+  // Sélectionner le premier pays par défaut
+  if (paysList.value.length > 0) {
+    selectedPaysId.value = paysList.value[0].id
+    await onPaysChange()
+  }
 })
 </script>
