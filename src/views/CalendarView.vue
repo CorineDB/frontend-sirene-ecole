@@ -704,13 +704,11 @@ const loadJoursFeriesEcole = async () => {
 
   try {
     // Load école-specific jours fériés and merge with national ones
-    const response = await calendrierScolaireService.getJoursFeries(selectedCalendrierId.value)
+    const response = await calendrierScolaireService.getJoursFeries(selectedCalendrierId.value, selectedEcoleId.value)
     if (response.success && response.data) {
       // Combine national jours fériés (from calendrier) with école-specific ones
       const joursFeriesNationaux = currentCalendrier.value?.jours_feries_defaut || []
-      const joursFeriesEcole = response.data.filter(jf => jf.ecole_id === selectedEcoleId.value)
-
-      joursFeries.value = [...joursFeriesNationaux, ...joursFeriesEcole]
+      joursFeries.value = [...joursFeriesNationaux, ...response.data]
     }
   } catch (error: any) {
     console.error('Failed to load jours feries ecole:', error)
