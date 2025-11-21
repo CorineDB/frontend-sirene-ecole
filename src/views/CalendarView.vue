@@ -218,10 +218,19 @@
 
           <!-- Jours fériés sidebar -->
           <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Star :size="20" class="text-red-600" />
-              Jours fériés
-            </h2>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Star :size="20" class="text-red-600" />
+                Jours fériés
+              </h2>
+              <button
+                @click="showAddJourFerieModal = true"
+                class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+              >
+                <Plus :size="14" />
+                Ajouter
+              </button>
+            </div>
             <div class="space-y-3 max-h-96 overflow-y-auto">
               <div
                 v-for="jourFerie in joursFeriesSorted"
@@ -350,6 +359,39 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Ajouter Jour Férié -->
+    <div v-if="showAddJourFerieModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl p-6 w-full max-w-md">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Ajouter un jour férié</h2>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+            <input type="text" v-model="newJourFerie.nom" class="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input type="date" v-model="newJourFerie.date" class="w-full px-3 py-2 border rounded-lg" />
+          </div>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2">
+              <input type="checkbox" v-model="newJourFerie.est_national" />
+              <span class="text-sm">National</span>
+            </label>
+            <label class="flex items-center gap-2">
+              <input type="checkbox" v-model="newJourFerie.recurrent" />
+              <span class="text-sm">Récurrent</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <button @click="showAddJourFerieModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
+          <button @click="submitAddJourFerie" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Ajouter</button>
+        </div>
+      </div>
+    </div>
   </DashboardLayout>
 </template>
 
@@ -380,6 +422,13 @@ const currentCalendrier = ref<CalendrierScolaire | null>(null)
 const schoolDays = ref<number>(0)
 const loading = ref(false)
 const showCreateModal = ref(false)
+const showAddJourFerieModal = ref(false)
+const newJourFerie = ref({
+  nom: '',
+  date: '',
+  est_national: false,
+  recurrent: false
+})
 const newCalendrier = ref({
   date_rentree: '',
   date_fin_annee: '',
@@ -754,6 +803,32 @@ const submitCreateCalendrier = async () => {
   }
 }
 
+const submitAddJourFerie = async () => {
+  if (!newJourFerie.value.nom || !newJourFerie.value.date || !selectedCalendrierId.value) return
+
+  try {
+    loading.value = true
+    const response = await calendrierScolaireService.addJourFerie(selectedCalendrierId.value, {
+      nom: newJourFerie.value.nom,
+      date: newJourFerie.value.date,
+      est_national: newJourFerie.value.est_national,
+      recurrent: newJourFerie.value.recurrent
+    })
+
+    if (response.success) {
+      notificationStore.success('Succès', 'Jour férié ajouté avec succès')
+      showAddJourFerieModal.value = false
+      newJourFerie.value = { nom: '', date: '', est_national: false, recurrent: false }
+      await onAnneeScolaireChange()
+    }
+  } catch (error: any) {
+    console.error('Failed to add jour ferie:', error)
+    notificationStore.error('Erreur', 'Impossible d\'ajouter le jour férié')
+  } finally {
+    loading.value = false
+  }
+}
+
 const onPaysChange = async () => {
   // Reset selections
   selectedAnneeScolaire.value = ''
@@ -763,18 +838,15 @@ const onPaysChange = async () => {
   joursFeries.value = []
   currentCalendrier.value = null
   schoolDays.value = 0
+  calendriers.value = []
 
   if (!selectedPaysId.value) {
-    calendriers.value = []
     return
   }
 
   // Get selected pays object
   const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
   if (!selectedPays) return
-
-  // Load calendriers filtered by pays code ISO
-  await loadCalendriersByPays(selectedPays.code_iso)
 
   // Auto-select calendrier de l'année en cours pour ce pays
   const now = new Date()
@@ -794,18 +866,6 @@ const onPaysChange = async () => {
   // Auto-select année en cours
   selectedAnneeScolaire.value = targetYear
   await onAnneeScolaireChange()
-}
-
-const loadCalendriersByPays = async (codeIso: string) => {
-  try {
-    const response = await calendrierScolaireService.getAll(100, codeIso, undefined, true)
-    if (response.success && response.data) {
-      calendriers.value = response.data
-    }
-  } catch (error: any) {
-    console.error('Failed to load calendriers by pays:', error)
-    notificationStore.error('Erreur', 'Impossible de charger les calendriers du pays')
-  }
 }
 
 const loadEcoles = async () => {

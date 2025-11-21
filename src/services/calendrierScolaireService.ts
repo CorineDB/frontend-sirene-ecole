@@ -146,6 +146,14 @@ class CalendrierScolaireService {
   }
 
   /**
+   * Ajouter un jour férié à un calendrier
+   */
+  async addJourFerie(calendrierId: string, data: JourFerieInput): Promise<ApiResponse<JourFerie>> {
+    const response = await apiClient.post(`/calendrier-scolaire/${calendrierId}/jours-feries`, data)
+    return response.data
+  }
+
+  /**
    * Calculer le nombre de jours d'école
    * Peut être filtré par école pour tenir compte des jours fériés spécifiques
    */
