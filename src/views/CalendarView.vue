@@ -999,19 +999,18 @@ const loadJoursFeriesPanel = async () => {
   }
 
   try {
-    const params: any = {
+    console.log('[loadJoursFeriesPanel] Fetching with params:', {
       pays_id: selectedPaysId.value,
       calendrier_id: selectedCalendrierId.value,
+      ecole_id: selectedEcoleId.value || undefined,
       per_page: 1000
-    }
-
-    // Ajouter ecole_id seulement s'il est défini
-    if (selectedEcoleId.value) {
-      params.ecole_id = selectedEcoleId.value
-    }
-
-    console.log('[loadJoursFeriesPanel] Fetching with params:', params)
-    const response = await jourFerieService.getJoursFeries(params)
+    })
+    const response = await jourFerieService.getJoursFeries({
+      pays_id: selectedPaysId.value,
+      calendrier_id: selectedCalendrierId.value,
+      ecole_id: selectedEcoleId.value || undefined,
+      per_page: 1000
+    })
     console.log('[loadJoursFeriesPanel] Response received:', response)
     if (response.success && response.data) {
       const data = Array.isArray(response.data) ? response.data : (response.data as any).data || []
