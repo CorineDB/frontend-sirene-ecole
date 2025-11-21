@@ -37,16 +37,32 @@ export interface CalendrierScolaire {
   deleted_at?: string | null
 }
 
+export interface JourFerieInput {
+  nom: string
+  date: string
+  est_national?: boolean
+  recurrent?: boolean
+}
+
 export interface CreateCalendrierScolaireRequest {
+  pays_id: string
   annee_scolaire: string
+  description?: string
   date_rentree: string
   date_fin_annee: string
+  periodes_vacances?: PeriodeVacances[]
+  jours_feries_defaut?: JourFerieInput[]
+  actif?: boolean
 }
 
 export interface UpdateCalendrierScolaireRequest {
   annee_scolaire?: string
+  description?: string
   date_rentree?: string
   date_fin_annee?: string
+  periodes_vacances?: PeriodeVacances[]
+  jours_feries_defaut?: JourFerieInput[]
+  actif?: boolean
 }
 
 export interface ApiResponse<T> {
@@ -123,8 +139,17 @@ class CalendrierScolaireService {
    * Obtenir les jours fériés d'un calendrier scolaire
    * Peut être filtré par école pour inclure les jours fériés spécifiques à l'école
    */
-  async getJoursFeries(calendrierId: string): Promise<ApiResponse<JourFerie[]>> {
-    const response = await apiClient.get(`/calendrier-scolaire/${calendrierId}/jours-feries`)
+  async getJoursFeries(calendrierId: string, ecoleId?: string): Promise<ApiResponse<JourFerie[]>> {
+    const params = ecoleId ? { ecole_id: ecoleId } : {}
+    const response = await apiClient.get(`/calendrier-scolaire/${calendrierId}/jours-feries`, { params })
+    return response.data
+  }
+
+  /**
+   * Ajouter un jour férié à un calendrier
+   */
+  async addJourFerie(calendrierId: string, data: JourFerieInput): Promise<ApiResponse<JourFerie>> {
+    const response = await apiClient.post(`/calendrier-scolaire/${calendrierId}/jours-feries`, data)
     return response.data
   }
 
