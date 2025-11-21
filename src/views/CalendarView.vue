@@ -580,6 +580,7 @@ const onAnneeScolaireChange = async () => {
       joursFeries.value = calendrier.jours_feries_defaut || []
 
       // Calculate school days
+      await calculateSchoolDays()
     } else {
       // Aucun calendrier pour cette année
       selectedCalendrierId.value = ''
@@ -690,6 +691,7 @@ const loadCalendrierData = async () => {
     }
 
     // Calculate school days
+    await calculateSchoolDays()
   } catch (error: any) {
     console.error('Failed to load calendrier data:', error)
     notificationStore.error('Erreur', 'Impossible de charger les données du calendrier')
@@ -728,6 +730,7 @@ const loadJoursFeries = async () => {
   }
 
   // Recalculate school days when jours fériés change
+  await calculateSchoolDays()
 }
 
 const calculateSchoolDays = async () => {
@@ -752,11 +755,5 @@ onMounted(async () => {
     loadPays(),
     loadEcoles()
   ])
-
-  // Sélectionner le premier pays par défaut
-  if (paysList.value.length > 0) {
-    selectedPaysId.value = paysList.value[0].id
-    await onPaysChange()
-  }
 })
 </script>
