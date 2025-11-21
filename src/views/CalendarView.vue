@@ -997,9 +997,10 @@ const loadJoursFeriesFromAPI = async () => {
     if (selectedEcoleId.value) {
       // École sélectionnée: charger jours fériés du calendrier + école
       const [calendrierResponse, ecoleResponse] = await Promise.all([
-        // Jours fériés du calendrier (nationaux)
+        // Jours fériés du calendrier uniquement (sans écoles)
         jourFerieService.getJoursFeries({
           calendrier_id: selectedCalendrierId.value,
+          ecole_id: 'null',
           per_page: 1000
         }),
         // Jours fériés spécifiques à l'école
@@ -1034,9 +1035,10 @@ const loadJoursFeriesFromAPI = async () => {
 
       joursFeries.value = Array.from(joursFeriesMap.values())
     } else {
-      // Pas d'école sélectionnée: charger uniquement les jours fériés du calendrier
+      // Pas d'école sélectionnée: charger uniquement les jours fériés du calendrier (sans écoles)
       const response = await jourFerieService.getJoursFeries({
         calendrier_id: selectedCalendrierId.value,
+        ecole_id: 'null',
         per_page: 1000
       })
 
