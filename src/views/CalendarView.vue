@@ -765,21 +765,22 @@ const createCalendrier = async () => {
   try {
     // Charger tous les jours fériés
     const [responseAll, responsePays] = await Promise.all([
-      jourFerieService.getJoursFeries({ pays_id: null, calendrier_id: null }),
-      jourFerieService.getJoursFeries({ pays_id: selectedPaysId.value })
+      jourFerieService.getJoursFeries({ pays_id: null, calendrier_id: null, per_page: 100 }),
+      jourFerieService.getJoursFeries({ pays_id: selectedPaysId.value, per_page: 100 })
     ])
 
     const allJoursFeries: JourFerie[] = []
 
-    // Jours fériés sans calendrier ni pays
+    // Jours fériés génériques (sans calendrier ni pays)
     if (responseAll.success && responseAll.data) {
-      const generic = responseAll.data.filter(jf => !jf.calendrier_id && !jf.pays_id && !jf.ecole_id)
-      allJoursFeries.push(...generic)
+      const dataAll = Array.isArray(responseAll.data) ? responseAll.data : (responseAll.data as any).data || []
+      allJoursFeries.push(...dataAll.filter((jf: JourFerie) => !jf.ecole_id))
     }
 
     // Jours fériés du pays sélectionné
     if (responsePays.success && responsePays.data) {
-      const paysJours = responsePays.data.filter(jf => !jf.ecole_id)
+      const dataPays = Array.isArray(responsePays.data) ? responsePays.data : (responsePays.data as any).data || []
+      const paysJours = dataPays.filter((jf: JourFerie) => !jf.ecole_id)
       allJoursFeries.push(...paysJours)
     }
 
