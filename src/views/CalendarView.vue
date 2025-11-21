@@ -892,7 +892,13 @@ const submitAddJourFerie = async () => {
     if (response.success) {
       notificationStore.success('Succès', 'Jour férié ajouté avec succès')
       newJourFerie.value = { lier_calendrier: true, pays_id: selectedPaysId.value, ecole_id: '', intitule_journee: '', date: '', est_national: false, recurrent: false }
-      await onAnneeScolaireChange()
+
+      // Recharger les jours fériés
+      if (selectedEcoleId.value) {
+        await loadJoursFeriesPanel()
+      } else {
+        await onAnneeScolaireChange()
+      }
 
       if (!continueAddingJourFerie.value) {
         showAddJourFerieModal.value = false
@@ -957,21 +963,26 @@ const loadEcoles = async () => {
   }
 }
 
-const loadJoursFeriesEcole = async () => {
+const loadJoursFeriesPanel = async () => {
   if (!selectedCalendrierId.value || !selectedEcoleId.value) return
 
   try {
-    // Load école-specific jours fériés and merge with national ones
-    const response = await calendrierScolaireService.getJoursFeries(selectedCalendrierId.value, selectedEcoleId.value)
+    const response = await jourFerieService.getJoursFeries({
+      pays_id: selectedPaysId.value,
+      calendrier_id: selectedCalendrierId.value,
+      ecole_id: selectedEcoleId.value,
+      per_page: 1000
+    })
+
     if (response.success && response.data) {
-      // Combine national jours fériés (from calendrier) with école-specific ones
-      const joursFeriesNationaux = currentCalendrier.value?.jours_feries_defaut || []
-      joursFeries.value = [...joursFeriesNationaux, ...response.data]
+      const data = Array.isArray(response.data) ? response.data : (response.data as any).data || []
+
+      // Merger avec les jours fériés par défaut du calendrier
+      const joursFeriesDefaut = currentCalendrier.value?.jours_feries_defaut || []
+      joursFeries.value = [...joursFeriesDefaut, ...data]
     }
   } catch (error: any) {
     console.error('Failed to load jours feries ecole:', error)
-    // Keep only national jours fériés on error
-    joursFeries.value = currentCalendrier.value?.jours_feries_defaut || []
   }
 }
 
@@ -982,8 +993,8 @@ const onEcoleChange = async () => {
     // Pas d'école sélectionnée, afficher uniquement les jours fériés nationaux du calendrier
     joursFeries.value = currentCalendrier.value?.jours_feries_defaut || []
   } else {
-    // École sélectionnée, charger les jours fériés spécifiques à l'école
-    await loadJoursFeriesEcole()
+    // École sélectionnée, merger jours fériés du calendrier + école
+    await loadJoursFeriesPanel()
   }
 
   // Recalculer les jours d'école
