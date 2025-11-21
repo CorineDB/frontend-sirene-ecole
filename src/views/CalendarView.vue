@@ -729,7 +729,9 @@ const onAnneeScolaireChange = async () => {
       selectedCalendrierId.value = calendrier.id
       currentCalendrier.value = calendrier
       periodes.value = calendrier.periodes_vacances || []
-      joursFeries.value = calendrier.jours_feries_defaut || []
+
+      // Charger les jours fériés via l'API
+      await loadJoursFeriesPanel()
 
       // Calculate school days
     } else {
@@ -892,7 +894,7 @@ const submitAddJourFerie = async () => {
     if (response.success) {
       notificationStore.success('Succès', 'Jour férié ajouté avec succès')
       newJourFerie.value = { lier_calendrier: true, pays_id: selectedPaysId.value, ecole_id: '', intitule_journee: '', date: '', est_national: false, recurrent: false }
-      await onAnneeScolaireChange()
+      await loadJoursFeriesPanel()
 
       if (!continueAddingJourFerie.value) {
         showAddJourFerieModal.value = false
@@ -970,13 +972,8 @@ const loadCalendrierData = async () => {
       // Load periodes from calendrier
       periodes.value = calendrierResponse.data.periodes_vacances || []
 
-      // Load jours fériés défaut (nationaux) from calendrier
-      joursFeries.value = calendrierResponse.data.jours_feries_defaut || []
-    }
-
-    // If école is selected, load école-specific jours fériés
-    if (selectedEcoleId.value) {
-      await loadJoursFeriesEcole()
+      // Load jours fériés via l'API
+      await loadJoursFeriesPanel()
     }
 
     // Calculate school days
@@ -988,34 +985,32 @@ const loadCalendrierData = async () => {
   }
 }
 
-const loadJoursFeriesEcole = async () => {
-  if (!selectedCalendrierId.value || !selectedEcoleId.value) return
+const loadJoursFeriesPanel = async () => {
+  if (!selectedCalendrierId.value) {
+    joursFeries.value = []
+    return
+  }
 
   try {
-    // Load école-specific jours fériés and merge with national ones
-    const response = await calendrierScolaireService.getJoursFeries(selectedCalendrierId.value, selectedEcoleId.value)
+    const response = await jourFerieService.getJoursFeries({
+      pays_id: selectedPaysId.value,
+      calendrier_id: selectedCalendrierId.value,
+      ecole_id: selectedEcoleId.value || undefined,
+      per_page: 1000
+    })
     if (response.success && response.data) {
-      // Combine national jours fériés (from calendrier) with école-specific ones
-      const joursFeriesNationaux = currentCalendrier.value?.jours_feries_defaut || []
-      joursFeries.value = [...joursFeriesNationaux, ...response.data]
+      const data = Array.isArray(response.data) ? response.data : (response.data as any).data || []
+      joursFeries.value = data
     }
   } catch (error: any) {
-    console.error('Failed to load jours feries ecole:', error)
-    // Keep only national jours fériés on error
+    console.error('Failed to load jours feries panel:', error)
     joursFeries.value = currentCalendrier.value?.jours_feries_defaut || []
   }
 }
 
 const onEcoleChange = async () => {
   if (!selectedCalendrierId.value) return
-
-  if (!selectedEcoleId.value) {
-    // Pas d'école sélectionnée, afficher uniquement les jours fériés nationaux du calendrier
-    joursFeries.value = currentCalendrier.value?.jours_feries_defaut || []
-  } else {
-    // École sélectionnée, charger les jours fériés spécifiques à l'école
-    await loadJoursFeriesEcole()
-  }
+  await loadJoursFeriesPanel()
 
   // Recalculer les jours d'école
 }
