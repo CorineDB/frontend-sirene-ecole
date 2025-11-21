@@ -363,12 +363,12 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Calendrier</label>
-            <div class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-700">
-              {{ selectedAnneeScolaire }} ({{ paysList.find(p => p.id === selectedPaysId)?.nom }})
-            </div>
+            <label class="flex items-center gap-2">
+              <input type="checkbox" v-model="newJourFerie.lier_calendrier" />
+              <span class="text-sm font-medium text-gray-700">Ajouter au calendrier {{ selectedAnneeScolaire }}</span>
+            </label>
           </div>
-          <div>
+          <div v-if="!newJourFerie.lier_calendrier">
             <label class="block text-sm font-medium text-gray-700 mb-1">Pays</label>
             <select v-model="newJourFerie.pays_id" class="w-full px-3 py-2 border rounded-lg">
               <option value="">Aucun pays</option>
@@ -446,6 +446,7 @@ const loading = ref(false)
 const showCreateModal = ref(false)
 const showAddJourFerieModal = ref(false)
 const newJourFerie = ref({
+  lier_calendrier: true,
   pays_id: '',
   ecole_id: '',
   intitule_journee: '',
@@ -831,6 +832,7 @@ const submitCreateCalendrier = async () => {
 
 const openAddJourFerieModal = () => {
   newJourFerie.value = {
+    lier_calendrier: true,
     pays_id: selectedPaysId.value,
     ecole_id: selectedEcoleId.value || '',
     intitule_journee: '',
@@ -842,13 +844,16 @@ const openAddJourFerieModal = () => {
 }
 
 const submitAddJourFerie = async () => {
-  if (!newJourFerie.value.intitule_journee || !newJourFerie.value.date || !selectedCalendrierId.value) return
+  if (!newJourFerie.value.intitule_journee || !newJourFerie.value.date) return
+  // Si lié au calendrier, calendrier requis; sinon pays requis
+  if (newJourFerie.value.lier_calendrier && !selectedCalendrierId.value) return
+  if (!newJourFerie.value.lier_calendrier && !newJourFerie.value.pays_id) return
 
   try {
     loading.value = true
     const response = await jourFerieService.createJourFerie({
-      calendrier_id: selectedCalendrierId.value,
-      pays_id: newJourFerie.value.pays_id || null,
+      calendrier_id: newJourFerie.value.lier_calendrier ? selectedCalendrierId.value : null,
+      pays_id: newJourFerie.value.lier_calendrier ? null : (newJourFerie.value.pays_id || null),
       ecole_id: newJourFerie.value.ecole_id || null,
       intitule_journee: newJourFerie.value.intitule_journee,
       date: newJourFerie.value.date,
@@ -858,7 +863,7 @@ const submitAddJourFerie = async () => {
 
     if (response.success) {
       notificationStore.success('Succès', 'Jour férié ajouté avec succès')
-      newJourFerie.value = { pays_id: selectedPaysId.value, ecole_id: '', intitule_journee: '', date: '', est_national: false, recurrent: false }
+      newJourFerie.value = { lier_calendrier: true, pays_id: selectedPaysId.value, ecole_id: '', intitule_journee: '', date: '', est_national: false, recurrent: false }
       await onAnneeScolaireChange()
 
       if (!continueAddingJourFerie.value) {
