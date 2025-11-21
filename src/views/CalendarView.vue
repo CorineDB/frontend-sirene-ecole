@@ -378,9 +378,15 @@
           </div>
         </div>
 
-        <div class="flex justify-end gap-3 mt-6">
-          <button @click="showAddJourFerieModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
-          <button @click="submitAddJourFerie" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Ajouter</button>
+        <div class="flex items-center justify-between mt-6">
+          <label class="flex items-center gap-2">
+            <input type="checkbox" v-model="continueAddingJourFerie" />
+            <span class="text-sm text-gray-600">Continuer à ajouter</span>
+          </label>
+          <div class="flex gap-3">
+            <button @click="showAddJourFerieModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
+            <button @click="submitAddJourFerie" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Ajouter</button>
+          </div>
         </div>
       </div>
     </div>
@@ -421,6 +427,7 @@ const newJourFerie = ref({
   est_national: false,
   recurrent: false
 })
+const continueAddingJourFerie = ref(false)
 const newCalendrier = ref({
   date_rentree: '',
   date_fin_annee: '',
@@ -811,9 +818,12 @@ const submitAddJourFerie = async () => {
 
     if (response.success) {
       notificationStore.success('Succès', 'Jour férié ajouté avec succès')
-      showAddJourFerieModal.value = false
       newJourFerie.value = { intitule_journee: '', date: '', est_national: false, recurrent: false }
       await onAnneeScolaireChange()
+
+      if (!continueAddingJourFerie.value) {
+        showAddJourFerieModal.value = false
+      }
     }
   } catch (error: any) {
     console.error('Failed to add jour ferie:', error)
