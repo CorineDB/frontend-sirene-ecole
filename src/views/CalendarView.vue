@@ -51,14 +51,15 @@
           <!-- École -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">
-              École <span class="text-xs text-gray-500">(optionnel)</span>
+              École <span class="text-xs text-gray-500">(optionnel, pour jours fériés spécifiques)</span>
             </label>
             <select
               v-model="selectedEcoleId"
-              @change="loadJoursFeries"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              @change="onEcoleChange"
+              :disabled="!selectedCalendrierId"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
-              <option value="">Toutes les écoles</option>
+              <option value="">Toutes les écoles (calendrier national)</option>
               <option v-for="ecole in ecoles" :key="ecole.id" :value="ecole.id">
                 {{ ecole.nom_complet }}
               </option>
@@ -703,13 +704,11 @@ const loadJoursFeriesEcole = async () => {
 
   try {
     // Load école-specific jours fériés and merge with national ones
-    const response = await calendrierScolaireService.getJoursFeries(selectedCalendrierId.value)
+    const response = await calendrierScolaireService.getJoursFeries(selectedCalendrierId.value, selectedEcoleId.value)
     if (response.success && response.data) {
       // Combine national jours fériés (from calendrier) with école-specific ones
       const joursFeriesNationaux = currentCalendrier.value?.jours_feries_defaut || []
-      const joursFeriesEcole = response.data.filter(jf => jf.ecole_id === selectedEcoleId.value)
-
-      joursFeries.value = [...joursFeriesNationaux, ...joursFeriesEcole]
+      joursFeries.value = [...joursFeriesNationaux, ...response.data]
     }
   } catch (error: any) {
     console.error('Failed to load jours feries ecole:', error)
@@ -718,16 +717,18 @@ const loadJoursFeriesEcole = async () => {
   }
 }
 
-const loadJoursFeries = async () => {
+const onEcoleChange = async () => {
+  if (!selectedCalendrierId.value) return
+
   if (!selectedEcoleId.value) {
-    // No école selected, show only national jours fériés
+    // Pas d'école sélectionnée, afficher uniquement les jours fériés nationaux du calendrier
     joursFeries.value = currentCalendrier.value?.jours_feries_defaut || []
   } else {
-    // École selected, load and merge école-specific jours fériés
+    // École sélectionnée, charger les jours fériés spécifiques à l'école
     await loadJoursFeriesEcole()
   }
 
-  // Recalculate school days when jours fériés change
+  // Recalculer les jours d'école
 }
 
 const calculateSchoolDays = async () => {
