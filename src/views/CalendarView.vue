@@ -581,7 +581,6 @@ const onAnneeScolaireChange = async () => {
       joursFeries.value = calendrier.jours_feries_defaut || []
 
       // Calculate school days
-      await calculateSchoolDays()
     } else {
       // Aucun calendrier pour cette année
       selectedCalendrierId.value = ''
@@ -692,7 +691,6 @@ const loadCalendrierData = async () => {
     }
 
     // Calculate school days
-    await calculateSchoolDays()
   } catch (error: any) {
     console.error('Failed to load calendrier data:', error)
     notificationStore.error('Erreur', 'Impossible de charger les données du calendrier')
@@ -706,13 +704,11 @@ const loadJoursFeriesEcole = async () => {
 
   try {
     // Load école-specific jours fériés and merge with national ones
-    const response = await calendrierScolaireService.getJoursFeries(selectedCalendrierId.value)
+    const response = await calendrierScolaireService.getJoursFeries(selectedCalendrierId.value, selectedEcoleId.value)
     if (response.success && response.data) {
       // Combine national jours fériés (from calendrier) with école-specific ones
       const joursFeriesNationaux = currentCalendrier.value?.jours_feries_defaut || []
-      const joursFeriesEcole = response.data.filter(jf => jf.ecole_id === selectedEcoleId.value)
-
-      joursFeries.value = [...joursFeriesNationaux, ...joursFeriesEcole]
+      joursFeries.value = [...joursFeriesNationaux, ...response.data]
     }
   } catch (error: any) {
     console.error('Failed to load jours feries ecole:', error)
@@ -733,7 +729,6 @@ const onEcoleChange = async () => {
   }
 
   // Recalculer les jours d'école
-  await calculateSchoolDays()
 }
 
 const calculateSchoolDays = async () => {
@@ -758,5 +753,11 @@ onMounted(async () => {
     loadPays(),
     loadEcoles()
   ])
+
+  // Sélectionner le premier pays par défaut
+  if (paysList.value.length > 0) {
+    selectedPaysId.value = paysList.value[0].id
+    await onPaysChange()
+  }
 })
 </script>
