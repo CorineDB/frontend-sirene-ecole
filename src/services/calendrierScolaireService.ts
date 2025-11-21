@@ -123,8 +123,9 @@ class CalendrierScolaireService {
    * Obtenir les jours fériés d'un calendrier scolaire
    * Peut être filtré par école pour inclure les jours fériés spécifiques à l'école
    */
-  async getJoursFeries(calendrierId: string): Promise<ApiResponse<JourFerie[]>> {
-    const response = await apiClient.get(`/calendrier-scolaire/${calendrierId}/jours-feries`)
+  async getJoursFeries(calendrierId: string, ecoleId?: string): Promise<ApiResponse<JourFerie[]>> {
+    const params = ecoleId ? { ecole_id: ecoleId } : {}
+    const response = await apiClient.get(`/calendrier-scolaire/${calendrierId}/jours-feries`, { params })
     return response.data
   }
 
