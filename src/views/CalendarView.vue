@@ -765,7 +765,7 @@ const createCalendrier = async () => {
   try {
     // Charger tous les jours fériés
     const [responseAll, responsePays] = await Promise.all([
-      jourFerieService.getJoursFeries({ pays_id: null, calendrier_id: null, per_page: 100 }),
+      jourFerieService.getJoursFeries({ pays_id: 'null', calendrier_id: 'null', per_page: 100 }),
       jourFerieService.getJoursFeries({ pays_id: selectedPaysId.value, per_page: 100 })
     ])
 
