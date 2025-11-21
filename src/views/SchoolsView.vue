@@ -199,7 +199,7 @@ const fetchSchools = async () => {
 
         return {
           id: ecole.id,
-          name: ecole.nom || 'École sans nom',
+          name: ecole.nom_complet || ecole.nom || 'École sans nom',
           type: type,
           phone: ecole.telephone_contact || 'N/A',
           email: ecole.email_contact || null,
