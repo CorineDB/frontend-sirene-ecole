@@ -751,9 +751,12 @@ const onAnneeScolaireChange = async () => {
       selectedCalendrierId.value = calendrier.id
       currentCalendrier.value = calendrier
       periodes.value = calendrier.periodes_vacances || []
-      joursFeries.value = calendrier.jours_feries_defaut || []
+
+      // Charger les jours fériés depuis l'API au lieu de jours_feries_defaut
+      await loadJoursFeriesFromAPI()
 
       // Calculate school days
+      await calculateSchoolDays()
     } else {
       // Aucun calendrier pour cette année
       selectedCalendrierId.value = ''
@@ -985,59 +988,49 @@ const loadEcoles = async () => {
   }
 }
 
-const loadJoursFeriesPanel = async () => {
-  if (!selectedCalendrierId.value || !selectedEcoleId.value) return
+// Charger les jours fériés depuis l'API (avec ou sans école)
+const loadJoursFeriesFromAPI = async () => {
+  if (!selectedCalendrierId.value) return
 
   loadingJoursFeries.value = true
   try {
-    const response = await jourFerieService.getJoursFeries({
+    const params: any = {
       calendrier_id: selectedCalendrierId.value,
-      ecole_id: selectedEcoleId.value,
       per_page: 1000
-    })
+    }
+
+    // Ajouter ecole_id seulement si une école est sélectionnée
+    if (selectedEcoleId.value) {
+      params.ecole_id = selectedEcoleId.value
+    }
+
+    const response = await jourFerieService.getJoursFeries(params)
 
     if (response.success && response.data) {
       const data = Array.isArray(response.data) ? response.data : (response.data as any).data || []
-
-      // Merger avec les jours fériés par défaut du calendrier
-      const joursFeriesDefaut = currentCalendrier.value?.jours_feries_defaut || []
-
-      // Use Map to deduplicate by date - école-specific overrides national
-      const joursFeriesMap = new Map<string, JourFerie>()
-
-      // Add national holidays first
-      joursFeriesDefaut.forEach(jf => {
-        joursFeriesMap.set(formatLocalDate(jf.date), jf)
-      })
-
-      // Override with école-specific holidays (higher priority)
-      data.forEach((jf: JourFerie) => {
-        joursFeriesMap.set(formatLocalDate(jf.date), jf)
-      })
-
-      joursFeries.value = Array.from(joursFeriesMap.values())
+      joursFeries.value = data
     }
   } catch (error: any) {
-    console.error('Failed to load jours feries ecole:', error)
-    // Keep only national jours fériés on error
-    joursFeries.value = currentCalendrier.value?.jours_feries_defaut || []
+    console.error('Failed to load jours feries from API:', error)
+    joursFeries.value = []
   } finally {
     loadingJoursFeries.value = false
   }
 }
 
+const loadJoursFeriesPanel = async () => {
+  if (!selectedCalendrierId.value || !selectedEcoleId.value) return
+  await loadJoursFeriesFromAPI()
+}
+
 const onEcoleChange = async () => {
   if (!selectedCalendrierId.value) return
 
-  if (!selectedEcoleId.value) {
-    // Pas d'école sélectionnée, afficher uniquement les jours fériés nationaux du calendrier
-    joursFeries.value = currentCalendrier.value?.jours_feries_defaut || []
-  } else {
-    // École sélectionnée, merger jours fériés du calendrier + école
-    await loadJoursFeriesPanel()
-  }
+  // Charger les jours fériés depuis l'API (avec ou sans école)
+  await loadJoursFeriesFromAPI()
 
   // Recalculer les jours d'école
+  await calculateSchoolDays()
 }
 
 const calculateSchoolDays = async () => {
