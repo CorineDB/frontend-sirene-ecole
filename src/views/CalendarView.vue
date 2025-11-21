@@ -670,6 +670,7 @@ const onAnneeScolaireChange = async () => {
 }
 
 const createCalendrier = () => {
+  console.log('createCalendrier appelé', { selectedPaysId: selectedPaysId.value, selectedAnneeScolaire: selectedAnneeScolaire.value })
   if (!selectedPaysId.value || !selectedAnneeScolaire.value) return
 
   // Initialiser avec dates par défaut
