@@ -771,10 +771,9 @@ const createCalendrier = async () => {
 
     const allJoursFeries: JourFerie[] = []
 
-    // Jours fériés sans calendrier ni pays
+    // Jours fériés génériques (sans calendrier ni pays)
     if (responseAll.success && responseAll.data) {
-      const generic = responseAll.data.filter(jf => !jf.calendrier_id && !jf.pays_id && !jf.ecole_id)
-      allJoursFeries.push(...generic)
+      allJoursFeries.push(...responseAll.data.filter(jf => !jf.ecole_id))
     }
 
     // Jours fériés du pays sélectionné
