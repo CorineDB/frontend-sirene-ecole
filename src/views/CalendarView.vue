@@ -760,19 +760,43 @@ const createCalendrier = async () => {
   // Initialiser avec dates par défaut
   const [startYear] = selectedAnneeScolaire.value.split('-').map(Number)
 
-  // Charger les jours fériés nationaux du pays
+  // Charger tous les jours fériés (sans calendrier/pays + ceux du pays sélectionné)
   let joursFeriesNationaux: { intitule_journee: string; date: string; recurrent: boolean }[] = []
   try {
-    const response = await jourFerieService.getJoursFeries({ pays_id: selectedPaysId.value })
-    if (response.success && response.data) {
-      joursFeriesNationaux = response.data
-        .filter(jf => !jf.ecole_id)
-        .map(jf => ({
-          intitule_journee: jf.intitule_journee,
-          date: jf.date.split('T')[0],
-          recurrent: jf.recurrent || false
-        }))
+    // Charger tous les jours fériés
+    const [responseAll, responsePays] = await Promise.all([
+      jourFerieService.getJoursFeries({}),
+      jourFerieService.getJoursFeries({ pays_id: selectedPaysId.value })
+    ])
+
+    const allJoursFeries: JourFerie[] = []
+
+    // Jours fériés sans calendrier ni pays
+    if (responseAll.success && responseAll.data) {
+      const generic = responseAll.data.filter(jf => !jf.calendrier_id && !jf.pays_id && !jf.ecole_id)
+      allJoursFeries.push(...generic)
     }
+
+    // Jours fériés du pays sélectionné
+    if (responsePays.success && responsePays.data) {
+      const paysJours = responsePays.data.filter(jf => !jf.ecole_id)
+      allJoursFeries.push(...paysJours)
+    }
+
+    // Dédupliquer par intitulé + date
+    const seen = new Set<string>()
+    joursFeriesNationaux = allJoursFeries
+      .filter(jf => {
+        const key = `${jf.intitule_journee}-${jf.date.split('T')[0]}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .map(jf => ({
+        intitule_journee: jf.intitule_journee,
+        date: jf.date.split('T')[0],
+        recurrent: jf.recurrent || false
+      }))
   } catch (error) {
     console.error('Failed to load jours feries nationaux:', error)
   }
