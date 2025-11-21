@@ -37,21 +37,30 @@ export interface CalendrierScolaire {
   deleted_at?: string | null
 }
 
+export interface JourFerieInput {
+  nom: string
+  date: string
+}
+
 export interface CreateCalendrierScolaireRequest {
   pays_id: string
   annee_scolaire: string
+  description?: string
   date_rentree: string
   date_fin_annee: string
   periodes_vacances?: PeriodeVacances[]
-  jours_feries_defaut?: Omit<JourFerie, 'id' | 'calendrier_id' | 'created_at' | 'updated_at' | 'deleted_at'>[]
+  jours_feries_defaut?: JourFerieInput[]
+  actif?: boolean
 }
 
 export interface UpdateCalendrierScolaireRequest {
   annee_scolaire?: string
+  description?: string
   date_rentree?: string
   date_fin_annee?: string
   periodes_vacances?: PeriodeVacances[]
-  jours_feries_defaut?: Omit<JourFerie, 'id' | 'calendrier_id' | 'created_at' | 'updated_at' | 'deleted_at'>[]
+  jours_feries_defaut?: JourFerieInput[]
+  actif?: boolean
 }
 
 export interface ApiResponse<T> {
