@@ -482,10 +482,17 @@ const getPeriodeStatusClass = (periode: PeriodeVacances) => {
 // Générer une liste d'années scolaires disponibles
 const annesScolairesDisponibles = computed(() => {
   const annees: Array<{ annee: string, hasCalendrier: boolean, calendrierId?: string }> = []
-  const currentYear = new Date().getFullYear()
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1 // 1-12
 
-  // Générer de 5 ans avant à 5 ans après l'année actuelle
-  for (let i = -5; i <= 5; i++) {
+  // Déterminer jusqu'à quelle année on peut aller dans le futur
+  // Si on est entre septembre et décembre, on peut avoir l'année N+1
+  // Sinon, on reste sur l'année en cours maximum
+  const maxFutureYear = currentMonth >= 9 ? 1 : 0
+
+  // Générer de 5 ans avant à maxFutureYear après l'année actuelle
+  for (let i = -5; i <= maxFutureYear; i++) {
     const year = currentYear + i
     const anneeScolaire = `${year}-${year + 1}`
 
