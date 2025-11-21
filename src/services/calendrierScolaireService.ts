@@ -40,6 +40,8 @@ export interface CalendrierScolaire {
 export interface JourFerieInput {
   nom: string
   date: string
+  est_national?: boolean
+  recurrent?: boolean
 }
 
 export interface CreateCalendrierScolaireRequest {

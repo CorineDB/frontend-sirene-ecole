@@ -328,9 +328,17 @@
               <label class="text-sm font-medium text-gray-700">Jours fériés</label>
               <button @click="addJourFerie" class="text-blue-600 text-sm hover:underline">+ Ajouter</button>
             </div>
-            <div v-for="(jour, index) in newCalendrier.jours_feries_defaut" :key="index" class="flex gap-2 mb-2">
+            <div v-for="(jour, index) in newCalendrier.jours_feries_defaut" :key="index" class="flex items-center gap-2 mb-2">
               <input type="text" v-model="jour.nom" placeholder="Nom" class="flex-1 px-3 py-2 border rounded-lg" />
               <input type="date" v-model="jour.date" class="px-3 py-2 border rounded-lg" />
+              <label class="flex items-center gap-1 text-xs">
+                <input type="checkbox" v-model="jour.est_national" />
+                National
+              </label>
+              <label class="flex items-center gap-1 text-xs">
+                <input type="checkbox" v-model="jour.recurrent" />
+                Récurrent
+              </label>
               <button @click="removeJourFerie(index)" class="text-red-500 px-2">×</button>
             </div>
           </div>
@@ -376,7 +384,7 @@ const newCalendrier = ref({
   date_rentree: '',
   date_fin_annee: '',
   periodes_vacances: [] as { nom: string; date_debut: string; date_fin: string }[],
-  jours_feries_defaut: [] as { nom: string; date: string }[]
+  jours_feries_defaut: [] as { nom: string; date: string; est_national: boolean; recurrent: boolean }[]
 })
 
 // Calendar navigation
@@ -678,13 +686,18 @@ const createCalendrier = async () => {
   const [startYear] = selectedAnneeScolaire.value.split('-').map(Number)
 
   // Charger les jours fériés nationaux du pays
-  let joursFeriesNationaux: { nom: string; date: string }[] = []
+  let joursFeriesNationaux: { nom: string; date: string; est_national: boolean; recurrent: boolean }[] = []
   try {
     const response = await jourFerieService.getJoursFeries({ pays_id: selectedPaysId.value })
     if (response.success && response.data) {
       joursFeriesNationaux = response.data
         .filter(jf => !jf.ecole_id)
-        .map(jf => ({ nom: jf.nom, date: jf.date.split('T')[0] }))
+        .map(jf => ({
+          nom: jf.nom,
+          date: jf.date.split('T')[0],
+          est_national: true,
+          recurrent: jf.recurrent || false
+        }))
     }
   } catch (error) {
     console.error('Failed to load jours feries nationaux:', error)
@@ -708,7 +721,7 @@ const removePeriodeVacances = (index: number) => {
 }
 
 const addJourFerie = () => {
-  newCalendrier.value.jours_feries_defaut.push({ nom: '', date: '' })
+  newCalendrier.value.jours_feries_defaut.push({ nom: '', date: '', est_national: false, recurrent: false })
 }
 
 const removeJourFerie = (index: number) => {
