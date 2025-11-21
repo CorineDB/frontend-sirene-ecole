@@ -763,18 +763,15 @@ const onPaysChange = async () => {
   joursFeries.value = []
   currentCalendrier.value = null
   schoolDays.value = 0
+  calendriers.value = []
 
   if (!selectedPaysId.value) {
-    calendriers.value = []
     return
   }
 
   // Get selected pays object
   const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
   if (!selectedPays) return
-
-  // Load calendriers filtered by pays code ISO
-  await loadCalendriersByPays(selectedPays.code_iso)
 
   // Auto-select calendrier de l'année en cours pour ce pays
   const now = new Date()
@@ -794,18 +791,6 @@ const onPaysChange = async () => {
   // Auto-select année en cours
   selectedAnneeScolaire.value = targetYear
   await onAnneeScolaireChange()
-}
-
-const loadCalendriersByPays = async (codeIso: string) => {
-  try {
-    const response = await calendrierScolaireService.getAll(100, codeIso, undefined, true)
-    if (response.success && response.data) {
-      calendriers.value = response.data
-    }
-  } catch (error: any) {
-    console.error('Failed to load calendriers by pays:', error)
-    notificationStore.error('Erreur', 'Impossible de charger les calendriers du pays')
-  }
 }
 
 const loadEcoles = async () => {
