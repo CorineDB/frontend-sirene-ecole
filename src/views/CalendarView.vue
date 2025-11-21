@@ -697,7 +697,7 @@ const periodesSorted = computed(() => {
 const joursFeriesSorted = computed(() => {
   // Filter only active jours fériés and sort by date
   return [...joursFeries.value]
-    .filter(jf => jf.actif)
+    //.filter(jf => jf.actif)
     .sort((a, b) => {
       return new Date(a.date).getTime() - new Date(b.date).getTime()
     })
