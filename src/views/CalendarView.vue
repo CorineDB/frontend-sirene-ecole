@@ -289,6 +289,59 @@
         </div>
       </template>
     </div>
+
+    <!-- Modal Créer Calendrier -->
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Créer un calendrier pour {{ selectedAnneeScolaire }}</h2>
+
+        <div class="space-y-4">
+          <!-- Dates -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Date de rentrée</label>
+              <input type="date" v-model="newCalendrier.date_rentree" class="w-full px-3 py-2 border rounded-lg" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Date de fin d'année</label>
+              <input type="date" v-model="newCalendrier.date_fin_annee" class="w-full px-3 py-2 border rounded-lg" />
+            </div>
+          </div>
+
+          <!-- Périodes de vacances -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-sm font-medium text-gray-700">Périodes de vacances</label>
+              <button @click="addPeriodeVacances" class="text-blue-600 text-sm hover:underline">+ Ajouter</button>
+            </div>
+            <div v-for="(periode, index) in newCalendrier.periodes_vacances" :key="index" class="flex gap-2 mb-2">
+              <input type="text" v-model="periode.nom" placeholder="Nom" class="flex-1 px-3 py-2 border rounded-lg" />
+              <input type="date" v-model="periode.date_debut" class="px-3 py-2 border rounded-lg" />
+              <input type="date" v-model="periode.date_fin" class="px-3 py-2 border rounded-lg" />
+              <button @click="removePeriodeVacances(index)" class="text-red-500 px-2">×</button>
+            </div>
+          </div>
+
+          <!-- Jours fériés -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-sm font-medium text-gray-700">Jours fériés</label>
+              <button @click="addJourFerie" class="text-blue-600 text-sm hover:underline">+ Ajouter</button>
+            </div>
+            <div v-for="(jour, index) in newCalendrier.jours_feries_defaut" :key="index" class="flex gap-2 mb-2">
+              <input type="text" v-model="jour.nom" placeholder="Nom" class="flex-1 px-3 py-2 border rounded-lg" />
+              <input type="date" v-model="jour.date" class="px-3 py-2 border rounded-lg" />
+              <button @click="removeJourFerie(index)" class="text-red-500 px-2">×</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <button @click="showCreateModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
+          <button @click="submitCreateCalendrier" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Créer</button>
+        </div>
+      </div>
+    </div>
   </DashboardLayout>
 </template>
 
@@ -317,6 +370,13 @@ const selectedEcoleId = ref<string>('')
 const currentCalendrier = ref<CalendrierScolaire | null>(null)
 const schoolDays = ref<number>(0)
 const loading = ref(false)
+const showCreateModal = ref(false)
+const newCalendrier = ref({
+  date_rentree: '',
+  date_fin_annee: '',
+  periodes_vacances: [] as { nom: string; date_debut: string; date_fin: string }[],
+  jours_feries_defaut: [] as { nom: string; date: string }[]
+})
 
 // Calendar navigation
 const currentMonth = ref(new Date().getMonth())
@@ -609,28 +669,52 @@ const onAnneeScolaireChange = async () => {
   }
 }
 
-const createCalendrier = async () => {
+const createCalendrier = () => {
   if (!selectedPaysId.value || !selectedAnneeScolaire.value) return
 
-  const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
-  if (!selectedPays) return
-
-  // Calculer dates par défaut basées sur l'année scolaire (ex: "2025-2026")
+  // Initialiser avec dates par défaut
   const [startYear] = selectedAnneeScolaire.value.split('-').map(Number)
-  const dateRentree = `${startYear}-09-01`
-  const dateFinAnnee = `${startYear + 1}-07-31`
+  newCalendrier.value = {
+    date_rentree: `${startYear}-09-01`,
+    date_fin_annee: `${startYear + 1}-07-31`,
+    periodes_vacances: [],
+    jours_feries_defaut: []
+  }
+  showCreateModal.value = true
+}
 
+const addPeriodeVacances = () => {
+  newCalendrier.value.periodes_vacances.push({ nom: '', date_debut: '', date_fin: '' })
+}
+
+const removePeriodeVacances = (index: number) => {
+  newCalendrier.value.periodes_vacances.splice(index, 1)
+}
+
+const addJourFerie = () => {
+  newCalendrier.value.jours_feries_defaut.push({ nom: '', date: '' })
+}
+
+const removeJourFerie = (index: number) => {
+  newCalendrier.value.jours_feries_defaut.splice(index, 1)
+}
+
+const submitCreateCalendrier = async () => {
   try {
     loading.value = true
     const response = await calendrierScolaireService.create({
       pays_id: selectedPaysId.value,
       annee_scolaire: selectedAnneeScolaire.value,
-      date_rentree: dateRentree,
-      date_fin_annee: dateFinAnnee
+      date_rentree: newCalendrier.value.date_rentree,
+      date_fin_annee: newCalendrier.value.date_fin_annee,
+      periodes_vacances: newCalendrier.value.periodes_vacances.filter(p => p.nom && p.date_debut && p.date_fin),
+      jours_feries_defaut: newCalendrier.value.jours_feries_defaut.filter(j => j.nom && j.date),
+      actif: true
     })
 
     if (response.success && response.data) {
       notificationStore.success('Succès', 'Calendrier créé avec succès')
+      showCreateModal.value = false
       await onAnneeScolaireChange()
     }
   } catch (error: any) {
