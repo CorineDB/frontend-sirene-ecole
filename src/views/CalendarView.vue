@@ -957,37 +957,6 @@ const loadEcoles = async () => {
   }
 }
 
-const loadCalendrierData = async () => {
-  if (!selectedCalendrierId.value) return
-
-  loading.value = true
-  try {
-    // Load calendrier details
-    const calendrierResponse = await calendrierScolaireService.getById(selectedCalendrierId.value)
-    if (calendrierResponse.success && calendrierResponse.data) {
-      currentCalendrier.value = calendrierResponse.data
-
-      // Load periodes from calendrier
-      periodes.value = calendrierResponse.data.periodes_vacances || []
-
-      // Load jours fériés défaut (nationaux) from calendrier
-      joursFeries.value = calendrierResponse.data.jours_feries_defaut || []
-    }
-
-    // If école is selected, load école-specific jours fériés
-    if (selectedEcoleId.value) {
-      await loadJoursFeriesEcole()
-    }
-
-    // Calculate school days
-  } catch (error: any) {
-    console.error('Failed to load calendrier data:', error)
-    notificationStore.error('Erreur', 'Impossible de charger les données du calendrier')
-  } finally {
-    loading.value = false
-  }
-}
-
 const loadJoursFeriesEcole = async () => {
   if (!selectedCalendrierId.value || !selectedEcoleId.value) return
 
