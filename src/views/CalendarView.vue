@@ -994,21 +994,56 @@ const loadJoursFeriesFromAPI = async () => {
 
   loadingJoursFeries.value = true
   try {
-    const params: any = {
-      calendrier_id: selectedCalendrierId.value,
-      per_page: 1000
-    }
-
-    // Ajouter ecole_id seulement si une école est sélectionnée
     if (selectedEcoleId.value) {
-      params.ecole_id = selectedEcoleId.value
-    }
+      // École sélectionnée: charger jours fériés du calendrier + école
+      const [calendrierResponse, ecoleResponse] = await Promise.all([
+        // Jours fériés du calendrier (nationaux)
+        jourFerieService.getJoursFeries({
+          calendrier_id: selectedCalendrierId.value,
+          per_page: 1000
+        }),
+        // Jours fériés spécifiques à l'école
+        jourFerieService.getJoursFeries({
+          calendrier_id: selectedCalendrierId.value,
+          ecole_id: selectedEcoleId.value,
+          per_page: 1000
+        })
+      ])
 
-    const response = await jourFerieService.getJoursFeries(params)
+      // Merger les deux listes avec déduplication par date
+      const joursFeriesCalendrier = Array.isArray(calendrierResponse.data)
+        ? calendrierResponse.data
+        : (calendrierResponse.data as any)?.data || []
 
-    if (response.success && response.data) {
-      const data = Array.isArray(response.data) ? response.data : (response.data as any).data || []
-      joursFeries.value = data
+      const joursFeriesEcole = Array.isArray(ecoleResponse.data)
+        ? ecoleResponse.data
+        : (ecoleResponse.data as any)?.data || []
+
+      // Use Map to deduplicate by date - école-specific overrides calendrier
+      const joursFeriesMap = new Map<string, JourFerie>()
+
+      // Add calendrier holidays first
+      joursFeriesCalendrier.forEach((jf: JourFerie) => {
+        joursFeriesMap.set(formatLocalDate(jf.date), jf)
+      })
+
+      // Override with école-specific holidays (higher priority)
+      joursFeriesEcole.forEach((jf: JourFerie) => {
+        joursFeriesMap.set(formatLocalDate(jf.date), jf)
+      })
+
+      joursFeries.value = Array.from(joursFeriesMap.values())
+    } else {
+      // Pas d'école sélectionnée: charger uniquement les jours fériés du calendrier
+      const response = await jourFerieService.getJoursFeries({
+        calendrier_id: selectedCalendrierId.value,
+        per_page: 1000
+      })
+
+      if (response.success && response.data) {
+        const data = Array.isArray(response.data) ? response.data : (response.data as any).data || []
+        joursFeries.value = data
+      }
     }
   } catch (error: any) {
     console.error('Failed to load jours feries from API:', error)
