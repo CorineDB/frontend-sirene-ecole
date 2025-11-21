@@ -3,28 +3,36 @@ import apiClient from './api'
 // Types
 export interface JourFerie {
   id: string
-  nom: string
+  calendrier_id: string
+  ecole_id: string | null
+  pays_id: string | null
+  intitule_journee: string
   date: string
-  type: 'national' | 'ecole' | 'mobile'
+  type?: string
   recurrent: boolean
-  ecole_id?: string
+  actif: boolean
+  est_national?: boolean
   created_at?: string
   updated_at?: string
 }
 
 export interface CreateJourFerieRequest {
-  nom: string
+  calendrier_id: string
+  ecole_id?: string | null
+  pays_id?: string | null
+  intitule_journee: string
   date: string
-  type: 'national' | 'ecole' | 'mobile'
+  type?: string
   recurrent?: boolean
-  ecole_id?: string
+  actif?: boolean
 }
 
 export interface UpdateJourFerieRequest {
-  nom?: string
+  intitule_journee?: string
   date?: string
-  type?: 'national' | 'ecole' | 'mobile'
+  type?: string
   recurrent?: boolean
+  actif?: boolean
 }
 
 export interface ApiResponse<T> {
