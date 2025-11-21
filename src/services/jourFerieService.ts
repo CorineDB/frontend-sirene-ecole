@@ -22,7 +22,6 @@ export interface CreateJourFerieRequest {
   pays_id?: string | null
   intitule_journee: string
   date: string
-  type?: string
   est_national?: boolean
   recurrent?: boolean
   actif?: boolean
