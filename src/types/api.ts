@@ -433,33 +433,58 @@ export interface DeclarerPanneRequest {
 
 // ==================== Programmations ====================
 
+// Format horaire ESP8266
+export interface HoraireSonnerie {
+  heure: number // 0-23
+  minute: number // 0-59
+  jours: number[] // 0-6 (0=Dimanche, 1=Lundi, ..., 6=Samedi)
+}
+
+// Exception de jour férié
+export interface JourFerieException {
+  date: string // Format: YYYY-MM-DD
+  action: 'include' | 'exclude'
+}
+
 export interface ApiProgrammation {
   id: string
   sirene_id: string
-  nom: string
-  heure_debut: string
-  heure_fin?: string | null
-  jours_semaine?: string[] | null // ['lundi', 'mardi', ...]
+  nom_programmation: string
+  date_debut: string // Format: YYYY-MM-DD
+  date_fin: string // Format: YYYY-MM-DD
   actif: boolean
+  calendrier_id?: string | null
+  horaires_sonneries: HoraireSonnerie[] // Format ESP8266
+  jours_feries_inclus: boolean
+  jours_feries_exceptions?: JourFerieException[] | null
+  abonnement_id?: string | null
   created_at?: string
   updated_at?: string
   deleted_at?: string | null
 }
 
 export interface CreateProgrammationRequest {
-  nom: string
-  heure_debut: string
-  heure_fin?: string | null
-  jours_semaine?: string[] | null
+  nom_programmation: string
+  date_debut: string // Format: YYYY-MM-DD
+  date_fin: string // Format: YYYY-MM-DD
   actif?: boolean
+  calendrier_id?: string | null
+  horaires_sonneries: HoraireSonnerie[] // Requis, min 1
+  jours_feries_inclus?: boolean
+  jours_feries_exceptions?: JourFerieException[]
+  abonnement_id?: string | null
 }
 
 export interface UpdateProgrammationRequest {
-  nom?: string
-  heure_debut?: string
-  heure_fin?: string | null
-  jours_semaine?: string[] | null
+  nom_programmation?: string
+  date_debut?: string
+  date_fin?: string
   actif?: boolean
+  calendrier_id?: string | null
+  horaires_sonneries?: HoraireSonnerie[]
+  jours_feries_inclus?: boolean
+  jours_feries_exceptions?: JourFerieException[]
+  abonnement_id?: string | null
 }
 
 export interface ApiProgrammationsListResponse {

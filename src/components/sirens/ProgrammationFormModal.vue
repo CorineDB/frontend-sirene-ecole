@@ -82,60 +82,63 @@
                 Nom de la programmation <span class="text-red-500">*</span>
               </label>
               <input
-                v-model="formData.nom"
+                v-model="formData.nom_programmation"
                 type="text"
                 required
                 placeholder="Ex: Sonnerie du matin"
                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                :class="{ 'border-red-500': errors.nom }"
+                :class="{ 'border-red-500': errors.nom_programmation }"
               />
-              <p v-if="errors.nom" class="text-sm text-red-600 mt-1">{{ errors.nom }}</p>
+              <p v-if="errors.nom_programmation" class="text-sm text-red-600 mt-1">{{ errors.nom_programmation }}</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  Date de début <span class="text-red-500">*</span>
+                </label>
+                <input
+                  v-model="formData.date_debut"
+                  type="date"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  :class="{ 'border-red-500': errors.date_debut }"
+                />
+                <p v-if="errors.date_debut" class="text-sm text-red-600 mt-1">{{ errors.date_debut }}</p>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                  Date de fin <span class="text-red-500">*</span>
+                </label>
+                <input
+                  v-model="formData.date_fin"
+                  type="date"
+                  required
+                  :min="formData.date_debut"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  :class="{ 'border-red-500': errors.date_fin }"
+                />
+                <p v-if="errors.date_fin" class="text-sm text-red-600 mt-1">{{ errors.date_fin }}</p>
+              </div>
             </div>
 
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-2">
-                Durée de sonnerie (secondes)
-              </label>
-              <input
-                v-model.number="formData.duree_sonnerie"
-                type="number"
-                min="1"
-                max="300"
-                placeholder="Ex: 30"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p class="text-xs text-gray-500 mt-1">Durée en secondes (1-300)</p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">
-                Calendrier associé
+                Calendrier scolaire associé
               </label>
               <select
                 v-model="formData.calendrier_id"
                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">-- Aucun calendrier --</option>
-                <option value="cal1">Calendrier scolaire 2024-2025</option>
-                <option value="cal2">Calendrier personnalisé</option>
+                <!-- Les calendriers seront chargés dynamiquement -->
               </select>
-              <p class="text-xs text-gray-500 mt-1">Optionnel: lier à un calendrier spécifique</p>
-            </div>
-
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                v-model="formData.description"
-                rows="3"
-                placeholder="Description de la programmation..."
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              ></textarea>
+              <p class="text-xs text-gray-500 mt-1">Optionnel: lier à un calendrier scolaire spécifique</p>
             </div>
           </div>
 
-          <!-- Étape 2: Horaires -->
+          <!-- Étape 2: Horaires (Format ESP8266) -->
           <div v-if="currentStep === 1" class="space-y-4">
             <div>
               <div class="flex items-center justify-between mb-3">
@@ -154,69 +157,99 @@
 
               <div class="space-y-3">
                 <div
-                  v-for="(horaire, index) in formData.horaires"
+                  v-for="(horaire, index) in formData.horaires_sonneries"
                   :key="index"
-                  class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                  class="p-4 bg-gray-50 rounded-lg space-y-3"
                 >
-                  <Clock :size="20" class="text-gray-400" />
-                  <input
-                    v-model="formData.horaires[index]"
-                    type="time"
-                    required
-                    class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    @click="supprimerHoraire(index)"
-                    class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    :disabled="formData.horaires.length === 1"
-                  >
-                    <Trash :size="18" />
-                  </button>
+                  <div class="flex items-center gap-3">
+                    <Clock :size="20" class="text-gray-400" />
+
+                    <!-- Heure -->
+                    <div class="flex-1">
+                      <label class="text-xs text-gray-600 block mb-1">Heure</label>
+                      <input
+                        v-model.number="horaire.heure"
+                        type="number"
+                        required
+                        min="0"
+                        max="23"
+                        placeholder="08"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <!-- Minute -->
+                    <div class="flex-1">
+                      <label class="text-xs text-gray-600 block mb-1">Minute</label>
+                      <input
+                        v-model.number="horaire.minute"
+                        type="number"
+                        required
+                        min="0"
+                        max="59"
+                        placeholder="00"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      @click="supprimerHoraire(index)"
+                      class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-6"
+                      :disabled="formData.horaires_sonneries.length === 1"
+                    >
+                      <Trash :size="18" />
+                    </button>
+                  </div>
+
+                  <!-- Jours pour cet horaire -->
+                  <div>
+                    <label class="text-xs text-gray-600 block mb-2">Jours actifs pour cet horaire</label>
+                    <div class="grid grid-cols-7 gap-2">
+                      <button
+                        v-for="jour in joursOptions"
+                        :key="jour.value"
+                        type="button"
+                        @click="toggleJourForHoraire(index, jour.value)"
+                        :class="[
+                          'px-2 py-2 rounded-lg font-semibold text-xs transition-all',
+                          horaire.jours.includes(jour.value)
+                            ? 'bg-blue-600 text-white ring-2 ring-blue-300'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                        ]"
+                      >
+                        {{ jour.label }}
+                      </button>
+                    </div>
+                    <p v-if="horaire.jours.length === 0" class="text-xs text-red-600 mt-1">
+                      Au moins un jour doit être sélectionné
+                    </p>
+                  </div>
+
+                  <!-- Aperçu -->
+                  <div class="flex items-center gap-2 text-xs text-gray-600 bg-white p-2 rounded">
+                    <Info :size="14" />
+                    <span>
+                      Sonnerie à {{ String(horaire.heure).padStart(2, '0') }}:{{ String(horaire.minute).padStart(2, '0') }}
+                      - {{ horaire.jours.length }} jour(s) sélectionné(s)
+                    </span>
+                  </div>
                 </div>
 
-                <p v-if="formData.horaires.length === 0" class="text-sm text-gray-500 text-center py-4">
+                <p v-if="formData.horaires_sonneries.length === 0" class="text-sm text-gray-500 text-center py-4">
                   Aucun horaire défini. Cliquez sur "Ajouter un horaire" pour commencer.
                 </p>
               </div>
-            </div>
-
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-3">
-                Jours actifs <span class="text-red-500">*</span>
-              </label>
-              <div class="grid grid-cols-7 gap-2">
-                <button
-                  v-for="jour in joursOptions"
-                  :key="jour.value"
-                  type="button"
-                  @click="toggleJour(jour.value)"
-                  :class="[
-                    'px-3 py-3 rounded-lg font-semibold text-sm transition-all',
-                    formData.jours_semaine.includes(jour.value)
-                      ? 'bg-blue-600 text-white ring-2 ring-blue-300'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-                  ]"
-                >
-                  {{ jour.label }}
-                </button>
-              </div>
-              <p class="text-xs text-gray-500 mt-2">
-                Sélectionnez les jours où cette programmation sera active
-              </p>
             </div>
 
             <div class="p-4 bg-blue-50 rounded-lg">
               <div class="flex items-start gap-3">
                 <Info :size="20" class="text-blue-600 mt-0.5" />
                 <div>
-                  <p class="text-sm font-semibold text-blue-900 mb-1">Prévisualisation masque binaire</p>
-                  <p class="text-xs text-blue-700 font-mono">
-                    {{ generateMasqueBinaire() }}
-                  </p>
-                  <p class="text-xs text-blue-600 mt-1">
-                    {{ formData.jours_semaine.length }} jour(s) sélectionné(s),
-                    {{ formData.horaires.length }} horaire(s) défini(s)
+                  <p class="text-sm font-semibold text-blue-900 mb-1">Format ESP8266</p>
+                  <p class="text-xs text-blue-700">
+                    Les horaires sont triés automatiquement par ordre chronologique.
+                    Les jours sont numérotés : 0=Dimanche, 1=Lundi, 2=Mardi, 3=Mercredi, 4=Jeudi, 5=Vendredi, 6=Samedi
                   </p>
                 </div>
               </div>
@@ -232,7 +265,7 @@
               <div class="space-y-2">
                 <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
                   <input
-                    v-model="formData.inclure_feries"
+                    v-model="formData.jours_feries_inclus"
                     type="checkbox"
                     class="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                   />
@@ -244,7 +277,7 @@
             <div>
               <div class="flex items-center justify-between mb-3">
                 <label class="block text-sm font-semibold text-gray-700">
-                  Exceptions spécifiques
+                  Exceptions de jours fériés
                 </label>
                 <button
                   type="button"
@@ -258,19 +291,19 @@
 
               <div class="space-y-3">
                 <div
-                  v-for="(exception, index) in formData.exceptions"
+                  v-for="(exception, index) in formData.jours_feries_exceptions"
                   :key="index"
                   class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
                 >
                   <Calendar :size="20" class="text-gray-400" />
                   <input
-                    v-model="formData.exceptions[index].date"
+                    v-model="exception.date"
                     type="date"
                     required
                     class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <select
-                    v-model="formData.exceptions[index].type"
+                    v-model="exception.action"
                     class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="exclude">Exclure</option>
@@ -285,7 +318,7 @@
                   </button>
                 </div>
 
-                <p v-if="formData.exceptions.length === 0" class="text-sm text-gray-500 text-center py-4">
+                <p v-if="formData.jours_feries_exceptions.length === 0" class="text-sm text-gray-500 text-center py-4">
                   Aucune exception définie.
                 </p>
               </div>
@@ -297,8 +330,9 @@
                 <div>
                   <p class="text-sm font-semibold text-yellow-900 mb-1">À propos des exceptions</p>
                   <p class="text-xs text-yellow-700">
-                    Les exceptions permettent d'inclure ou d'exclure des dates spécifiques de la programmation.
-                    Par exemple, vous pouvez exclure un jour de formation ou inclure un événement spécial.
+                    Les exceptions permettent d'inclure ou d'exclure des jours fériés spécifiques.
+                    Si "Activer pendant les jours fériés" est coché, vous pouvez exclure certains jours fériés.
+                    Sinon, vous pouvez inclure des jours fériés spécifiques.
                   </p>
                 </div>
               </div>
@@ -316,48 +350,51 @@
               <div class="space-y-3 text-sm">
                 <div class="flex justify-between p-3 bg-white rounded-lg">
                   <span class="text-gray-600 font-semibold">Nom:</span>
-                  <span class="text-gray-900">{{ formData.nom || 'Non défini' }}</span>
+                  <span class="text-gray-900">{{ formData.nom_programmation || 'Non défini' }}</span>
                 </div>
 
                 <div class="flex justify-between p-3 bg-white rounded-lg">
-                  <span class="text-gray-600 font-semibold">Durée sonnerie:</span>
-                  <span class="text-gray-900">{{ formData.duree_sonnerie || 'N/A' }} secondes</span>
+                  <span class="text-gray-600 font-semibold">Période:</span>
+                  <span class="text-gray-900">{{ formData.date_debut }} → {{ formData.date_fin }}</span>
                 </div>
 
                 <div class="flex justify-between p-3 bg-white rounded-lg">
                   <span class="text-gray-600 font-semibold">Nombre d'horaires:</span>
-                  <span class="text-gray-900">{{ formData.horaires.length }}</span>
+                  <span class="text-gray-900">{{ formData.horaires_sonneries.length }}</span>
                 </div>
 
                 <div class="p-3 bg-white rounded-lg">
                   <span class="text-gray-600 font-semibold block mb-2">Horaires:</span>
-                  <div class="flex flex-wrap gap-2">
-                    <span
-                      v-for="(horaire, idx) in formData.horaires"
+                  <div class="space-y-2">
+                    <div
+                      v-for="(horaire, idx) in formData.horaires_sonneries"
                       :key="idx"
-                      class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold"
+                      class="flex items-center justify-between p-2 bg-gray-50 rounded"
                     >
-                      {{ horaire }}
-                    </span>
-                  </div>
-                </div>
-
-                <div class="p-3 bg-white rounded-lg">
-                  <span class="text-gray-600 font-semibold block mb-2">Jours actifs:</span>
-                  <div class="flex flex-wrap gap-2">
-                    <span
-                      v-for="jour in formData.jours_semaine"
-                      :key="jour"
-                      class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold"
-                    >
-                      {{ getJourLabel(jour) }}
-                    </span>
+                      <span class="font-mono text-blue-700 font-semibold">
+                        {{ String(horaire.heure).padStart(2, '0') }}:{{ String(horaire.minute).padStart(2, '0') }}
+                      </span>
+                      <div class="flex gap-1">
+                        <span
+                          v-for="jourNum in horaire.jours"
+                          :key="jourNum"
+                          class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-semibold"
+                        >
+                          {{ getJourLabelFromNum(jourNum) }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div class="flex justify-between p-3 bg-white rounded-lg">
+                  <span class="text-gray-600 font-semibold">Jours fériés inclus:</span>
+                  <span class="text-gray-900">{{ formData.jours_feries_inclus ? 'Oui' : 'Non' }}</span>
+                </div>
+
+                <div class="flex justify-between p-3 bg-white rounded-lg">
                   <span class="text-gray-600 font-semibold">Exceptions:</span>
-                  <span class="text-gray-900">{{ formData.exceptions.length }}</span>
+                  <span class="text-gray-900">{{ formData.jours_feries_exceptions.length }}</span>
                 </div>
               </div>
             </div>
@@ -366,13 +403,10 @@
               <div class="flex items-start gap-3">
                 <Key :size="20" class="text-purple-600 mt-0.5" />
                 <div class="flex-1">
-                  <p class="text-sm font-semibold text-purple-900 mb-2">Chaîne cryptée</p>
-                  <div class="p-3 bg-white rounded-lg font-mono text-xs text-gray-700 break-all">
-                    {{ generateChaineCryptee() }}
+                  <p class="text-sm font-semibold text-purple-900 mb-2">Données de programmation ESP8266</p>
+                  <div class="p-3 bg-white rounded-lg font-mono text-xs text-gray-700 break-all max-h-32 overflow-y-auto">
+                    {{ JSON.stringify(formData.horaires_sonneries, null, 2) }}
                   </div>
-                  <p class="text-xs text-purple-700 mt-2">
-                    Longueur: {{ generateChaineCryptee().length }} caractères
-                  </p>
                 </div>
               </div>
             </div>
@@ -453,7 +487,12 @@ import {
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
 import programmationService from '@/services/programmationService'
-import type { ApiProgrammation, CreateProgrammationRequest } from '@/types/api'
+import type {
+  ApiProgrammation,
+  CreateProgrammationRequest,
+  HoraireSonnerie,
+  JourFerieException,
+} from '@/types/api'
 
 const props = defineProps<{
   isOpen: boolean
@@ -472,46 +511,53 @@ const notificationStore = useNotificationStore()
 const currentStep = ref(0)
 const steps = ['Informations', 'Horaires', 'Exceptions', 'Validation']
 const stepDescriptions = [
-  'Définissez les informations de base',
-  'Configurez les horaires de sonnerie',
+  'Définissez les informations de base et la période',
+  'Configurez les horaires de sonnerie au format ESP8266',
   'Gérez les jours fériés et exceptions',
   'Vérifiez et validez la programmation',
 ]
 
 interface FormData {
-  nom: string
-  duree_sonnerie: number
-  calendrier_id: string
-  description: string
-  horaires: string[]
-  jours_semaine: string[]
-  inclure_feries: boolean
-  exceptions: Array<{ date: string; type: 'include' | 'exclude' }>
+  nom_programmation: string
+  date_debut: string
+  date_fin: string
   actif: boolean
+  calendrier_id: string
+  horaires_sonneries: HoraireSonnerie[]
+  jours_feries_inclus: boolean
+  jours_feries_exceptions: JourFerieException[]
 }
 
+// Obtenir la date actuelle et dans 1 an
+const today = new Date().toISOString().split('T')[0]
+const oneYearLater = new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+  .toISOString()
+  .split('T')[0]
+
 const formData = ref<FormData>({
-  nom: '',
-  duree_sonnerie: 30,
-  calendrier_id: '',
-  description: '',
-  horaires: ['08:00'],
-  jours_semaine: ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi'],
-  inclure_feries: false,
-  exceptions: [],
+  nom_programmation: '',
+  date_debut: today,
+  date_fin: oneYearLater,
   actif: true,
+  calendrier_id: '',
+  horaires_sonneries: [
+    { heure: 8, minute: 0, jours: [1, 2, 3, 4, 5] }, // Lun-Ven 08:00
+  ],
+  jours_feries_inclus: false,
+  jours_feries_exceptions: [],
 })
 
 const errors = ref<Record<string, string>>({})
 
+// 0=Dimanche, 1=Lundi, ..., 6=Samedi
 const joursOptions = [
-  { label: 'Lun', value: 'lundi' },
-  { label: 'Mar', value: 'mardi' },
-  { label: 'Mer', value: 'mercredi' },
-  { label: 'Jeu', value: 'jeudi' },
-  { label: 'Ven', value: 'vendredi' },
-  { label: 'Sam', value: 'samedi' },
-  { label: 'Dim', value: 'dimanche' },
+  { label: 'Dim', value: 0 },
+  { label: 'Lun', value: 1 },
+  { label: 'Mar', value: 2 },
+  { label: 'Mer', value: 3 },
+  { label: 'Jeu', value: 4 },
+  { label: 'Ven', value: 5 },
+  { label: 'Sam', value: 6 },
 ]
 
 const isEditMode = computed(() => !!props.programmation)
@@ -522,15 +568,16 @@ watch(
   (newProg) => {
     if (newProg) {
       formData.value = {
-        nom: newProg.nom,
-        duree_sonnerie: 30,
-        calendrier_id: '',
-        description: '',
-        horaires: [newProg.heure_debut],
-        jours_semaine: newProg.jours_semaine || [],
-        inclure_feries: false,
-        exceptions: [],
+        nom_programmation: newProg.nom_programmation,
+        date_debut: newProg.date_debut,
+        date_fin: newProg.date_fin,
         actif: newProg.actif,
+        calendrier_id: newProg.calendrier_id || '',
+        horaires_sonneries: JSON.parse(JSON.stringify(newProg.horaires_sonneries)),
+        jours_feries_inclus: newProg.jours_feries_inclus,
+        jours_feries_exceptions: JSON.parse(
+          JSON.stringify(newProg.jours_feries_exceptions || [])
+        ),
       }
     } else {
       resetForm()
@@ -542,15 +589,14 @@ watch(
 // Reset form to defaults
 const resetForm = () => {
   formData.value = {
-    nom: '',
-    duree_sonnerie: 30,
-    calendrier_id: '',
-    description: '',
-    horaires: ['08:00'],
-    jours_semaine: ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi'],
-    inclure_feries: false,
-    exceptions: [],
+    nom_programmation: '',
+    date_debut: today,
+    date_fin: oneYearLater,
     actif: true,
+    calendrier_id: '',
+    horaires_sonneries: [{ heure: 8, minute: 0, jours: [1, 2, 3, 4, 5] }],
+    jours_feries_inclus: false,
+    jours_feries_exceptions: [],
   }
   currentStep.value = 0
   errors.value = {}
@@ -572,9 +618,17 @@ const previousStep = () => {
 const canProceedToNextStep = (): boolean => {
   switch (currentStep.value) {
     case 0:
-      return !!formData.value.nom.trim()
+      return (
+        !!formData.value.nom_programmation.trim() &&
+        !!formData.value.date_debut &&
+        !!formData.value.date_fin &&
+        formData.value.date_debut <= formData.value.date_fin
+      )
     case 1:
-      return formData.value.horaires.length > 0 && formData.value.jours_semaine.length > 0
+      return (
+        formData.value.horaires_sonneries.length > 0 &&
+        formData.value.horaires_sonneries.every((h) => h.jours.length > 0)
+      )
     case 2:
       return true
     default:
@@ -584,56 +638,50 @@ const canProceedToNextStep = (): boolean => {
 
 // Horaires
 const ajouterHoraire = () => {
-  formData.value.horaires.push('08:00')
+  formData.value.horaires_sonneries.push({
+    heure: 8,
+    minute: 0,
+    jours: [1, 2, 3, 4, 5],
+  })
 }
 
 const supprimerHoraire = (index: number) => {
-  if (formData.value.horaires.length > 1) {
-    formData.value.horaires.splice(index, 1)
+  if (formData.value.horaires_sonneries.length > 1) {
+    formData.value.horaires_sonneries.splice(index, 1)
   }
 }
 
-// Jours
-const toggleJour = (jour: string) => {
-  const index = formData.value.jours_semaine.indexOf(jour)
+const toggleJourForHoraire = (horaireIndex: number, jourValue: number) => {
+  const horaire = formData.value.horaires_sonneries[horaireIndex]
+  const index = horaire.jours.indexOf(jourValue)
   if (index > -1) {
-    formData.value.jours_semaine.splice(index, 1)
+    horaire.jours.splice(index, 1)
   } else {
-    formData.value.jours_semaine.push(jour)
+    horaire.jours.push(jourValue)
   }
 }
 
-const getJourLabel = (jour: string): string => {
-  const found = joursOptions.find((j) => j.value === jour)
-  return found?.label || jour
+const getJourLabelFromNum = (num: number): string => {
+  const found = joursOptions.find((j) => j.value === num)
+  return found?.label || String(num)
 }
 
 // Exceptions
 const ajouterException = () => {
-  formData.value.exceptions.push({ date: '', type: 'exclude' })
+  formData.value.jours_feries_exceptions.push({ date: today, action: 'exclude' })
 }
 
 const supprimerException = (index: number) => {
-  formData.value.exceptions.splice(index, 1)
+  formData.value.jours_feries_exceptions.splice(index, 1)
 }
 
-// Génération masque binaire
-const generateMasqueBinaire = (): string => {
-  const jours = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
-  const masque = jours.map((jour) => (formData.value.jours_semaine.includes(jour) ? '1' : '0')).join('')
-  return masque
-}
-
-// Génération chaîne cryptée (simulation)
-const generateChaineCryptee = (): string => {
-  const data = {
-    nom: formData.value.nom,
-    horaires: formData.value.horaires,
-    jours: formData.value.jours_semaine,
-    duree: formData.value.duree_sonnerie,
-  }
-  const json = JSON.stringify(data)
-  return btoa(json)
+// Trier les horaires par ordre chronologique
+const trierHoraires = () => {
+  formData.value.horaires_sonneries.sort((a, b) => {
+    const timeA = a.heure * 60 + a.minute
+    const timeB = b.heure * 60 + b.minute
+    return timeA - timeB
+  })
 }
 
 // Handle submit
@@ -641,31 +689,56 @@ const handleSubmit = async () => {
   errors.value = {}
 
   // Validation
-  if (!formData.value.nom.trim()) {
-    errors.value.nom = 'Le nom est requis'
+  if (!formData.value.nom_programmation.trim()) {
+    errors.value.nom_programmation = 'Le nom est requis'
     currentStep.value = 0
     return
   }
 
-  if (formData.value.horaires.length === 0) {
+  if (!formData.value.date_debut || !formData.value.date_fin) {
+    notificationStore.error('Les dates de début et de fin sont requises')
+    currentStep.value = 0
+    return
+  }
+
+  if (formData.value.date_debut > formData.value.date_fin) {
+    errors.value.date_fin = 'La date de fin doit être après la date de début'
+    currentStep.value = 0
+    return
+  }
+
+  if (formData.value.horaires_sonneries.length === 0) {
     notificationStore.error('Au moins un horaire est requis')
     currentStep.value = 1
     return
   }
 
-  if (formData.value.jours_semaine.length === 0) {
-    notificationStore.error('Au moins un jour doit être sélectionné')
+  // Vérifier que tous les horaires ont au moins un jour
+  const horairesSansJour = formData.value.horaires_sonneries.some((h) => h.jours.length === 0)
+  if (horairesSansJour) {
+    notificationStore.error('Chaque horaire doit avoir au moins un jour sélectionné')
     currentStep.value = 1
     return
   }
 
+  // Trier les horaires avant envoi
+  trierHoraires()
+
+  // Trier les jours dans chaque horaire
+  formData.value.horaires_sonneries.forEach((h) => {
+    h.jours.sort((a, b) => a - b)
+  })
+
   // Prepare request data
   const requestData: CreateProgrammationRequest = {
-    nom: formData.value.nom,
-    heure_debut: formData.value.horaires[0], // Prend le premier horaire pour l'instant
-    heure_fin: null,
-    jours_semaine: formData.value.jours_semaine,
+    nom_programmation: formData.value.nom_programmation,
+    date_debut: formData.value.date_debut,
+    date_fin: formData.value.date_fin,
     actif: formData.value.actif,
+    calendrier_id: formData.value.calendrier_id || null,
+    horaires_sonneries: formData.value.horaires_sonneries,
+    jours_feries_inclus: formData.value.jours_feries_inclus,
+    jours_feries_exceptions: formData.value.jours_feries_exceptions,
   }
 
   // Call API

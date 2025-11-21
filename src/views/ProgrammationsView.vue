@@ -68,8 +68,14 @@
 
           <!-- Programmation Name -->
           <h3 class="text-lg font-bold text-gray-900 mb-1">
-            {{ prog.nom }}
+            {{ prog.nom_programmation }}
           </h3>
+
+          <!-- Période -->
+          <div class="flex items-center gap-2 text-sm text-gray-600 mb-3">
+            <Calendar :size="16" class="text-gray-400" />
+            <span>{{ formatDate(prog.date_debut) }} → {{ formatDate(prog.date_fin) }}</span>
+          </div>
 
           <!-- Horaires -->
           <div class="space-y-2 text-sm mb-4">
@@ -77,42 +83,58 @@
               <Clock :size="16" class="text-gray-400" />
               <span class="font-semibold">Horaires:</span>
             </div>
-            <div class="pl-6 space-y-1">
-              <div class="flex items-center gap-2 text-gray-700">
-                <span class="text-blue-600 font-semibold">{{ prog.heure_debut }}</span>
-                <span v-if="prog.heure_fin">→ {{ prog.heure_fin }}</span>
+            <div class="pl-6 space-y-2">
+              <div
+                v-for="(horaire, idx) in prog.horaires_sonneries"
+                :key="idx"
+                class="flex items-center justify-between p-2 bg-gray-50 rounded"
+              >
+                <span class="text-blue-600 font-semibold font-mono">
+                  {{ formatHoraire(horaire) }}
+                </span>
+                <div class="flex gap-1 flex-wrap">
+                  <span
+                    v-for="jourNum in horaire.jours"
+                    :key="jourNum"
+                    class="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-semibold"
+                  >
+                    {{ getJourLabel(jourNum) }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Jours actifs -->
+          <!-- Jours fériés -->
           <div class="mb-4">
             <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
-              <Calendar :size="16" class="text-gray-400" />
-              <span class="font-semibold">Jours actifs:</span>
+              <Star :size="16" class="text-gray-400" />
+              <span class="font-semibold">Jours fériés:</span>
             </div>
-            <div class="flex flex-wrap gap-2 pl-6">
+            <div class="pl-6">
               <span
-                v-for="jour in joursActifs(prog)"
-                :key="jour"
-                class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold"
+                :class="prog.jours_feries_inclus ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-700'"
+                class="px-2 py-1 rounded text-xs font-semibold inline-block"
               >
-                {{ jour }}
+                {{ prog.jours_feries_inclus ? 'Inclus' : 'Exclus' }}
               </span>
-              <span v-if="!prog.jours_semaine || prog.jours_semaine.length === 0" class="text-xs text-gray-400">
-                Tous les jours
+              <span
+                v-if="prog.jours_feries_exceptions && prog.jours_feries_exceptions.length > 0"
+                class="ml-2 px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-xs font-semibold inline-block"
+              >
+                {{ prog.jours_feries_exceptions.length }} exception(s)
               </span>
             </div>
           </div>
 
-          <!-- Chaîne cryptée preview -->
-          <div class="mt-4 p-3 bg-gray-50 rounded-lg">
-            <div class="flex items-center gap-2 text-xs text-gray-600 mb-1">
-              <Key :size="14" class="text-gray-400" />
-              <span class="font-semibold">Chaîne cryptée:</span>
+          <!-- ESP8266 Data Preview -->
+          <div class="mt-4 p-3 bg-purple-50 rounded-lg">
+            <div class="flex items-center gap-2 text-xs text-purple-700 mb-1">
+              <Key :size="14" class="text-purple-500" />
+              <span class="font-semibold">Format ESP8266:</span>
             </div>
-            <p class="text-xs text-gray-500 font-mono truncate">
-              {{ generatePreviewChaine(prog) }}
+            <p class="text-xs text-purple-600 font-mono">
+              {{ prog.horaires_sonneries.length }} horaire(s) configuré(s)
             </p>
           </div>
 
@@ -197,13 +219,13 @@
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import ProgrammationFormModal from '../components/sirens/ProgrammationFormModal.vue'
-import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key } from 'lucide-vue-next'
+import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star } from 'lucide-vue-next'
 import { Can } from '@/components/permissions'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
 import programmationService from '@/services/programmationService'
 import sirenService from '@/services/sirenService'
-import type { ApiProgrammation, ApiSiren } from '@/types/api'
+import type { ApiProgrammation, ApiSiren, HoraireSonnerie } from '@/types/api'
 
 const { loading, execute } = useAsyncAction()
 const notificationStore = useNotificationStore()
@@ -214,15 +236,15 @@ const programmations = ref<ApiProgrammation[]>([])
 const isModalOpen = ref(false)
 const selectedProgrammation = ref<ApiProgrammation | null>(null)
 
-// Mapping des jours en français
-const joursMapping: Record<string, string> = {
-  lundi: 'Lun',
-  mardi: 'Mar',
-  mercredi: 'Mer',
-  jeudi: 'Jeu',
-  vendredi: 'Ven',
-  samedi: 'Sam',
-  dimanche: 'Dim',
+// Mapping des jours (0=Dimanche, 1=Lundi, ..., 6=Samedi)
+const joursMapping: Record<number, string> = {
+  0: 'Dim',
+  1: 'Lun',
+  2: 'Mar',
+  3: 'Mer',
+  4: 'Jeu',
+  5: 'Ven',
+  6: 'Sam',
 }
 
 /**
@@ -259,23 +281,26 @@ const loadProgrammations = async () => {
 }
 
 /**
- * Obtenir les jours actifs formatés
+ * Obtenir le libellé d'un jour depuis son numéro
  */
-const joursActifs = (prog: ApiProgrammation): string[] => {
-  if (!prog.jours_semaine || prog.jours_semaine.length === 0) {
-    return []
-  }
-  return prog.jours_semaine.map((jour) => joursMapping[jour.toLowerCase()] || jour)
+const getJourLabel = (jourNum: number): string => {
+  return joursMapping[jourNum] || String(jourNum)
 }
 
 /**
- * Générer une prévisualisation de la chaîne cryptée
+ * Formater un horaire (heure:minute)
  */
-const generatePreviewChaine = (prog: ApiProgrammation): string => {
-  // Simulation simplifiée - À remplacer par la vraie logique
-  const base = `${prog.nom}-${prog.heure_debut}-${prog.jours_semaine?.join(',') || 'all'}`
-  const hash = btoa(base).substring(0, 32)
-  return `${hash}...`
+const formatHoraire = (horaire: HoraireSonnerie): string => {
+  return `${String(horaire.heure).padStart(2, '0')}:${String(horaire.minute).padStart(2, '0')}`
+}
+
+/**
+ * Formater une date YYYY-MM-DD en DD/MM/YYYY
+ */
+const formatDate = (date: string): string => {
+  if (!date) return 'N/A'
+  const [year, month, day] = date.split('-')
+  return `${day}/${month}/${year}`
 }
 
 /**
@@ -337,7 +362,7 @@ const toggleActif = async (prog: ApiProgrammation) => {
 const confirmDelete = (prog: ApiProgrammation) => {
   if (
     !confirm(
-      `Êtes-vous sûr de vouloir supprimer la programmation "${prog.nom}" ?\n\nCette action est irréversible.`
+      `Êtes-vous sûr de vouloir supprimer la programmation "${prog.nom_programmation}" ?\n\nCette action est irréversible.`
     )
   ) {
     return
