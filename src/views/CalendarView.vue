@@ -858,6 +858,7 @@ const submitAddJourFerie = async () => {
       ecole_id: newJourFerie.value.ecole_id || null,
       intitule_journee: newJourFerie.value.intitule_journee,
       date: newJourFerie.value.date,
+      est_national: newJourFerie.value.est_national,
       recurrent: newJourFerie.value.recurrent,
       actif: true
     })

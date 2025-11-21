@@ -17,12 +17,12 @@ export interface JourFerie {
 }
 
 export interface CreateJourFerieRequest {
-  calendrier_id: string
+  calendrier_id?: string | null
   ecole_id?: string | null
   pays_id?: string | null
   intitule_journee: string
   date: string
-  type?: string
+  est_national?: boolean
   recurrent?: boolean
   actif?: boolean
 }
