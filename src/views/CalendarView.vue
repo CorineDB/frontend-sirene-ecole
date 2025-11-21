@@ -213,6 +213,9 @@
             <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Star :size="20" class="text-red-600" />
               Jours fériés
+              <span v-if="loadingJoursFeries" class="ml-auto">
+                <div class="animate-spin w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full"></div>
+              </span>
             </h2>
             <div class="space-y-3 max-h-96 overflow-y-auto">
               <div
@@ -309,15 +312,36 @@ const selectedEcoleId = ref<string>('')
 const currentCalendrier = ref<CalendrierScolaire | null>(null)
 const schoolDays = ref<number>(0)
 const loading = ref(false)
+const loadingJoursFeries = ref(false)
 
 // Calendar navigation
 const currentMonth = ref(new Date().getMonth())
 const currentYear = ref(new Date().getFullYear())
 const weekDays = ref(['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'])
 
+// Utility function to format dates in local time (avoid timezone issues)
+const formatLocalDate = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const currentMonthName = computed(() => {
   const date = new Date(currentYear.value, currentMonth.value, 1)
   return date.toLocaleDateString('fr-FR', { month: 'long' })
+})
+
+// Optimized Set for O(1) holiday lookup instead of O(n)
+const joursFeriesSet = computed(() => {
+  const set = new Set<string>()
+  joursFeries.value.forEach(jf => {
+    if (jf.actif) {
+      set.add(formatLocalDate(jf.date))
+    }
+  })
+  return set
 })
 
 const previousMonth = () => {
@@ -412,11 +436,9 @@ const calendarDays = computed(() => {
 })
 
 const isDateHoliday = (date: Date): boolean => {
-  const dateStr = date.toISOString().split('T')[0]
-  return joursFeries.value.some(jf => {
-    const jfDate = new Date(jf.date).toISOString().split('T')[0]
-    return jfDate === dateStr && jf.actif
-  })
+  // Use Set for O(1) lookup instead of O(n) with .some()
+  // Also fixes timezone issues by using local date formatting
+  return joursFeriesSet.value.has(formatLocalDate(date))
 }
 
 const isDateVacation = (date: Date): boolean => {
@@ -680,6 +702,7 @@ const loadCalendrierData = async () => {
 const loadJoursFeriesEcole = async () => {
   if (!selectedCalendrierId.value || !selectedEcoleId.value) return
 
+  loadingJoursFeries.value = true
   try {
     // Load école-specific jours fériés and merge with national ones
     const response = await calendrierScolaireService.getJoursFeries(selectedCalendrierId.value)
@@ -688,12 +711,27 @@ const loadJoursFeriesEcole = async () => {
       const joursFeriesNationaux = currentCalendrier.value?.jours_feries_defaut || []
       const joursFeriesEcole = response.data.filter(jf => jf.ecole_id === selectedEcoleId.value)
 
-      joursFeries.value = [...joursFeriesNationaux, ...joursFeriesEcole]
+      // Use Map to deduplicate by date - école-specific overrides national
+      const joursFeriesMap = new Map<string, JourFerie>()
+
+      // Add national holidays first
+      joursFeriesNationaux.forEach(jf => {
+        joursFeriesMap.set(formatLocalDate(jf.date), jf)
+      })
+
+      // Override with école-specific holidays (higher priority)
+      joursFeriesEcole.forEach(jf => {
+        joursFeriesMap.set(formatLocalDate(jf.date), jf)
+      })
+
+      joursFeries.value = Array.from(joursFeriesMap.values())
     }
   } catch (error: any) {
     console.error('Failed to load jours feries ecole:', error)
     // Keep only national jours fériés on error
     joursFeries.value = currentCalendrier.value?.jours_feries_defaut || []
+  } finally {
+    loadingJoursFeries.value = false
   }
 }
 
