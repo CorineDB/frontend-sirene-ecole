@@ -697,7 +697,7 @@ const periodesSorted = computed(() => {
 const joursFeriesSorted = computed(() => {
   // Filter only active jours fériés and sort by date
   return [...joursFeries.value]
-    .filter(jf => jf.actif)
+    //.filter(jf => jf.actif)
     .sort((a, b) => {
       return new Date(a.date).getTime() - new Date(b.date).getTime()
     })
@@ -991,7 +991,6 @@ const loadJoursFeriesPanel = async () => {
   loadingJoursFeries.value = true
   try {
     const response = await jourFerieService.getJoursFeries({
-      pays_id: selectedPaysId.value,
       calendrier_id: selectedCalendrierId.value,
       ecole_id: selectedEcoleId.value,
       per_page: 1000
