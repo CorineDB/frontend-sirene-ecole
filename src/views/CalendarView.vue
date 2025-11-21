@@ -845,11 +845,10 @@ const openAddJourFerieModal = () => {
 
 const submitAddJourFerie = async () => {
   if (!newJourFerie.value.intitule_journee || !newJourFerie.value.date) return
-  // Si lié au calendrier, calendrier requis; sinon pays requis
+  // Si lié au calendrier, calendrier requis
   if (newJourFerie.value.lier_calendrier && !selectedCalendrierId.value) return
-  if (!newJourFerie.value.lier_calendrier && !newJourFerie.value.pays_id) return
-  // Si national, calendrier_id ou pays_id requis
-  if (newJourFerie.value.est_national && !selectedCalendrierId.value && !newJourFerie.value.pays_id) return
+  // Si national et pas lié au calendrier, pays_id requis
+  if (newJourFerie.value.est_national && !newJourFerie.value.lier_calendrier && !newJourFerie.value.pays_id) return
 
   try {
     loading.value = true
