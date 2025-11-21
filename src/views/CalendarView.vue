@@ -91,6 +91,13 @@
         <p class="text-gray-600 mb-4">
           Aucun calendrier n'existe pour l'année {{ selectedAnneeScolaire }}
         </p>
+        <button
+          @click="createCalendrier"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus :size="16" class="inline mr-2" />
+          Créer un calendrier
+        </button>
       </div>
 
       <!-- Calendrier principal -->
@@ -597,6 +604,38 @@ const onAnneeScolaireChange = async () => {
   } catch (error: any) {
     console.error('Failed to load calendrier:', error)
     notificationStore.error('Erreur', 'Impossible de charger le calendrier')
+  } finally {
+    loading.value = false
+  }
+}
+
+const createCalendrier = async () => {
+  if (!selectedPaysId.value || !selectedAnneeScolaire.value) return
+
+  const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
+  if (!selectedPays) return
+
+  // Calculer dates par défaut basées sur l'année scolaire (ex: "2025-2026")
+  const [startYear] = selectedAnneeScolaire.value.split('-').map(Number)
+  const dateRentree = `${startYear}-09-01`
+  const dateFinAnnee = `${startYear + 1}-07-31`
+
+  try {
+    loading.value = true
+    const response = await calendrierScolaireService.create({
+      pays_id: selectedPaysId.value,
+      annee_scolaire: selectedAnneeScolaire.value,
+      date_rentree: dateRentree,
+      date_fin_annee: dateFinAnnee
+    })
+
+    if (response.success && response.data) {
+      notificationStore.success('Succès', 'Calendrier créé avec succès')
+      await onAnneeScolaireChange()
+    }
+  } catch (error: any) {
+    console.error('Failed to create calendrier:', error)
+    notificationStore.error('Erreur', 'Impossible de créer le calendrier')
   } finally {
     loading.value = false
   }
