@@ -40,6 +40,8 @@ export interface CalendrierScolaire {
 export interface JourFerieInput {
   nom: string
   date: string
+  est_national?: boolean
+  recurrent?: boolean
 }
 
 export interface CreateCalendrierScolaireRequest {
@@ -140,6 +142,14 @@ class CalendrierScolaireService {
   async getJoursFeries(calendrierId: string, ecoleId?: string): Promise<ApiResponse<JourFerie[]>> {
     const params = ecoleId ? { ecole_id: ecoleId } : {}
     const response = await apiClient.get(`/calendrier-scolaire/${calendrierId}/jours-feries`, { params })
+    return response.data
+  }
+
+  /**
+   * Ajouter un jour férié à un calendrier
+   */
+  async addJourFerie(calendrierId: string, data: JourFerieInput): Promise<ApiResponse<JourFerie>> {
+    const response = await apiClient.post(`/calendrier-scolaire/${calendrierId}/jours-feries`, data)
     return response.data
   }
 
