@@ -127,6 +127,22 @@
             </div>
           </div>
 
+          <!-- Informations supplémentaires -->
+          <div v-if="prog.calendrier || prog.ecole || prog.site" class="mb-4 space-y-1">
+            <div v-if="prog.calendrier" class="flex items-center gap-2 text-xs text-gray-600">
+              <Calendar :size="14" class="text-gray-400" />
+              <span>Calendrier: {{ prog.calendrier.nom }}</span>
+            </div>
+            <div v-if="prog.ecole" class="flex items-center gap-2 text-xs text-gray-600">
+              <Building2 :size="14" class="text-gray-400" />
+              <span>École: {{ prog.ecole.nom }}</span>
+            </div>
+            <div v-if="prog.site" class="flex items-center gap-2 text-xs text-gray-600">
+              <MapPin :size="14" class="text-gray-400" />
+              <span>Site: {{ prog.site.nom }}</span>
+            </div>
+          </div>
+
           <!-- ESP8266 Data Preview -->
           <div class="mt-4 p-3 bg-purple-50 rounded-lg">
             <div class="flex items-center gap-2 text-xs text-purple-700 mb-1">
@@ -135,6 +151,9 @@
             </div>
             <p class="text-xs text-purple-600 font-mono">
               {{ prog.horaires_sonneries.length }} horaire(s) configuré(s)
+            </p>
+            <p v-if="prog.chaine_cryptee" class="text-xs text-purple-600 font-mono mt-1 truncate">
+              Chaîne: {{ prog.chaine_cryptee.substring(0, 32) }}...
             </p>
           </div>
 
@@ -219,7 +238,7 @@
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import ProgrammationFormModal from '../components/sirens/ProgrammationFormModal.vue'
-import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star } from 'lucide-vue-next'
+import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, MapPin } from 'lucide-vue-next'
 import { Can } from '@/components/permissions'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
