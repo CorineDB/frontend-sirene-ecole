@@ -338,10 +338,10 @@
               <button @click="addJourFerie" class="text-blue-600 text-sm hover:underline">+ Ajouter</button>
             </div>
             <div v-for="(jour, index) in newCalendrier.jours_feries_defaut" :key="index" class="flex items-center gap-2 mb-2">
-              <input type="text" v-model="jour.intitule_journee" placeholder="Intitulé" class="flex-1 px-3 py-2 border rounded-lg" />
-              <input type="date" v-model="jour.date" class="px-3 py-2 border rounded-lg" />
+              <input type="text" v-model="jour.intitule_journee" placeholder="Intitulé" :disabled="jour.isLoaded" :class="['flex-1 px-3 py-2 border rounded-lg', jour.isLoaded ? 'bg-gray-100 text-gray-500' : '']" />
+              <input type="date" v-model="jour.date" :disabled="jour.isLoaded" :class="['px-3 py-2 border rounded-lg', jour.isLoaded ? 'bg-gray-100 text-gray-500' : '']" />
               <label class="flex items-center gap-1 text-xs">
-                <input type="checkbox" v-model="jour.recurrent" />
+                <input type="checkbox" v-model="jour.recurrent" :disabled="jour.isLoaded" />
                 Récurrent
               </label>
               <button @click="removeJourFerie(index)" class="text-red-500 px-2">×</button>
@@ -459,7 +459,7 @@ const newCalendrier = ref({
   date_rentree: '',
   date_fin_annee: '',
   periodes_vacances: [] as { nom: string; date_debut: string; date_fin: string }[],
-  jours_feries_defaut: [] as { intitule_journee: string; date: string; recurrent: boolean }[]
+  jours_feries_defaut: [] as { intitule_journee: string; date: string; recurrent: boolean; isLoaded?: boolean }[]
 })
 
 // Calendar navigation
@@ -765,7 +765,7 @@ const createCalendrier = async () => {
   try {
     // Charger tous les jours fériés
     const [responseAll, responsePays] = await Promise.all([
-      jourFerieService.getJoursFeries({ pays_id: null, calendrier_id: null, per_page: 100 }),
+      jourFerieService.getJoursFeries({ pays_id: 'null', calendrier_id: 'null', per_page: 100 }),
       jourFerieService.getJoursFeries({ pays_id: selectedPaysId.value, per_page: 100 })
     ])
 
@@ -796,7 +796,8 @@ const createCalendrier = async () => {
       .map(jf => ({
         intitule_journee: jf.intitule_journee,
         date: jf.date.split('T')[0],
-        recurrent: jf.recurrent || false
+        recurrent: jf.recurrent || false,
+        isLoaded: true
       }))
   } catch (error) {
     console.error('Failed to load jours feries nationaux:', error)
@@ -820,7 +821,7 @@ const removePeriodeVacances = (index: number) => {
 }
 
 const addJourFerie = () => {
-  newCalendrier.value.jours_feries_defaut.push({ intitule_journee: '', date: '', recurrent: false })
+  newCalendrier.value.jours_feries_defaut.push({ intitule_journee: '', date: '', recurrent: false, isLoaded: false })
 }
 
 const removeJourFerie = (index: number) => {
