@@ -37,8 +37,7 @@ class JourFerieService {
   /**
    * Obtenir tous les jours fériés (nationaux + école)
    */
-  async getJoursFeries(ecoleId?: string): Promise<ApiResponse<JourFerie[]>> {
-    const params = ecoleId ? { ecole_id: ecoleId } : {}
+  async getJoursFeries(params?: { ecole_id?: string; pays_id?: string }): Promise<ApiResponse<JourFerie[]>> {
     const response = await apiClient.get('/jours-feries', { params })
     return response.data
   }

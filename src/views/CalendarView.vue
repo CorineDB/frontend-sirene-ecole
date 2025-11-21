@@ -354,6 +354,7 @@ import {
 import calendrierScolaireService, { type CalendrierScolaire, type PeriodeVacances, type JourFerie } from '../services/calendrierScolaireService'
 import ecoleService, { type Ecole } from '../services/ecoleService'
 import paysService, { type Pays } from '../services/paysService'
+import jourFerieService from '../services/jourFerieService'
 import { useNotificationStore } from '../stores/notifications'
 
 const notificationStore = useNotificationStore()
@@ -669,17 +670,31 @@ const onAnneeScolaireChange = async () => {
   }
 }
 
-const createCalendrier = () => {
+const createCalendrier = async () => {
   console.log('createCalendrier appelé', { selectedPaysId: selectedPaysId.value, selectedAnneeScolaire: selectedAnneeScolaire.value })
   if (!selectedPaysId.value || !selectedAnneeScolaire.value) return
 
   // Initialiser avec dates par défaut
   const [startYear] = selectedAnneeScolaire.value.split('-').map(Number)
+
+  // Charger les jours fériés nationaux du pays
+  let joursFeriesNationaux: { nom: string; date: string }[] = []
+  try {
+    const response = await jourFerieService.getJoursFeries({ pays_id: selectedPaysId.value })
+    if (response.success && response.data) {
+      joursFeriesNationaux = response.data
+        .filter(jf => !jf.ecole_id)
+        .map(jf => ({ nom: jf.nom, date: jf.date.split('T')[0] }))
+    }
+  } catch (error) {
+    console.error('Failed to load jours feries nationaux:', error)
+  }
+
   newCalendrier.value = {
     date_rentree: `${startYear}-09-01`,
     date_fin_annee: `${startYear + 1}-07-31`,
     periodes_vacances: [],
-    jours_feries_defaut: []
+    jours_feries_defaut: joursFeriesNationaux
   }
   showCreateModal.value = true
 }
