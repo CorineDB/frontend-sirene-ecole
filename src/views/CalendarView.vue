@@ -382,7 +382,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">École <span class="text-xs text-gray-500">(optionnel)</span></label>
             <select v-model="newJourFerie.ecole_id" class="w-full px-3 py-2 border rounded-lg">
               <option value="">Aucune école</option>
-              <option v-for="ecole in ecoles" :key="ecole.id" :value="ecole.id">{{ ecole.nom }}</option>
+              <option v-for="ecole in ecoles" :key="ecole.id" :value="ecole.id">{{ ecole.nom_complet }}</option>
             </select>
           </div>
           <div>
