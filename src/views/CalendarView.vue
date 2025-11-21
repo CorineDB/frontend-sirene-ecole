@@ -991,7 +991,6 @@ const loadJoursFeriesPanel = async () => {
   loadingJoursFeries.value = true
   try {
     const response = await jourFerieService.getJoursFeries({
-      pays_id: selectedPaysId.value,
       calendrier_id: selectedCalendrierId.value,
       ecole_id: selectedEcoleId.value,
       per_page: 1000
