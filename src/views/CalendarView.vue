@@ -338,12 +338,8 @@
               <button @click="addJourFerie" class="text-blue-600 text-sm hover:underline">+ Ajouter</button>
             </div>
             <div v-for="(jour, index) in newCalendrier.jours_feries_defaut" :key="index" class="flex items-center gap-2 mb-2">
-              <input type="text" v-model="jour.nom" placeholder="Nom" class="flex-1 px-3 py-2 border rounded-lg" />
+              <input type="text" v-model="jour.intitule_journee" placeholder="Intitulé" class="flex-1 px-3 py-2 border rounded-lg" />
               <input type="date" v-model="jour.date" class="px-3 py-2 border rounded-lg" />
-              <label class="flex items-center gap-1 text-xs">
-                <input type="checkbox" v-model="jour.est_national" />
-                National
-              </label>
               <label class="flex items-center gap-1 text-xs">
                 <input type="checkbox" v-model="jour.recurrent" />
                 Récurrent
@@ -367,28 +363,30 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-            <input type="text" v-model="newJourFerie.nom" class="w-full px-3 py-2 border rounded-lg" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">Intitulé</label>
+            <input type="text" v-model="newJourFerie.intitule_journee" class="w-full px-3 py-2 border rounded-lg" placeholder="Ex: Jour de l'An" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
             <input type="date" v-model="newJourFerie.date" class="w-full px-3 py-2 border rounded-lg" />
           </div>
-          <div class="flex gap-4">
-            <label class="flex items-center gap-2">
-              <input type="checkbox" v-model="newJourFerie.est_national" />
-              <span class="text-sm">National</span>
-            </label>
+          <div>
             <label class="flex items-center gap-2">
               <input type="checkbox" v-model="newJourFerie.recurrent" />
-              <span class="text-sm">Récurrent</span>
+              <span class="text-sm">Récurrent (chaque année)</span>
             </label>
           </div>
         </div>
 
-        <div class="flex justify-end gap-3 mt-6">
-          <button @click="showAddJourFerieModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
-          <button @click="submitAddJourFerie" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Ajouter</button>
+        <div class="flex items-center justify-between mt-6">
+          <label class="flex items-center gap-2">
+            <input type="checkbox" v-model="continueAddingJourFerie" />
+            <span class="text-sm text-gray-600">Continuer à ajouter</span>
+          </label>
+          <div class="flex gap-3">
+            <button @click="showAddJourFerieModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
+            <button @click="submitAddJourFerie" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Ajouter</button>
+          </div>
         </div>
       </div>
     </div>
@@ -424,16 +422,17 @@ const loading = ref(false)
 const showCreateModal = ref(false)
 const showAddJourFerieModal = ref(false)
 const newJourFerie = ref({
-  nom: '',
+  intitule_journee: '',
   date: '',
   est_national: false,
   recurrent: false
 })
+const continueAddingJourFerie = ref(false)
 const newCalendrier = ref({
   date_rentree: '',
   date_fin_annee: '',
   periodes_vacances: [] as { nom: string; date_debut: string; date_fin: string }[],
-  jours_feries_defaut: [] as { nom: string; date: string; est_national: boolean; recurrent: boolean }[]
+  jours_feries_defaut: [] as { intitule_journee: string; date: string; recurrent: boolean }[]
 })
 
 // Calendar navigation
@@ -735,16 +734,15 @@ const createCalendrier = async () => {
   const [startYear] = selectedAnneeScolaire.value.split('-').map(Number)
 
   // Charger les jours fériés nationaux du pays
-  let joursFeriesNationaux: { nom: string; date: string; est_national: boolean; recurrent: boolean }[] = []
+  let joursFeriesNationaux: { intitule_journee: string; date: string; recurrent: boolean }[] = []
   try {
     const response = await jourFerieService.getJoursFeries({ pays_id: selectedPaysId.value })
     if (response.success && response.data) {
       joursFeriesNationaux = response.data
         .filter(jf => !jf.ecole_id)
         .map(jf => ({
-          nom: jf.nom,
+          intitule_journee: jf.intitule_journee,
           date: jf.date.split('T')[0],
-          est_national: true,
           recurrent: jf.recurrent || false
         }))
     }
@@ -770,7 +768,7 @@ const removePeriodeVacances = (index: number) => {
 }
 
 const addJourFerie = () => {
-  newCalendrier.value.jours_feries_defaut.push({ nom: '', date: '', est_national: false, recurrent: false })
+  newCalendrier.value.jours_feries_defaut.push({ intitule_journee: '', date: '', recurrent: false })
 }
 
 const removeJourFerie = (index: number) => {
@@ -786,7 +784,9 @@ const submitCreateCalendrier = async () => {
       date_rentree: newCalendrier.value.date_rentree,
       date_fin_annee: newCalendrier.value.date_fin_annee,
       periodes_vacances: newCalendrier.value.periodes_vacances.filter(p => p.nom && p.date_debut && p.date_fin),
-      jours_feries_defaut: newCalendrier.value.jours_feries_defaut.filter(j => j.nom && j.date),
+      jours_feries_defaut: newCalendrier.value.jours_feries_defaut
+        .filter(j => j.intitule_journee && j.date)
+        .map(j => ({ nom: j.intitule_journee, date: j.date })),
       actif: true
     })
 
@@ -804,22 +804,28 @@ const submitCreateCalendrier = async () => {
 }
 
 const submitAddJourFerie = async () => {
-  if (!newJourFerie.value.nom || !newJourFerie.value.date || !selectedCalendrierId.value) return
+  if (!newJourFerie.value.intitule_journee || !newJourFerie.value.date || !selectedCalendrierId.value) return
 
   try {
     loading.value = true
-    const response = await calendrierScolaireService.addJourFerie(selectedCalendrierId.value, {
-      nom: newJourFerie.value.nom,
+    const response = await jourFerieService.createJourFerie({
+      calendrier_id: selectedCalendrierId.value,
+      pays_id: selectedPaysId.value || null,
+      ecole_id: selectedEcoleId.value || null,
+      intitule_journee: newJourFerie.value.intitule_journee,
       date: newJourFerie.value.date,
-      est_national: newJourFerie.value.est_national,
-      recurrent: newJourFerie.value.recurrent
+      recurrent: newJourFerie.value.recurrent,
+      actif: true
     })
 
     if (response.success) {
       notificationStore.success('Succès', 'Jour férié ajouté avec succès')
-      showAddJourFerieModal.value = false
-      newJourFerie.value = { nom: '', date: '', est_national: false, recurrent: false }
+      newJourFerie.value = { intitule_journee: '', date: '', est_national: false, recurrent: false }
       await onAnneeScolaireChange()
+
+      if (!continueAddingJourFerie.value) {
+        showAddJourFerieModal.value = false
+      }
     }
   } catch (error: any) {
     console.error('Failed to add jour ferie:', error)
