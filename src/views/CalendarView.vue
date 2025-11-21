@@ -713,7 +713,6 @@ const onAnneeScolaireChange = async () => {
   const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
   if (!selectedPays) return
 
-  console.log('[onAnneeScolaireChange] START - loading = true')
   loading.value = true
   try {
     // Charger le calendrier avec code_iso ET annee_scolaire
@@ -723,7 +722,6 @@ const onAnneeScolaireChange = async () => {
       selectedAnneeScolaire.value,
       true
     )
-    console.log('[onAnneeScolaireChange] Response received:', response)
 
     if (response.success && response.data && response.data.length > 0) {
       // Calendrier trouvé
@@ -731,11 +729,7 @@ const onAnneeScolaireChange = async () => {
       selectedCalendrierId.value = calendrier.id
       currentCalendrier.value = calendrier
       periodes.value = calendrier.periodes_vacances || []
-
-      // Charger les jours fériés via l'API
-      console.log('[onAnneeScolaireChange] Loading jours feries panel...')
-      await loadJoursFeriesPanel()
-      console.log('[onAnneeScolaireChange] Jours feries panel loaded')
+      joursFeries.value = calendrier.jours_feries_defaut || []
 
       // Calculate school days
     } else {
@@ -752,10 +746,9 @@ const onAnneeScolaireChange = async () => {
       )
     }
   } catch (error: any) {
-    console.error('[onAnneeScolaireChange] ERROR:', error)
+    console.error('Failed to load calendrier:', error)
     notificationStore.error('Erreur', 'Impossible de charger le calendrier')
   } finally {
-    console.log('[onAnneeScolaireChange] FINALLY - loading = false')
     loading.value = false
   }
 }
@@ -899,7 +892,7 @@ const submitAddJourFerie = async () => {
     if (response.success) {
       notificationStore.success('Succès', 'Jour férié ajouté avec succès')
       newJourFerie.value = { lier_calendrier: true, pays_id: selectedPaysId.value, ecole_id: '', intitule_journee: '', date: '', est_national: false, recurrent: false }
-      await loadJoursFeriesPanel()
+      await onAnneeScolaireChange()
 
       if (!continueAddingJourFerie.value) {
         showAddJourFerieModal.value = false
@@ -977,8 +970,13 @@ const loadCalendrierData = async () => {
       // Load periodes from calendrier
       periodes.value = calendrierResponse.data.periodes_vacances || []
 
-      // Load jours fériés via l'API
-      await loadJoursFeriesPanel()
+      // Load jours fériés défaut (nationaux) from calendrier
+      joursFeries.value = calendrierResponse.data.jours_feries_defaut || []
+    }
+
+    // If école is selected, load école-specific jours fériés
+    if (selectedEcoleId.value) {
+      await loadJoursFeriesEcole()
     }
 
     // Calculate school days
@@ -988,40 +986,6 @@ const loadCalendrierData = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const loadJoursFeriesPanel = async () => {
-  console.log('[loadJoursFeriesPanel] START')
-  if (!selectedCalendrierId.value) {
-    console.log('[loadJoursFeriesPanel] No calendrier selected, returning')
-    joursFeries.value = []
-    return
-  }
-
-  try {
-    console.log('[loadJoursFeriesPanel] Fetching with params:', {
-      pays_id: selectedPaysId.value,
-      calendrier_id: selectedCalendrierId.value,
-      ecole_id: selectedEcoleId.value || undefined,
-      per_page: 1000
-    })
-    const response = await jourFerieService.getJoursFeries({
-      pays_id: selectedPaysId.value,
-      calendrier_id: selectedCalendrierId.value,
-      ecole_id: selectedEcoleId.value || undefined,
-      per_page: 1000
-    })
-    console.log('[loadJoursFeriesPanel] Response received:', response)
-    if (response.success && response.data) {
-      const data = Array.isArray(response.data) ? response.data : (response.data as any).data || []
-      joursFeries.value = data
-      console.log('[loadJoursFeriesPanel] Loaded', data.length, 'jours feries')
-    }
-  } catch (error: any) {
-    console.error('[loadJoursFeriesPanel] ERROR:', error)
-    joursFeries.value = currentCalendrier.value?.jours_feries_defaut || []
-  }
-  console.log('[loadJoursFeriesPanel] END')
 }
 
 const loadJoursFeriesEcole = async () => {
