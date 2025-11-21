@@ -562,6 +562,22 @@ const joursOptions = [
 
 const isEditMode = computed(() => !!props.programmation)
 
+// Reset form to defaults
+const resetForm = () => {
+  formData.value = {
+    nom_programmation: '',
+    date_debut: today,
+    date_fin: oneYearLater,
+    actif: true,
+    calendrier_id: '',
+    horaires_sonneries: [{ heure: 8, minute: 0, jours: [1, 2, 3, 4, 5] }],
+    jours_feries_inclus: false,
+    jours_feries_exceptions: [],
+  }
+  currentStep.value = 0
+  errors.value = {}
+}
+
 // Watch for programmation changes
 watch(
   () => props.programmation,
@@ -585,22 +601,6 @@ watch(
   },
   { immediate: true }
 )
-
-// Reset form to defaults
-const resetForm = () => {
-  formData.value = {
-    nom_programmation: '',
-    date_debut: today,
-    date_fin: oneYearLater,
-    actif: true,
-    calendrier_id: '',
-    horaires_sonneries: [{ heure: 8, minute: 0, jours: [1, 2, 3, 4, 5] }],
-    jours_feries_inclus: false,
-    jours_feries_exceptions: [],
-  }
-  currentStep.value = 0
-  errors.value = {}
-}
 
 // Navigation
 const nextStep = () => {
