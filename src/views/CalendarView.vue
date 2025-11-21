@@ -224,7 +224,7 @@
                 Jours fériés
               </h2>
               <button
-                @click="showAddJourFerieModal = true"
+                @click="openAddJourFerieModal"
                 class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
               >
                 <Plus :size="14" />
@@ -361,14 +361,21 @@
       <div class="bg-white rounded-xl p-6 w-full max-w-md">
         <h2 class="text-xl font-bold text-gray-900 mb-4">Ajouter un jour férié</h2>
 
-        <!-- Info contexte -->
-        <div class="bg-gray-50 rounded-lg p-3 mb-4 text-sm text-gray-600">
-          <p><strong>Calendrier:</strong> {{ selectedAnneeScolaire }}</p>
-          <p><strong>Pays:</strong> {{ paysList.find(p => p.id === selectedPaysId)?.nom }}</p>
-          <p v-if="selectedEcoleId"><strong>École:</strong> {{ ecoles.find(e => e.id === selectedEcoleId)?.nom }}</p>
-        </div>
-
         <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Pays</label>
+            <select v-model="newJourFerie.pays_id" class="w-full px-3 py-2 border rounded-lg">
+              <option value="">Aucun pays</option>
+              <option v-for="pays in paysList" :key="pays.id" :value="pays.id">{{ pays.nom }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">École <span class="text-xs text-gray-500">(optionnel)</span></label>
+            <select v-model="newJourFerie.ecole_id" class="w-full px-3 py-2 border rounded-lg">
+              <option value="">Aucune école</option>
+              <option v-for="ecole in ecoles" :key="ecole.id" :value="ecole.id">{{ ecole.nom }}</option>
+            </select>
+          </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Intitulé</label>
             <input type="text" v-model="newJourFerie.intitule_journee" class="w-full px-3 py-2 border rounded-lg" placeholder="Ex: Jour de l'An" />
@@ -433,6 +440,8 @@ const loading = ref(false)
 const showCreateModal = ref(false)
 const showAddJourFerieModal = ref(false)
 const newJourFerie = ref({
+  pays_id: '',
+  ecole_id: '',
   intitule_journee: '',
   date: '',
   est_national: false,
@@ -814,6 +823,18 @@ const submitCreateCalendrier = async () => {
   }
 }
 
+const openAddJourFerieModal = () => {
+  newJourFerie.value = {
+    pays_id: selectedPaysId.value,
+    ecole_id: selectedEcoleId.value || '',
+    intitule_journee: '',
+    date: '',
+    est_national: false,
+    recurrent: false
+  }
+  showAddJourFerieModal.value = true
+}
+
 const submitAddJourFerie = async () => {
   if (!newJourFerie.value.intitule_journee || !newJourFerie.value.date || !selectedCalendrierId.value) return
 
@@ -821,8 +842,8 @@ const submitAddJourFerie = async () => {
     loading.value = true
     const response = await jourFerieService.createJourFerie({
       calendrier_id: selectedCalendrierId.value,
-      pays_id: selectedPaysId.value || null,
-      ecole_id: selectedEcoleId.value || null,
+      pays_id: newJourFerie.value.pays_id || null,
+      ecole_id: newJourFerie.value.ecole_id || null,
       intitule_journee: newJourFerie.value.intitule_journee,
       date: newJourFerie.value.date,
       recurrent: newJourFerie.value.recurrent,
@@ -831,7 +852,7 @@ const submitAddJourFerie = async () => {
 
     if (response.success) {
       notificationStore.success('Succès', 'Jour férié ajouté avec succès')
-      newJourFerie.value = { intitule_journee: '', date: '', est_national: false, recurrent: false }
+      newJourFerie.value = { pays_id: selectedPaysId.value, ecole_id: '', intitule_journee: '', date: '', est_national: false, recurrent: false }
       await onAnneeScolaireChange()
 
       if (!continueAddingJourFerie.value) {
