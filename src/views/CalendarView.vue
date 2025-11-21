@@ -848,6 +848,8 @@ const submitAddJourFerie = async () => {
   // Si lié au calendrier, calendrier requis; sinon pays requis
   if (newJourFerie.value.lier_calendrier && !selectedCalendrierId.value) return
   if (!newJourFerie.value.lier_calendrier && !newJourFerie.value.pays_id) return
+  // Si national, calendrier_id ou pays_id requis
+  if (newJourFerie.value.est_national && !selectedCalendrierId.value && !newJourFerie.value.pays_id) return
 
   try {
     loading.value = true
