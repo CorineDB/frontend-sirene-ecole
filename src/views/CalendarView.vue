@@ -810,6 +810,8 @@ const submitAddJourFerie = async () => {
     loading.value = true
     const response = await jourFerieService.createJourFerie({
       calendrier_id: selectedCalendrierId.value,
+      pays_id: selectedPaysId.value || null,
+      ecole_id: selectedEcoleId.value || null,
       intitule_journee: newJourFerie.value.intitule_journee,
       date: newJourFerie.value.date,
       recurrent: newJourFerie.value.recurrent,
