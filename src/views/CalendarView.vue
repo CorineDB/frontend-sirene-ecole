@@ -555,27 +555,50 @@ const loadPays = async () => {
 
 
 const onAnneeScolaireChange = async () => {
-  if (!selectedAnneeScolaire.value) return
+  if (!selectedAnneeScolaire.value || !selectedPaysId.value) return
 
-  // Trouver le calendrier correspondant
-  const anneeData = annesScolairesDisponibles.value.find(a => a.annee === selectedAnneeScolaire.value)
+  // Get selected pays object
+  const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
+  if (!selectedPays) return
 
-  if (anneeData?.hasCalendrier && anneeData.calendrierId) {
-    // Calendrier existe, le charger
-    selectedCalendrierId.value = anneeData.calendrierId
-    await loadCalendrierData()
-  } else {
-    // Aucun calendrier pour cette année
-    selectedCalendrierId.value = ''
-    periodes.value = []
-    joursFeries.value = []
-    currentCalendrier.value = null
-    schoolDays.value = 0
-
-    notificationStore.warning(
-      'Aucun calendrier',
-      `Aucun calendrier disponible pour l'année ${selectedAnneeScolaire.value}`
+  loading.value = true
+  try {
+    // Charger le calendrier avec code_iso ET annee_scolaire
+    const response = await calendrierScolaireService.getAll(
+      1,
+      selectedPays.code_iso,
+      selectedAnneeScolaire.value,
+      true
     )
+
+    if (response.success && response.data && response.data.length > 0) {
+      // Calendrier trouvé
+      const calendrier = response.data[0]
+      selectedCalendrierId.value = calendrier.id
+      currentCalendrier.value = calendrier
+      periodes.value = calendrier.periodes_vacances || []
+      joursFeries.value = calendrier.jours_feries_defaut || []
+
+      // Calculate school days
+      await calculateSchoolDays()
+    } else {
+      // Aucun calendrier pour cette année
+      selectedCalendrierId.value = ''
+      periodes.value = []
+      joursFeries.value = []
+      currentCalendrier.value = null
+      schoolDays.value = 0
+
+      notificationStore.warning(
+        'Aucun calendrier',
+        `Aucun calendrier disponible pour l'année ${selectedAnneeScolaire.value}`
+      )
+    }
+  } catch (error: any) {
+    console.error('Failed to load calendrier:', error)
+    notificationStore.error('Erreur', 'Impossible de charger le calendrier')
+  } finally {
+    loading.value = false
   }
 }
 
