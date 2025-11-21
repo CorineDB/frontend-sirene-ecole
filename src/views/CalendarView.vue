@@ -713,6 +713,7 @@ const onAnneeScolaireChange = async () => {
   const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
   if (!selectedPays) return
 
+  console.log('[onAnneeScolaireChange] START - loading = true')
   loading.value = true
   try {
     // Charger le calendrier avec code_iso ET annee_scolaire
@@ -722,6 +723,7 @@ const onAnneeScolaireChange = async () => {
       selectedAnneeScolaire.value,
       true
     )
+    console.log('[onAnneeScolaireChange] Response received:', response)
 
     if (response.success && response.data && response.data.length > 0) {
       // Calendrier trouvé
@@ -731,7 +733,9 @@ const onAnneeScolaireChange = async () => {
       periodes.value = calendrier.periodes_vacances || []
 
       // Charger les jours fériés via l'API
+      console.log('[onAnneeScolaireChange] Loading jours feries panel...')
       await loadJoursFeriesPanel()
+      console.log('[onAnneeScolaireChange] Jours feries panel loaded')
 
       // Calculate school days
     } else {
@@ -748,9 +752,10 @@ const onAnneeScolaireChange = async () => {
       )
     }
   } catch (error: any) {
-    console.error('Failed to load calendrier:', error)
+    console.error('[onAnneeScolaireChange] ERROR:', error)
     notificationStore.error('Erreur', 'Impossible de charger le calendrier')
   } finally {
+    console.log('[onAnneeScolaireChange] FINALLY - loading = false')
     loading.value = false
   }
 }
@@ -986,26 +991,37 @@ const loadCalendrierData = async () => {
 }
 
 const loadJoursFeriesPanel = async () => {
+  console.log('[loadJoursFeriesPanel] START')
   if (!selectedCalendrierId.value) {
+    console.log('[loadJoursFeriesPanel] No calendrier selected, returning')
     joursFeries.value = []
     return
   }
 
   try {
+    console.log('[loadJoursFeriesPanel] Fetching with params:', {
+      pays_id: selectedPaysId.value,
+      calendrier_id: selectedCalendrierId.value,
+      ecole_id: selectedEcoleId.value || undefined,
+      per_page: 1000
+    })
     const response = await jourFerieService.getJoursFeries({
       pays_id: selectedPaysId.value,
       calendrier_id: selectedCalendrierId.value,
       ecole_id: selectedEcoleId.value || undefined,
       per_page: 1000
     })
+    console.log('[loadJoursFeriesPanel] Response received:', response)
     if (response.success && response.data) {
       const data = Array.isArray(response.data) ? response.data : (response.data as any).data || []
       joursFeries.value = data
+      console.log('[loadJoursFeriesPanel] Loaded', data.length, 'jours feries')
     }
   } catch (error: any) {
-    console.error('Failed to load jours feries panel:', error)
+    console.error('[loadJoursFeriesPanel] ERROR:', error)
     joursFeries.value = currentCalendrier.value?.jours_feries_defaut || []
   }
+  console.log('[loadJoursFeriesPanel] END')
 }
 
 const onEcoleChange = async () => {
