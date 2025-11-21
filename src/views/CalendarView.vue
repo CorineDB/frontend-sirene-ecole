@@ -821,7 +821,7 @@ const removePeriodeVacances = (index: number) => {
 }
 
 const addJourFerie = () => {
-  newCalendrier.value.jours_feries_defaut.push({ intitule_journee: '', date: '', recurrent: false, isLoaded: false })
+  newCalendrier.value.jours_feries_defaut.unshift({ intitule_journee: '', date: '', recurrent: false, isLoaded: false })
 }
 
 const removeJourFerie = (index: number) => {
