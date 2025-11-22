@@ -102,6 +102,17 @@
 
       <!-- Calendrier principal -->
       <template v-else>
+        <!-- Bouton Modifier Calendrier -->
+        <div class="flex justify-end mb-4">
+          <button
+            @click="openEditCalendrierModal"
+            class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Edit :size="16" />
+            Modifier le calendrier
+          </button>
+        </div>
+
         <!-- Statistiques -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div class="bg-white rounded-xl border border-gray-200 p-4">
@@ -318,10 +329,12 @@
       </template>
     </div>
 
-    <!-- Modal Créer Calendrier -->
+    <!-- Modal Créer/Modifier Calendrier -->
     <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Créer un calendrier pour {{ selectedAnneeScolaire }}</h2>
+        <h2 class="text-xl font-bold text-gray-900 mb-4">
+          {{ isEditCalendrierMode ? 'Modifier le calendrier' : `Créer un calendrier pour ${selectedAnneeScolaire}` }}
+        </h2>
 
         <div class="space-y-4">
           <!-- Dates -->
@@ -369,8 +382,10 @@
         </div>
 
         <div class="flex justify-end gap-3 mt-6">
-          <button @click="showCreateModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
-          <button @click="submitCreateCalendrier" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Créer</button>
+          <button @click="showCreateModal = false; isEditCalendrierMode = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
+          <button @click="submitCreateCalendrier" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            {{ isEditCalendrierMode ? 'Modifier' : 'Créer' }}
+          </button>
         </div>
       </div>
     </div>
@@ -466,6 +481,7 @@ const schoolDays = ref<number>(0)
 const loading = ref(false)
 const loadingJoursFeries = ref(false)
 const showCreateModal = ref(false)
+const isEditCalendrierMode = ref(false)
 const showAddJourFerieModal = ref(false)
 const isEditMode = ref(false)
 const editingJourFerieId = ref<string>('')
@@ -798,9 +814,36 @@ const onAnneeScolaireChange = async () => {
   }
 }
 
+const openEditCalendrierModal = () => {
+  if (!currentCalendrier.value) return
+
+  isEditCalendrierMode.value = true
+
+  // Pré-remplir le modal avec les données actuelles
+  newCalendrier.value = {
+    date_rentree: currentCalendrier.value.date_rentree.split('T')[0],
+    date_fin_annee: currentCalendrier.value.date_fin_annee.split('T')[0],
+    periodes_vacances: currentCalendrier.value.periodes_vacances.map(p => ({
+      nom: p.nom,
+      date_debut: p.date_debut.split('T')[0],
+      date_fin: p.date_fin.split('T')[0]
+    })),
+    jours_feries_defaut: currentCalendrier.value.jours_feries_defaut.map(jf => ({
+      intitule_journee: jf.intitule_journee,
+      date: jf.date.split('T')[0],
+      recurrent: jf.recurrent,
+      isLoaded: true // Marquer comme chargé pour éviter suppression accidentelle
+    }))
+  }
+
+  showCreateModal.value = true
+}
+
 const createCalendrier = async () => {
   console.log('createCalendrier appelé', { selectedPaysId: selectedPaysId.value, selectedAnneeScolaire: selectedAnneeScolaire.value })
   if (!selectedPaysId.value || !selectedAnneeScolaire.value) return
+
+  isEditCalendrierMode.value = false
 
   // Initialiser avec dates par défaut
   const [startYear] = selectedAnneeScolaire.value.split('-').map(Number)
@@ -876,26 +919,45 @@ const removeJourFerie = (index: number) => {
 const submitCreateCalendrier = async () => {
   try {
     loading.value = true
-    const response = await calendrierScolaireService.create({
-      pays_id: selectedPaysId.value,
-      annee_scolaire: selectedAnneeScolaire.value,
+    let response
+
+    const calendrierData = {
       date_rentree: newCalendrier.value.date_rentree,
       date_fin_annee: newCalendrier.value.date_fin_annee,
       periodes_vacances: newCalendrier.value.periodes_vacances.filter(p => p.nom && p.date_debut && p.date_fin),
       jours_feries_defaut: newCalendrier.value.jours_feries_defaut
         .filter(j => j.intitule_journee && j.date)
-        .map(j => ({ nom: j.intitule_journee, date: j.date })),
+        .map(j => ({ nom: j.intitule_journee, date: j.date, recurrent: j.recurrent || false })),
       actif: true
-    })
+    }
+
+    if (isEditCalendrierMode.value && currentCalendrier.value) {
+      // Mode édition
+      response = await calendrierScolaireService.update(currentCalendrier.value.id, calendrierData)
+    } else {
+      // Mode création
+      response = await calendrierScolaireService.create({
+        pays_id: selectedPaysId.value,
+        annee_scolaire: selectedAnneeScolaire.value,
+        ...calendrierData
+      })
+    }
 
     if (response.success && response.data) {
-      notificationStore.success('Succès', 'Calendrier créé avec succès')
+      notificationStore.success(
+        'Succès',
+        isEditCalendrierMode.value ? 'Calendrier modifié avec succès' : 'Calendrier créé avec succès'
+      )
       showCreateModal.value = false
+      isEditCalendrierMode.value = false
       await onAnneeScolaireChange()
     }
   } catch (error: any) {
-    console.error('Failed to create calendrier:', error)
-    notificationStore.error('Erreur', 'Impossible de créer le calendrier')
+    console.error('Failed to save calendrier:', error)
+    notificationStore.error(
+      'Erreur',
+      isEditCalendrierMode.value ? 'Impossible de modifier le calendrier' : 'Impossible de créer le calendrier'
+    )
   } finally {
     loading.value = false
   }
