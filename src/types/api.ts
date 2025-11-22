@@ -522,7 +522,11 @@ export interface UpdateProgrammationRequest {
 export interface ApiProgrammationsListResponse {
   success: boolean
   message?: string
-  data?: ApiProgrammation[] // L'API retourne directement un tableau
+  data?: ApiProgrammation[] | {
+    programmations?: ApiProgrammation[]
+    data?: ApiProgrammation[]
+    pagination?: ApiPagination
+  }
 }
 
 export interface ApiProgrammationResponse {

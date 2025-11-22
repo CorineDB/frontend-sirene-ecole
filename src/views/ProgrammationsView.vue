@@ -295,7 +295,14 @@ const loadProgrammations = async () => {
   )
 
   if (result?.success && result.data) {
-    programmations.value = result.data
+    // L'API peut retourner soit un tableau direct, soit un objet avec programmations/data
+    if (Array.isArray(result.data)) {
+      programmations.value = result.data
+    } else if (result.data.programmations) {
+      programmations.value = result.data.programmations
+    } else if (result.data.data) {
+      programmations.value = result.data.data
+    }
   }
 }
 
