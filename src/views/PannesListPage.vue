@@ -194,20 +194,24 @@
 
           <!-- Modal Body -->
           <form @submit.prevent="handleDeclarer" class="p-6 space-y-6">
-            <!-- Sirène ID -->
+            <!-- Sirène -->
             <div>
               <label for="sirene_id" class="block text-sm font-semibold text-gray-900 mb-2">
-                ID de la sirène <span class="text-red-600">*</span>
+                Sirène <span class="text-red-600">*</span>
               </label>
-              <input
+              <select
                 id="sirene_id"
                 v-model="declarationForm.sirene_id"
-                type="text"
                 required
-                placeholder="Ex: sirene-123"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              />
-              <p class="text-xs text-gray-500 mt-1">L'identifiant unique de la sirène concernée</p>
+              >
+                <option value="">Sélectionnez une sirène</option>
+                <option v-for="sirene in sirenes" :key="sirene.id" :value="sirene.id">
+                  {{ sirene.numero_serie }} - {{ sirene.modele?.nom || 'Modèle inconnu' }}
+                  <template v-if="sirene.site_id"> - Site: {{ sirene.site_id }}</template>
+                </option>
+              </select>
+              <p class="text-xs text-gray-500 mt-1">Sélectionnez la sirène concernée par la panne</p>
             </div>
 
             <!-- Titre -->
@@ -292,6 +296,8 @@ import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import { usePannes } from '@/composables/usePannes'
 import { StatutPanne, PrioritePanne } from '@/types/api'
+import sireneService from '@/services/sireneService'
+import type { Sirene } from '@/services/sireneService'
 import {
   AlertCircle,
   AlertTriangle,
@@ -323,6 +329,7 @@ const {
 const filterStatus = ref<string>('all')
 const filterPriorite = ref<string>('all')
 const showDeclarationModal = ref(false)
+const sirenes = ref<Sirene[]>([])
 
 // Form state for declaration
 const declarationForm = ref({
@@ -480,5 +487,15 @@ const handleDeclarer = async () => {
 // Lifecycle
 onMounted(async () => {
   await fetchAllPannes()
+
+  // Charger les sirènes pour le formulaire de déclaration
+  try {
+    const response = await sireneService.getAllSirenes()
+    if (response.success && response.data) {
+      sirenes.value = response.data
+    }
+  } catch (err) {
+    console.error('Erreur lors du chargement des sirènes:', err)
+  }
 })
 </script>

@@ -542,8 +542,10 @@ import ecoleService, { type Ecole } from '../services/ecoleService'
 import paysService, { type Pays } from '../services/paysService'
 import jourFerieService from '../services/jourFerieService'
 import { useNotificationStore } from '../stores/notifications'
+import { useAuthStore } from '../stores/auth'
 
 const notificationStore = useNotificationStore()
+const authStore = useAuthStore()
 
 const paysList = ref<Pays[]>([])
 const calendriers = ref<CalendrierScolaire[]>([])
@@ -1390,6 +1392,12 @@ onMounted(async () => {
     loadPays(),
     loadEcoles()
   ])
+
+  // Auto-set selectedEcoleId si l'utilisateur est de type École
+  if (authStore.user && authStore.user.user_account_type_type === 'App\\Models\\Ecole' && authStore.user.user_account_type_id) {
+    selectedEcoleId.value = authStore.user.user_account_type_id
+    console.log('Auto-selected École:', selectedEcoleId.value, 'for user type:', authStore.user.user_account_type_type)
+  }
 
   // Sélectionner le premier pays par défaut
   if (paysList.value.length > 0) {

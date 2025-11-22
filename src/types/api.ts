@@ -76,6 +76,9 @@ export interface ApiUser {
   role?: ApiRole
   doit_changer_mot_de_passe?: boolean
   mot_de_passe_change?: boolean
+  // Polymorphic relationship fields
+  user_account_type_id?: string | null
+  user_account_type_type?: string | null // Ex: "App\Models\Ecole", "App\Models\Technicien"
   created_at?: string
   updated_at?: string
 }
