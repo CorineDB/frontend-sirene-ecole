@@ -91,20 +91,9 @@
           <div class="p-4 space-y-4 flex-1">
             <!-- Sous-Section Horaires -->
             <div>
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <div class="w-1 h-4 bg-blue-500 rounded"></div>
-                  <span class="text-sm font-bold text-gray-700">Horaires de sonnerie</span>
-                </div>
-                <button
-                  v-if="prog.chaine_cryptee"
-                  @click="copierChaineCryptee(prog.chaine_cryptee)"
-                  class="flex items-center gap-1 px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
-                  title="Copier la chaîne cryptée"
-                >
-                  <Copy :size="12" />
-                  Copier
-                </button>
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-1 h-4 bg-blue-500 rounded"></div>
+                <span class="text-sm font-bold text-gray-700">Horaires de sonnerie</span>
               </div>
               <div class="space-y-2">
                 <!-- Afficher 3 premiers horaires ou tous si expanded -->
@@ -191,32 +180,20 @@
           </div>
 
           <!-- SECTION ACTIONS: Validation -->
-          <div class="px-4 py-3 bg-gray-50 border-t border-gray-200 space-y-3">
-            <!-- Prévisualisation chaîne programmée -->
-            <div v-if="prog.chaine_programmee" class="bg-indigo-50 rounded-lg p-2 border border-indigo-200">
-              <div class="flex items-center justify-between gap-2 mb-1">
-                <div class="flex items-center gap-2">
-                  <Key :size="12" class="text-indigo-500" />
-                  <span class="text-xs font-semibold text-indigo-700">Chaîne programmée:</span>
-                </div>
-                <button
-                  @click="previewChaineId = prog.id"
-                  class="flex items-center gap-1 px-2 py-0.5 text-xs text-indigo-600 hover:bg-indigo-100 rounded transition-colors"
-                  title="Voir la chaîne complète"
-                >
-                  <Eye :size="12" />
-                  Voir
-                </button>
-              </div>
-              <p class="text-xs text-indigo-600 font-mono truncate">
-                {{ prog.chaine_programmee }}
-              </p>
-            </div>
-
+          <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
             <!-- Actions buttons -->
             <div class="flex items-center justify-between gap-2">
               <Can permission="manage_sirens">
                 <div class="flex items-center gap-2 flex-1">
+                  <button
+                    v-if="prog.chaine_programmee"
+                    @click="previewChaineId = prog.id"
+                    class="px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-1 font-medium"
+                    title="Voir la chaîne programmée complète"
+                  >
+                    <Eye :size="14" />
+                    Voir
+                  </button>
                   <button
                     @click="openEditModal(prog)"
                     class="px-3 py-1.5 text-xs text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1 font-medium"
@@ -349,39 +326,20 @@
 
         <!-- Content -->
         <div class="p-6 overflow-y-auto flex-1">
-          <div class="space-y-4">
-            <!-- Chaîne programmée -->
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <label class="text-sm font-semibold text-gray-700">Chaîne programmée</label>
-                <button
-                  @click="copierChaineCryptee(programmations.find(p => p.id === previewChaineId)?.chaine_programmee || '')"
-                  class="flex items-center gap-1 px-3 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
-                >
-                  <Copy :size="12" />
-                  Copier
-                </button>
-              </div>
-              <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
-                <pre class="text-xs text-gray-700 font-mono whitespace-pre-wrap break-all">{{ programmations.find(p => p.id === previewChaineId)?.chaine_programmee }}</pre>
-              </div>
+          <!-- Chaîne programmée -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-sm font-semibold text-gray-700">Chaîne programmée</label>
+              <button
+                @click="copierChaineCryptee(programmations.find(p => p.id === previewChaineId)?.chaine_programmee || '')"
+                class="flex items-center gap-1 px-3 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
+              >
+                <Copy :size="12" />
+                Copier
+              </button>
             </div>
-
-            <!-- Chaîne cryptée -->
-            <div v-if="programmations.find(p => p.id === previewChaineId)?.chaine_cryptee">
-              <div class="flex items-center justify-between mb-2">
-                <label class="text-sm font-semibold text-gray-700">Chaîne cryptée ESP8266</label>
-                <button
-                  @click="copierChaineCryptee(programmations.find(p => p.id === previewChaineId)?.chaine_cryptee || '')"
-                  class="flex items-center gap-1 px-3 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
-                >
-                  <Copy :size="12" />
-                  Copier
-                </button>
-              </div>
-              <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
-                <pre class="text-xs text-gray-700 font-mono whitespace-pre-wrap break-all">{{ programmations.find(p => p.id === previewChaineId)?.chaine_cryptee }}</pre>
-              </div>
+            <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
+              <pre class="text-xs text-gray-700 font-mono whitespace-pre-wrap break-all">{{ programmations.find(p => p.id === previewChaineId)?.chaine_programmee }}</pre>
             </div>
           </div>
         </div>
