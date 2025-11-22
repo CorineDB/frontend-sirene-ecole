@@ -184,7 +184,7 @@
             <!-- Actions buttons -->
             <div class="flex items-center justify-between gap-2">
               <Can permission="manage_sirens">
-                <div class="flex items-center gap-2 flex-1">
+                <div class="flex items-center gap-2 flex-1 flex-wrap">
                   <button
                     v-if="prog.chaine_programmee"
                     @click="previewChaineId = prog.id"
@@ -202,9 +202,18 @@
                     Modifier
                   </button>
                   <button
-                    @click="genererEtEnvoyer(prog)"
-                    class="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-1 font-medium"
-                    title="Générer et envoyer à la sirène"
+                    @click="genererChaine(prog)"
+                    class="px-3 py-1.5 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-1 font-medium"
+                    title="Générer la chaîne cryptée"
+                  >
+                    <Key :size="14" />
+                    Générer
+                  </button>
+                  <button
+                    @click="envoyerSirene(prog)"
+                    :disabled="!prog.chaine_cryptee"
+                    class="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-1 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Envoyer à la sirène"
                   >
                     <Send :size="14" />
                     Envoyer
@@ -398,8 +407,8 @@ const joursMapping: Record<number, string> = {
  */
 const loadSirenes = async () => {
   const result = await execute(
-    () => sirenService.getAllSirens({ per_page: 1000 }),
-    { errorMessage: 'Impossible de charger les sirènes' }
+    () => sirenService.getSirensProgrammables({ per_page: 1000 }),
+    { errorMessage: 'Impossible de charger les sirènes programmables' }
   )
 
   if (result?.success && result.data?.data) {
@@ -576,6 +585,66 @@ const toggleDropdown = (progId: string) => {
 
 /**
  * Générer et envoyer la chaîne cryptée à la sirène
+ */
+/**
+ * Générer uniquement la chaîne cryptée
+ */
+const genererChaine = async (prog: ApiProgrammation) => {
+  if (!confirm(
+    `Voulez-vous générer une nouvelle chaîne cryptée pour "${prog.nom_programmation}" ?\n\nCela mettra à jour la chaîne programmée et cryptée.`
+  )) {
+    return
+  }
+
+  const result = await execute(
+    () => programmationService.genererChaineCryptee(selectedSireneId.value, prog.id),
+    {
+      errorMessage: 'Impossible de générer la chaîne cryptée',
+      showNotification: false,
+    }
+  )
+
+  if (result?.success) {
+    notificationStore.success('Chaîne cryptée générée avec succès')
+    loadProgrammations()
+  } else {
+    notificationStore.error('Échec de la génération de la chaîne cryptée')
+  }
+}
+
+/**
+ * Envoyer uniquement à la sirène
+ */
+const envoyerSirene = async (prog: ApiProgrammation) => {
+  if (!prog.chaine_cryptee) {
+    notificationStore.warning('Veuillez d\'abord générer la chaîne cryptée')
+    return
+  }
+
+  if (!confirm(
+    `Voulez-vous envoyer la chaîne cryptée à la sirène pour "${prog.nom_programmation}" ?`
+  )) {
+    return
+  }
+
+  const result = await execute(
+    () => programmationService.envoyerSirene(selectedSireneId.value, prog.id),
+    {
+      errorMessage: 'Impossible d\'envoyer à la sirène',
+      showNotification: false,
+    }
+  )
+
+  if (result?.success) {
+    notificationStore.success('Chaîne envoyée à la sirène avec succès')
+    loadProgrammations()
+  } else {
+    notificationStore.error('Échec de l\'envoi à la sirène')
+  }
+}
+
+/**
+ * Générer et envoyer en une seule opération
  */
 const genererEtEnvoyer = async (prog: ApiProgrammation) => {
   if (!confirm(
