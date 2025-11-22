@@ -525,11 +525,13 @@ import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
 import programmationService from '@/services/programmationService'
 import calendrierScolaireService, { type CalendrierScolaire, type JourFerie } from '@/services/calendrierScolaireService'
+import sirenService from '@/services/sirenService'
 import type {
   ApiProgrammation,
   CreateProgrammationRequest,
   HoraireSonnerie,
   JourFerieException,
+  ApiSiren,
 } from '@/types/api'
 
 const props = defineProps<{
@@ -598,12 +600,13 @@ const joursOptions = [
   { label: 'Sam', value: 6 },
 ]
 
-const isEditMode = computed(() => !!props.programmation)
+const isEditMode = computed(() => !!props.programmation && !!props.programmation.id)
 
 // Calendriers et jours fériés
 const calendriers = ref<CalendrierScolaire[]>([])
 const joursFeriesCalendrier = ref<JourFerie[]>([])
 const loadingJoursFeries = ref(false)
+const sireneData = ref<ApiSiren | null>(null)
 
 // Reset form to defaults
 const resetForm = () => {
@@ -723,10 +726,44 @@ const supprimerException = (index: number) => {
   formData.value.jours_feries_exceptions.splice(index, 1)
 }
 
+// Charger les données de la sirène
+const loadSireneData = async () => {
+  const result = await execute(
+    () => sirenService.getSirenById(props.sireneId),
+    { errorMessage: 'Impossible de charger les données de la sirène', showNotification: false }
+  )
+
+  if (result?.success && result.data) {
+    sireneData.value = result.data
+  }
+}
+
 // Charger les calendriers disponibles
 const loadCalendriers = async () => {
+  // D'abord charger les données de la sirène si pas déjà fait
+  if (!sireneData.value) {
+    await loadSireneData()
+  }
+
+  // Filtrer par pays de l'école si disponible
+  const codeIso = sireneData.value?.ecole?.ville?.pays?.code_iso
+
+  // Obtenir l'année scolaire en cours
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1 // 1-12
+
+  let anneeScolaire: string | undefined
+  if (currentMonth >= 9) {
+    // Septembre à décembre: année scolaire YYYY-(YYYY+1)
+    anneeScolaire = `${currentYear}-${currentYear + 1}`
+  } else {
+    // Janvier à août: année scolaire (YYYY-1)-YYYY
+    anneeScolaire = `${currentYear - 1}-${currentYear}`
+  }
+
   const result = await execute(
-    () => calendrierScolaireService.getAll(100, undefined, undefined, true),
+    () => calendrierScolaireService.getAll(100, codeIso, anneeScolaire, true),
     { errorMessage: 'Impossible de charger les calendriers', showNotification: false }
   )
 
@@ -744,8 +781,11 @@ const chargerJoursFeriesCalendrier = async () => {
 
   loadingJoursFeries.value = true
 
+  // Inclure l'ecole_id pour récupérer aussi les jours fériés spécifiques à l'école
+  const ecoleId = sireneData.value?.ecole_id
+
   const result = await execute(
-    () => calendrierScolaireService.getJoursFeries(formData.value.calendrier_id),
+    () => calendrierScolaireService.getJoursFeries(formData.value.calendrier_id, ecoleId),
     { errorMessage: 'Impossible de charger les jours fériés', showNotification: false }
   )
 

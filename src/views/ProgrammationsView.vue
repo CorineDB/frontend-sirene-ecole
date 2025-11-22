@@ -250,6 +250,13 @@
                     class="absolute right-0 bottom-full mb-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[160px]"
                   >
                     <button
+                      @click="duplicateProgrammation(prog); toggleDropdown(prog.id)"
+                      class="w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2 transition-colors"
+                    >
+                      <CopyIcon :size="14" />
+                      Dupliquer
+                    </button>
+                    <button
                       @click="toggleActif(prog); toggleDropdown(prog.id)"
                       class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 transition-colors"
                       :class="prog.actif ? 'text-gray-700' : 'text-green-600'"
@@ -397,7 +404,7 @@
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import ProgrammationFormModal from '../components/sirens/ProgrammationFormModal.vue'
-import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, MapPin, Copy, MoreVertical, ChevronDown, ChevronUp, Send, Eye, X } from 'lucide-vue-next'
+import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, MapPin, Copy, MoreVertical, ChevronDown, ChevronUp, Send, Eye, X, Copy as CopyIcon } from 'lucide-vue-next'
 import { Can } from '@/components/permissions'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
@@ -649,6 +656,27 @@ const genererEtEnvoyer = async (prog: ApiProgrammation) => {
     notificationStore.error('La chaîne a été générée mais l\'envoi a échoué')
     loadProgrammations()
   }
+}
+
+/**
+ * Dupliquer une programmation
+ */
+const duplicateProgrammation = (prog: ApiProgrammation) => {
+  // Créer une copie de la programmation avec un nouveau nom
+  const duplicatedProg: ApiProgrammation = {
+    ...prog,
+    id: '', // Nouveau ID sera généré par le backend
+    nom_programmation: `Copie de ${prog.nom_programmation}`,
+    actif: false, // Désactivée par défaut
+    chaine_programmee: null,
+    chaine_cryptee: null,
+    created_at: undefined,
+    updated_at: undefined,
+  }
+
+  // Ouvrir le modal en mode création avec les données copiées
+  selectedProgrammation.value = duplicatedProg
+  isModalOpen.value = true
 }
 
 /**
