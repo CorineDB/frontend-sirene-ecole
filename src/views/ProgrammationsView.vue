@@ -411,8 +411,23 @@ const loadSirenes = async () => {
     { errorMessage: 'Impossible de charger les sirènes programmables' }
   )
 
-  if (result?.success && result.data?.data) {
-    sirenes.value = result.data.data
+  console.log('Sirenes result:', result)
+
+  if (result?.success) {
+    // Gérer les différents formats de réponse possibles
+    if (result.data) {
+      if (Array.isArray(result.data)) {
+        // Format: { success: true, data: [...] }
+        sirenes.value = result.data
+      } else if (result.data.data && Array.isArray(result.data.data)) {
+        // Format paginé: { success: true, data: { data: [...], ... } }
+        sirenes.value = result.data.data
+      } else if (result.data.sirenes && Array.isArray(result.data.sirenes)) {
+        // Format: { success: true, data: { sirenes: [...] } }
+        sirenes.value = result.data.sirenes
+      }
+    }
+    console.log('Sirenes loaded:', sirenes.value)
   }
 }
 
