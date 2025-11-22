@@ -190,9 +190,19 @@
           <div class="px-4 py-3 bg-gray-50 border-t border-gray-200 space-y-3">
             <!-- Prévisualisation chaîne programmée -->
             <div v-if="prog.chaine_programmee" class="bg-indigo-50 rounded-lg p-2 border border-indigo-200">
-              <div class="flex items-center gap-2 mb-1">
-                <Key :size="12" class="text-indigo-500" />
-                <span class="text-xs font-semibold text-indigo-700">Chaîne programmée:</span>
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <div class="flex items-center gap-2">
+                  <Key :size="12" class="text-indigo-500" />
+                  <span class="text-xs font-semibold text-indigo-700">Chaîne programmée:</span>
+                </div>
+                <button
+                  @click="previewChaineId = prog.id"
+                  class="flex items-center gap-1 px-2 py-0.5 text-xs text-indigo-600 hover:bg-indigo-100 rounded transition-colors"
+                  title="Voir la chaîne complète"
+                >
+                  <Eye :size="12" />
+                  Voir
+                </button>
               </div>
               <p class="text-xs text-indigo-600 font-mono truncate">
                 {{ prog.chaine_programmee }}
@@ -297,6 +307,85 @@
       @close="closeModal"
       @save="handleProgrammationSaved"
     />
+
+    <!-- Modal de prévisualisation de la chaîne programmée -->
+    <div
+      v-if="previewChaineId"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      @click.self="previewChaineId = null"
+    >
+      <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 p-4 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center backdrop-blur">
+              <Key :size="20" class="text-white" />
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-white">Chaîne programmée</h3>
+              <p class="text-xs text-indigo-100">
+                {{ programmations.find(p => p.id === previewChaineId)?.nom_programmation }}
+              </p>
+            </div>
+          </div>
+          <button
+            @click="previewChaineId = null"
+            class="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+          >
+            <X :size="20" class="text-white" />
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6 overflow-y-auto flex-1">
+          <div class="space-y-4">
+            <!-- Chaîne programmée -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label class="text-sm font-semibold text-gray-700">Chaîne programmée</label>
+                <button
+                  @click="copierChaineCryptee(programmations.find(p => p.id === previewChaineId)?.chaine_programmee || '')"
+                  class="flex items-center gap-1 px-3 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
+                >
+                  <Copy :size="12" />
+                  Copier
+                </button>
+              </div>
+              <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
+                <pre class="text-xs text-gray-700 font-mono whitespace-pre-wrap break-all">{{ programmations.find(p => p.id === previewChaineId)?.chaine_programmee }}</pre>
+              </div>
+            </div>
+
+            <!-- Chaîne cryptée -->
+            <div v-if="programmations.find(p => p.id === previewChaineId)?.chaine_cryptee">
+              <div class="flex items-center justify-between mb-2">
+                <label class="text-sm font-semibold text-gray-700">Chaîne cryptée ESP8266</label>
+                <button
+                  @click="copierChaineCryptee(programmations.find(p => p.id === previewChaineId)?.chaine_cryptee || '')"
+                  class="flex items-center gap-1 px-3 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
+                >
+                  <Copy :size="12" />
+                  Copier
+                </button>
+              </div>
+              <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
+                <pre class="text-xs text-gray-700 font-mono whitespace-pre-wrap break-all">{{ programmations.find(p => p.id === previewChaineId)?.chaine_cryptee }}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+          <button
+            @click="previewChaineId = null"
+            class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-medium"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
   </DashboardLayout>
 </template>
 
@@ -304,7 +393,7 @@
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import ProgrammationFormModal from '../components/sirens/ProgrammationFormModal.vue'
-import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, MapPin, Copy, MoreVertical, ChevronDown, ChevronUp, Send } from 'lucide-vue-next'
+import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, MapPin, Copy, MoreVertical, ChevronDown, ChevronUp, Send, Eye, X } from 'lucide-vue-next'
 import { Can } from '@/components/permissions'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
@@ -322,6 +411,7 @@ const isModalOpen = ref(false)
 const selectedProgrammation = ref<ApiProgrammation | null>(null)
 const expandedHoraires = ref<Set<string>>(new Set())
 const openDropdownId = ref<string | null>(null)
+const previewChaineId = ref<string | null>(null)
 
 // Mapping des jours (0=Dimanche, 1=Lundi, ..., 6=Samedi)
 const joursMapping: Record<number, string> = {

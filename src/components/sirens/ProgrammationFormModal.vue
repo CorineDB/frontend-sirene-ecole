@@ -132,7 +132,9 @@
                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">-- Aucun calendrier --</option>
-                <!-- Les calendriers seront chargés dynamiquement -->
+                <option v-for="cal in calendriers" :key="cal.id" :value="cal.id">
+                  {{ cal.annee_scolaire }} - {{ cal.description || 'Sans description' }}
+                </option>
               </select>
               <p class="text-xs text-gray-500 mt-1">Optionnel: lier à un calendrier scolaire spécifique</p>
             </div>
@@ -279,14 +281,26 @@
                 <label class="block text-sm font-semibold text-gray-700">
                   Exceptions de jours fériés
                 </label>
-                <button
-                  type="button"
-                  @click="ajouterException"
-                  class="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1"
-                >
-                  <Plus :size="16" />
-                  Ajouter une exception
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    @click="chargerJoursFeriesCalendrier"
+                    :disabled="!formData.calendrier_id || loadingJoursFeries"
+                    class="px-3 py-1.5 text-sm bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Charger les jours fériés du calendrier sélectionné"
+                  >
+                    <Calendar :size="16" />
+                    {{ loadingJoursFeries ? 'Chargement...' : 'Charger du calendrier' }}
+                  </button>
+                  <button
+                    type="button"
+                    @click="ajouterException"
+                    class="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1"
+                  >
+                    <Plus :size="16" />
+                    Ajouter une exception
+                  </button>
+                </div>
               </div>
 
               <div class="space-y-3">
@@ -468,7 +482,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import {
   X,
   Check,
@@ -487,6 +501,7 @@ import {
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
 import programmationService from '@/services/programmationService'
+import calendrierScolaireService, { type CalendrierScolaire, type JourFerie } from '@/services/calendrierScolaireService'
 import type {
   ApiProgrammation,
   CreateProgrammationRequest,
@@ -561,6 +576,11 @@ const joursOptions = [
 ]
 
 const isEditMode = computed(() => !!props.programmation)
+
+// Calendriers et jours fériés
+const calendriers = ref<CalendrierScolaire[]>([])
+const joursFeriesCalendrier = ref<JourFerie[]>([])
+const loadingJoursFeries = ref(false)
 
 // Reset form to defaults
 const resetForm = () => {
@@ -675,6 +695,64 @@ const supprimerException = (index: number) => {
   formData.value.jours_feries_exceptions.splice(index, 1)
 }
 
+// Charger les calendriers disponibles
+const loadCalendriers = async () => {
+  const result = await execute(
+    () => calendrierScolaireService.getAll(100, undefined, undefined, true),
+    { errorMessage: 'Impossible de charger les calendriers', showNotification: false }
+  )
+
+  if (result?.success && result.data) {
+    calendriers.value = result.data
+  }
+}
+
+// Charger les jours fériés du calendrier sélectionné
+const chargerJoursFeriesCalendrier = async () => {
+  if (!formData.value.calendrier_id) {
+    notificationStore.warning('Veuillez d\'abord sélectionner un calendrier')
+    return
+  }
+
+  loadingJoursFeries.value = true
+
+  const result = await execute(
+    () => calendrierScolaireService.getJoursFeries(formData.value.calendrier_id),
+    { errorMessage: 'Impossible de charger les jours fériés', showNotification: false }
+  )
+
+  loadingJoursFeries.value = false
+
+  if (result?.success && result.data) {
+    joursFeriesCalendrier.value = result.data
+
+    // Proposer d'ajouter comme exceptions
+    if (result.data.length > 0) {
+      const count = result.data.length
+      if (confirm(`${count} jour(s) férié(s) trouvé(s). Voulez-vous les ajouter comme exceptions ?`)) {
+        // Ajouter tous les jours fériés comme exceptions
+        result.data.forEach(jourFerie => {
+          // Vérifier si l'exception n'existe pas déjà
+          const exists = formData.value.jours_feries_exceptions.some(
+            ex => ex.date === jourFerie.date
+          )
+
+          if (!exists) {
+            formData.value.jours_feries_exceptions.push({
+              date: jourFerie.date,
+              action: formData.value.jours_feries_inclus ? 'exclude' : 'include'
+            })
+          }
+        })
+
+        notificationStore.success(`${count} jour(s) férié(s) ajouté(s) comme exceptions`)
+      }
+    } else {
+      notificationStore.info('Aucun jour férié trouvé pour ce calendrier')
+    }
+  }
+}
+
 // Trier les horaires par ordre chronologique
 const trierHoraires = () => {
   formData.value.horaires_sonneries.sort((a, b) => {
@@ -772,4 +850,9 @@ const close = () => {
   resetForm()
   emit('close')
 }
+
+// Charger les calendriers au montage
+onMounted(() => {
+  loadCalendriers()
+})
 </script>
