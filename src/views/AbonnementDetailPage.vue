@@ -308,11 +308,11 @@ const {
   isLoading,
   hasError,
   error,
-  fetchAbonnementById,
-  renouvelerAbonnement,
-  suspendreAbonnement,
-  reactiverAbonnement,
-  annulerAbonnement,
+  fetchById,
+  renouveler,
+  suspendre,
+  reactiver,
+  annuler,
   regenererQrCode,
   regenererToken,
   telechargerQrCode
@@ -349,7 +349,7 @@ const formatDateTime = (dateString: string) => {
 const handleRenouveler = async () => {
   if (!abonnement.value) return
   if (confirm('Êtes-vous sûr de vouloir renouveler cet abonnement ?')) {
-    await renouvelerAbonnement(abonnement.value.id)
+    await renouveler(abonnement.value.id)
   }
 }
 
@@ -357,14 +357,14 @@ const handleSuspendre = async () => {
   if (!abonnement.value) return
   const raison = prompt('Raison de la suspension (optionnel):')
   if (raison !== null) {
-    await suspendreAbonnement(abonnement.value.id, raison || undefined)
+    await suspendre(abonnement.value.id, raison || undefined)
   }
 }
 
 const handleReactiver = async () => {
   if (!abonnement.value) return
   if (confirm('Êtes-vous sûr de vouloir réactiver cet abonnement ?')) {
-    await reactiverAbonnement(abonnement.value.id)
+    await reactiver(abonnement.value.id)
   }
 }
 
@@ -372,7 +372,7 @@ const handleAnnuler = async () => {
   if (!abonnement.value) return
   const raison = prompt('Raison de l\'annulation (optionnel):')
   if (raison !== null && confirm('Êtes-vous sûr de vouloir annuler cet abonnement ? Cette action est irréversible.')) {
-    await annulerAbonnement(abonnement.value.id, raison || undefined)
+    await annuler(abonnement.value.id, raison || undefined)
   }
 }
 
@@ -399,7 +399,7 @@ const handleTelechargerQr = async () => {
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
-    await fetchAbonnementById(id)
+    await fetchById(id)
   }
 })
 </script>
