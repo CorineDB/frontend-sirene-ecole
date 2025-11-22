@@ -280,28 +280,18 @@
             <div v-if="formData.jours_feries_inclus">
               <div class="flex items-center justify-between mb-3">
                 <label class="block text-sm font-semibold text-gray-700">
-                  Exceptions de jours fériés
+                  Jours fériés du calendrier
                 </label>
-                <div class="flex items-center gap-2">
-                  <button
-                    type="button"
-                    @click="chargerJoursFeriesCalendrier"
-                    :disabled="!formData.calendrier_id || loadingJoursFeries"
-                    class="px-3 py-1.5 text-sm bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Charger les jours fériés du calendrier sélectionné"
-                  >
-                    <Calendar :size="16" />
-                    {{ loadingJoursFeries ? 'Chargement...' : 'Charger du calendrier' }}
-                  </button>
-                  <button
-                    type="button"
-                    @click="ajouterException"
-                    class="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1"
-                  >
-                    <Plus :size="16" />
-                    Ajouter manuellement
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  @click="chargerJoursFeriesCalendrier"
+                  :disabled="!formData.calendrier_id || loadingJoursFeries"
+                  class="px-3 py-1.5 text-sm bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Charger les jours fériés du calendrier sélectionné"
+                >
+                  <Calendar :size="16" />
+                  {{ loadingJoursFeries ? 'Chargement...' : 'Charger du calendrier' }}
+                </button>
               </div>
 
               <!-- Jours fériés chargés du calendrier -->
@@ -360,84 +350,17 @@
                 </div>
               </div>
 
-              <div class="space-y-3">
-                <div
-                  v-for="(exception, index) in formData.jours_feries_exceptions"
-                  :key="index"
-                  class="p-3 bg-gray-50 rounded-lg space-y-3"
-                >
-                  <!-- Ligne 1: Intitulé -->
-                  <div class="flex items-center gap-3">
-                    <input
-                      v-model="exception.intitule_journee"
-                      type="text"
-                      placeholder="Nom du jour férié (ex: Noël, Nouvel An)"
-                      class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
+              <div v-if="formData.jours_feries_inclus" class="p-4 bg-blue-50 rounded-lg">
+                <div class="flex items-start gap-3">
+                  <AlertCircle :size="20" class="text-blue-600 mt-0.5" />
+                  <div>
+                    <p class="text-sm font-semibold text-blue-900 mb-1">Gestion des jours fériés</p>
+                    <p class="text-xs text-blue-700">
+                      Après avoir chargé les jours fériés, tous sont automatiquement <strong>inclus</strong>.
+                      Cliquez sur "Exclure" pour désactiver la sonnerie sur un jour férié spécifique.
+                      Vous pouvez basculer entre "Inclure" et "Exclure" à tout moment.
+                    </p>
                   </div>
-
-                  <!-- Ligne 2: Date et Action -->
-                  <div class="flex items-center gap-3">
-                    <Calendar :size="20" class="text-gray-400" />
-                    <input
-                      v-model="exception.date"
-                      type="date"
-                      required
-                      class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <select
-                      v-model="exception.action"
-                      class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="exclude">Exclure</option>
-                      <option value="include">Inclure</option>
-                    </select>
-                    <button
-                      type="button"
-                      @click="supprimerException(index)"
-                      class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash :size="18" />
-                    </button>
-                  </div>
-
-                  <!-- Ligne 3: Checkboxes pour est_national et recurrent -->
-                  <div class="flex items-center gap-4 ml-9">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                      <input
-                        v-model="exception.est_national"
-                        type="checkbox"
-                        class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <span class="text-xs text-gray-700">National</span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                      <input
-                        v-model="exception.recurrent"
-                        type="checkbox"
-                        class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <span class="text-xs text-gray-700">Récurrent (annuel)</span>
-                    </label>
-                  </div>
-                </div>
-
-                <p v-if="formData.jours_feries_exceptions.length === 0" class="text-sm text-gray-500 text-center py-4">
-                  Aucune exception définie.
-                </p>
-              </div>
-            </div>
-
-            <div v-if="formData.jours_feries_inclus" class="p-4 bg-blue-50 rounded-lg">
-              <div class="flex items-start gap-3">
-                <AlertCircle :size="20" class="text-blue-600 mt-0.5" />
-                <div>
-                  <p class="text-sm font-semibold text-blue-900 mb-1">Gestion des jours fériés</p>
-                  <p class="text-xs text-blue-700">
-                    Après avoir chargé les jours fériés, tous sont automatiquement <strong>inclus</strong>.
-                    Cliquez sur "Exclure" pour désactiver la sonnerie sur un jour férié spécifique.
-                    Vous pouvez basculer entre "Inclure" et "Exclure" à tout moment.
-                  </p>
                 </div>
               </div>
             </div>
