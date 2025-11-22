@@ -438,6 +438,8 @@ export interface HoraireSonnerie {
   heure: number // 0-23
   minute: number // 0-59
   jours: number[] // 0-6 (0=Dimanche, 1=Lundi, ..., 6=Samedi)
+  duree_sonnerie?: number // Durée en secondes (optionnel)
+  description?: string | null // Description de l'horaire (optionnel)
 }
 
 // Exception de jour férié
@@ -520,10 +522,7 @@ export interface UpdateProgrammationRequest {
 export interface ApiProgrammationsListResponse {
   success: boolean
   message?: string
-  data?: {
-    programmations: ApiProgrammation[]
-    pagination?: ApiPagination
-  }
+  data?: ApiProgrammation[] // L'API retourne directement un tableau
 }
 
 export interface ApiProgrammationResponse {

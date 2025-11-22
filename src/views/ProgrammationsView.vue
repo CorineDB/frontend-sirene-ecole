@@ -294,8 +294,8 @@ const loadProgrammations = async () => {
     { errorMessage: 'Impossible de charger les programmations' }
   )
 
-  if (result?.success && result.data?.programmations) {
-    programmations.value = result.data.programmations
+  if (result?.success && result.data) {
+    programmations.value = result.data
   }
 }
 
