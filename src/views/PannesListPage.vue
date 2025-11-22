@@ -7,6 +7,13 @@
           <h1 class="text-3xl font-bold text-gray-900">Gestion des pannes</h1>
           <p class="text-gray-600 mt-1">Suivre et gérer les pannes signalées</p>
         </div>
+        <button
+          @click="showDeclarationModal = true"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors flex items-center gap-2"
+        >
+          <Plus :size="20" />
+          Déclarer une panne
+        </button>
       </div>
 
       <!-- Statistics Cards -->
@@ -166,6 +173,114 @@
             : 'Aucune panne n\'a été signalée' }}
         </p>
       </div>
+
+      <!-- Modal Déclaration de panne -->
+      <div
+        v-if="showDeclarationModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        @click.self="showDeclarationModal = false"
+      >
+        <div class="bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-900">Déclarer une panne</h2>
+            <button
+              @click="showDeclarationModal = false"
+              class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X :size="24" class="text-gray-600" />
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <form @submit.prevent="handleDeclarer" class="p-6 space-y-6">
+            <!-- Sirène ID -->
+            <div>
+              <label for="sirene_id" class="block text-sm font-semibold text-gray-900 mb-2">
+                ID de la sirène <span class="text-red-600">*</span>
+              </label>
+              <input
+                id="sirene_id"
+                v-model="declarationForm.sirene_id"
+                type="text"
+                required
+                placeholder="Ex: sirene-123"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              />
+              <p class="text-xs text-gray-500 mt-1">L'identifiant unique de la sirène concernée</p>
+            </div>
+
+            <!-- Titre -->
+            <div>
+              <label for="titre" class="block text-sm font-semibold text-gray-900 mb-2">
+                Titre de la panne <span class="text-red-600">*</span>
+              </label>
+              <input
+                id="titre"
+                v-model="declarationForm.titre"
+                type="text"
+                required
+                placeholder="Ex: Sirène ne fonctionne plus"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              />
+            </div>
+
+            <!-- Description -->
+            <div>
+              <label for="description" class="block text-sm font-semibold text-gray-900 mb-2">
+                Description
+              </label>
+              <textarea
+                id="description"
+                v-model="declarationForm.description"
+                rows="4"
+                placeholder="Décrivez le problème rencontré..."
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              ></textarea>
+            </div>
+
+            <!-- Priorité -->
+            <div>
+              <label for="priorite" class="block text-sm font-semibold text-gray-900 mb-2">
+                Priorité estimée
+              </label>
+              <select
+                id="priorite"
+                v-model="declarationForm.priorite"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              >
+                <option :value="PrioritePanne.BASSE">Basse</option>
+                <option :value="PrioritePanne.MOYENNE">Moyenne</option>
+                <option :value="PrioritePanne.HAUTE">Haute</option>
+                <option :value="PrioritePanne.URGENTE">Urgente</option>
+              </select>
+            </div>
+
+            <!-- Error -->
+            <div v-if="hasError" class="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p class="text-sm text-red-700">{{ error }}</p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-4 pt-4 border-t border-gray-200">
+              <button
+                type="submit"
+                :disabled="isLoading"
+                class="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {{ isLoading ? 'Déclaration en cours...' : 'Déclarer la panne' }}
+              </button>
+              <button
+                type="button"
+                @click="showDeclarationModal = false"
+                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </DashboardLayout>
 </template>
@@ -181,7 +296,9 @@ import {
   AlertCircle,
   AlertTriangle,
   MapPin,
-  Bell
+  Bell,
+  Plus,
+  X
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -197,6 +314,7 @@ const {
   fetchPannes,
   fetchPannesByStatut,
   fetchPannesByPriorite,
+  declarerPanne,
   validerPanne,
   cloturerPanne
 } = usePannes()
@@ -204,6 +322,15 @@ const {
 // Local state
 const filterStatus = ref<string>('all')
 const filterPriorite = ref<string>('all')
+const showDeclarationModal = ref(false)
+
+// Form state for declaration
+const declarationForm = ref({
+  sirene_id: '',
+  titre: '',
+  description: '',
+  priorite: PrioritePanne.MOYENNE
+})
 
 // Computed
 const displayedPannes = computed(() => {
@@ -320,6 +447,31 @@ const handleCloturer = async (panneId: string) => {
     await cloturerPanne(panneId)
     await fetchPannes()
   }
+}
+
+const handleDeclarer = async () => {
+  if (!declarationForm.value.sirene_id || !declarationForm.value.titre) {
+    alert('Veuillez remplir tous les champs obligatoires')
+    return
+  }
+
+  await declarerPanne(declarationForm.value.sirene_id, {
+    titre: declarationForm.value.titre,
+    description: declarationForm.value.description,
+    priorite: declarationForm.value.priorite
+  })
+
+  // Reset form and close modal
+  declarationForm.value = {
+    sirene_id: '',
+    titre: '',
+    description: '',
+    priorite: PrioritePanne.MOYENNE
+  }
+  showDeclarationModal.value = false
+
+  // Refresh list
+  await fetchPannes()
 }
 
 // Lifecycle
