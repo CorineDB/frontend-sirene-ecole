@@ -319,6 +319,8 @@ export interface ApiEcole {
   id: string
   nom: string
   nom_complet: string
+  ville_id?: string | null
+  ville?: ApiVille | null
   // Add other fields from the JSON if needed for display elsewhere
 }
 
@@ -326,6 +328,8 @@ export interface ApiSite {
   id: string
   nom: string
   adresse: string
+  ville_id?: string | null
+  ville?: ApiVille | null
   // Add other fields from the JSON if needed for display elsewhere
 }
 
