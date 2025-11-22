@@ -340,8 +340,8 @@ const handleSubmit = async () => {
       // Create mode - ajouter un site annexe
       const data = {
         ...formData.value,
-        ecole_id: props.ecoleId,
-        est_principal: false
+        ecole_principale_id: props.ecoleId,
+        est_principale: false
       }
 
       response = await siteService.create(data)

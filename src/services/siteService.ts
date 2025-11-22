@@ -12,8 +12,8 @@ export interface SiteRequest {
   longitude?: number
   types_etablissement: string[]
   sirene: SireneRequest
-  ecole_id?: string
-  est_principal?: boolean
+  ecole_principale_id?: string
+  est_principale?: boolean
 }
 
 export interface ApiResponse<T> {
