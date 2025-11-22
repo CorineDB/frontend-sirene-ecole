@@ -217,10 +217,10 @@ const {
   hasError,
   error,
   hasAbonnements,
-  fetchAbonnements,
-  renouvelerAbonnement,
+  fetchAll,
+  renouveler,
   telechargerQrCode,
-  getAbonnementsExpirantBientot
+  fetchExpirantBientot
 } = useAbonnements()
 
 // Local state for filters
@@ -271,7 +271,7 @@ const calculateDaysRemaining = (endDate: string) => {
 
 const handleRenouveler = async (id: string) => {
   if (confirm('Êtes-vous sûr de vouloir renouveler cet abonnement ?')) {
-    await renouvelerAbonnement(id)
+    await renouveler(id)
   }
 }
 
@@ -280,17 +280,17 @@ const handleTelechargerQr = async (id: string) => {
 }
 
 const fetchAbonnementsExpirantBientot = async (jours: number) => {
-  await getAbonnementsExpirantBientot(jours)
+  await fetchExpirantBientot(jours)
   filterStatus.value = 'all'
 }
 
 const resetFilters = async () => {
   filterStatus.value = 'all'
-  await fetchAbonnements()
+  await fetchAll()
 }
 
 // Lifecycle
 onMounted(async () => {
-  await fetchAbonnements()
+  await fetchAll()
 })
 </script>
