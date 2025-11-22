@@ -646,10 +646,17 @@ watch(
   () => props.programmation,
   (newProg) => {
     if (newProg) {
+      // Convertir les dates au format YYYY-MM-DD pour les inputs HTML
+      const formatDateForInput = (date: string | null | undefined): string => {
+        if (!date) return today
+        // Si la date contient 'T', c'est un format ISO complet, on prend juste la partie date
+        return date.split('T')[0]
+      }
+
       formData.value = {
         nom_programmation: newProg.nom_programmation,
-        date_debut: newProg.date_debut,
-        date_fin: newProg.date_fin,
+        date_debut: formatDateForInput(newProg.date_debut),
+        date_fin: formatDateForInput(newProg.date_fin),
         actif: newProg.actif,
         calendrier_id: newProg.calendrier_id || '',
         horaires_sonneries: JSON.parse(JSON.stringify(newProg.horaires_sonneries)),
