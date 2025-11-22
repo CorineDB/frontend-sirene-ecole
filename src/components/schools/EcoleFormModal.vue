@@ -153,25 +153,33 @@
 
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">
-              Types d'établissement <span class="text-red-600">*</span>
+              Type d'école <span class="text-red-600">*</span>
             </label>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <label
-                v-for="type in typesEtablissement"
-                :key="type.value"
-                class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
-                :class="{ 'bg-blue-50 border-blue-500': formData.types_etablissement.includes(type.value) }"
+            <div class="flex gap-4">
+              <label class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                :class="{ 'bg-blue-50 border-blue-500': formData.est_prive === false }"
               >
                 <input
-                  type="checkbox"
-                  :value="type.value"
-                  v-model="formData.types_etablissement"
-                  class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  type="radio"
+                  :value="false"
+                  v-model="formData.est_prive"
+                  class="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
                 />
-                <span class="text-sm font-medium text-gray-900">{{ type.label }}</span>
+                <span class="text-sm font-medium text-gray-900">Publique</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                :class="{ 'bg-blue-50 border-blue-500': formData.est_prive === true }"
+              >
+                <input
+                  type="radio"
+                  :value="true"
+                  v-model="formData.est_prive"
+                  class="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                <span class="text-sm font-medium text-gray-900">Privée</span>
               </label>
             </div>
-            <p v-if="errors.types_etablissement" class="text-sm text-red-600 mt-1">{{ errors.types_etablissement }}</p>
+            <p v-if="errors.est_prive" class="text-sm text-red-600 mt-1">{{ errors.est_prive }}</p>
           </div>
         </div>
 
@@ -285,6 +293,29 @@
             <p v-if="errors['site_principal.ville_id']" class="text-sm text-red-600 mt-1">{{ errors['site_principal.ville_id'] }}</p>
           </div>
 
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              Types d'établissement <span class="text-red-600">*</span>
+            </label>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <label
+                v-for="type in typesEtablissement"
+                :key="type.value"
+                class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                :class="{ 'bg-blue-50 border-blue-500': formData.site_principal.types_etablissement.includes(type.value) }"
+              >
+                <input
+                  type="checkbox"
+                  :value="type.value"
+                  v-model="formData.site_principal.types_etablissement"
+                  class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <span class="text-sm font-medium text-gray-900">{{ type.label }}</span>
+              </label>
+            </div>
+            <p v-if="errors['site_principal.types_etablissement']" class="text-sm text-red-600 mt-1">{{ errors['site_principal.types_etablissement'] }}</p>
+          </div>
+
           <!-- Location Picker for Site Principal -->
           <LocationPicker
             v-model="sitePrincipalLocation"
@@ -388,6 +419,26 @@
                   {{ ville.nom }}
                 </option>
               </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Types d'établissement</label>
+              <div class="grid grid-cols-2 gap-2">
+                <label
+                  v-for="type in typesEtablissement"
+                  :key="type.value"
+                  class="flex items-center gap-2 p-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer text-sm"
+                  :class="{ 'bg-blue-50 border-blue-500': site.types_etablissement?.includes(type.value) }"
+                >
+                  <input
+                    type="checkbox"
+                    :value="type.value"
+                    v-model="site.types_etablissement"
+                    class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span class="font-medium text-gray-900">{{ type.label }}</span>
+                </label>
+              </div>
             </div>
 
             <div>
@@ -530,7 +581,7 @@ const formData = ref<InscriptionEcoleRequest>({
   nom_complet: '',
   telephone_contact: '',
   email_contact: '',
-  types_etablissement: [],
+  est_prive: false,
   responsable_nom: '',
   responsable_prenom: '',
   responsable_telephone: '',
@@ -539,6 +590,7 @@ const formData = ref<InscriptionEcoleRequest>({
     ville_id: '',
     latitude: undefined,
     longitude: undefined,
+    types_etablissement: [],
     sirene: {
       numero_serie: ''
     }
@@ -595,6 +647,7 @@ const addSiteAnnexe = () => {
     ville_id: '',
     latitude: undefined,
     longitude: undefined,
+    types_etablissement: [],
     sirene: {
       numero_serie: ''
     }
@@ -612,7 +665,6 @@ const validateStep = (step: number): boolean => {
     if (!formData.value.nom.trim()) errors.value.nom = 'Le nom est requis'
     if (!formData.value.nom_complet.trim()) errors.value.nom_complet = 'Le nom complet est requis'
     if (!formData.value.telephone_contact.trim()) errors.value.telephone_contact = 'Le téléphone est requis'
-    if (formData.value.types_etablissement.length === 0) errors.value.types_etablissement = 'Sélectionnez au moins un type'
   } else if (step === 1) {
     if (!formData.value.responsable_nom.trim()) errors.value.responsable_nom = 'Le nom du responsable est requis'
     if (!formData.value.responsable_prenom.trim()) errors.value.responsable_prenom = 'Le prénom du responsable est requis'
@@ -620,6 +672,7 @@ const validateStep = (step: number): boolean => {
   } else if (step === 2) {
     if (!formData.value.site_principal.adresse.trim()) errors.value['site_principal.adresse'] = 'L\'adresse est requise'
     if (!formData.value.site_principal.ville_id) errors.value['site_principal.ville_id'] = 'La ville est requise'
+    if (formData.value.site_principal.types_etablissement.length === 0) errors.value['site_principal.types_etablissement'] = 'Sélectionnez au moins un type'
     if (!formData.value.site_principal.sirene.numero_serie) errors.value['site_principal.sirene.numero_serie'] = 'La sirène est requise'
   }
 
@@ -708,7 +761,7 @@ const close = () => {
     nom_complet: '',
     telephone_contact: '',
     email_contact: '',
-    types_etablissement: [],
+    est_prive: false,
     responsable_nom: '',
     responsable_prenom: '',
     responsable_telephone: '',
@@ -717,6 +770,7 @@ const close = () => {
       ville_id: '',
       latitude: undefined,
       longitude: undefined,
+      types_etablissement: [],
       sirene: {
         numero_serie: ''
       }
@@ -747,7 +801,7 @@ watch(() => props.isOpen, (isOpen) => {
         nom_complet: ecole.nom_complet || '',
         telephone_contact: ecole.telephone_contact || '',
         email_contact: ecole.email_contact || '',
-        types_etablissement: ecole.types_etablissement || [],
+        est_prive: ecole.est_prive || false,
         responsable_nom: ecole.responsable_nom || '',
         responsable_prenom: ecole.responsable_prenom || '',
         responsable_telephone: ecole.responsable_telephone || '',
@@ -756,6 +810,7 @@ watch(() => props.isOpen, (isOpen) => {
           ville_id: ecole.site_principal?.ville_id || '',
           latitude: ecole.site_principal?.latitude,
           longitude: ecole.site_principal?.longitude,
+          types_etablissement: ecole.site_principal?.types_etablissement || ecole.types_etablissement || [],
           sirene: {
             numero_serie: ecole.site_principal?.sirene?.numero_serie || ''
           }
@@ -766,6 +821,7 @@ watch(() => props.isOpen, (isOpen) => {
           ville_id: site.ville_id || '',
           latitude: site.latitude,
           longitude: site.longitude,
+          types_etablissement: site.types_etablissement || [],
           sirene: {
             numero_serie: site.sirene?.numero_serie || ''
           }
