@@ -311,7 +311,7 @@ const {
   isLoading,
   hasError,
   error,
-  fetchPannes,
+  fetchAllPannes,
   fetchPannesByStatut,
   fetchPannesByPriorite,
   declarerPanne,
@@ -410,7 +410,7 @@ const handleFilterChange = async () => {
   } else if (filterPriorite.value !== 'all' && filterStatus.value === 'all') {
     await fetchPannesByPriorite(filterPriorite.value)
   } else if (filterStatus.value === 'all' && filterPriorite.value === 'all') {
-    await fetchPannes()
+    await fetchAllPannes()
   }
   // Si les deux filtres sont actifs, on utilise le computed displayedPannes
 }
@@ -424,7 +424,7 @@ const showUrgentOnly = async () => {
 const resetFilters = async () => {
   filterStatus.value = 'all'
   filterPriorite.value = 'all'
-  await fetchPannes()
+  await fetchAllPannes()
 }
 
 const handleValider = async (panneId: string) => {
@@ -438,14 +438,14 @@ const handleValider = async (panneId: string) => {
       description_validation: 'Validée',
       ville_id
     })
-    await fetchPannes()
+    await fetchAllPannes()
   }
 }
 
 const handleCloturer = async (panneId: string) => {
   if (confirm('Êtes-vous sûr de vouloir clôturer cette panne ?')) {
     await cloturerPanne(panneId)
-    await fetchPannes()
+    await fetchAllPannes()
   }
 }
 
@@ -471,11 +471,11 @@ const handleDeclarer = async () => {
   showDeclarationModal.value = false
 
   // Refresh list
-  await fetchPannes()
+  await fetchAllPannes()
 }
 
 // Lifecycle
 onMounted(async () => {
-  await fetchPannes()
+  await fetchAllPannes()
 })
 </script>
