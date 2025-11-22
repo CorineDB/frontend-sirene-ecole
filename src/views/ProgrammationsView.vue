@@ -38,6 +38,106 @@
         </div>
       </div>
 
+      <!-- Informations de la sirène sélectionnée -->
+      <div v-if="selectedSirene && !loading" class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-6">
+        <div class="flex items-start justify-between gap-6">
+          <!-- Informations de base -->
+          <div class="flex-1">
+            <div class="flex items-center gap-3 mb-4">
+              <Bell :size="24" class="text-indigo-600" />
+              <div>
+                <h3 class="text-lg font-bold text-gray-900">{{ selectedSirene.numero_serie }}</h3>
+                <p class="text-sm text-gray-600">{{ selectedSirene.modele_sirene?.nom || 'Modèle inconnu' }}</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <!-- Statut de la sirène -->
+              <div class="bg-white rounded-lg p-3 border border-gray-200">
+                <p class="text-xs text-gray-500 mb-1">Statut</p>
+                <div class="flex items-center gap-2">
+                  <span
+                    :class="{
+                      'bg-green-100 text-green-700': selectedSirene.statut === 'installe',
+                      'bg-blue-100 text-blue-700': selectedSirene.statut === 'en_stock',
+                      'bg-gray-100 text-gray-700': selectedSirene.statut === 'en_maintenance',
+                      'bg-red-100 text-red-700': selectedSirene.statut === 'hors_service'
+                    }"
+                    class="px-2 py-1 rounded text-xs font-semibold"
+                  >
+                    {{ selectedSirene.statut?.replace('_', ' ') || 'N/A' }}
+                  </span>
+                  <span
+                    :class="{
+                      'bg-green-100 text-green-700': selectedSirene.etat === 'active',
+                      'bg-red-100 text-red-700': selectedSirene.etat === 'inactive'
+                    }"
+                    class="px-2 py-1 rounded text-xs font-semibold"
+                  >
+                    {{ selectedSirene.etat }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Abonnement -->
+              <div class="bg-white rounded-lg p-3 border border-gray-200">
+                <p class="text-xs text-gray-500 mb-1">Abonnement</p>
+                <div v-if="getAbonnementActif(selectedSirene)">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                      Actif
+                    </span>
+                    <span class="text-xs text-gray-600">
+                      jusqu'au {{ new Date(getAbonnementActif(selectedSirene).date_fin).toLocaleDateString('fr-FR') }}
+                    </span>
+                  </div>
+                </div>
+                <div v-else>
+                  <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">
+                    Aucun abonnement actif
+                  </span>
+                </div>
+              </div>
+
+              <!-- École -->
+              <div class="bg-white rounded-lg p-3 border border-gray-200">
+                <p class="text-xs text-gray-500 mb-1">École</p>
+                <p class="text-sm font-medium text-gray-900">
+                  {{ selectedSirene.ecole?.nom || 'Non affectée' }}
+                </p>
+                <p v-if="selectedSirene.site" class="text-xs text-gray-600">
+                  {{ selectedSirene.site.nom }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Token crypté -->
+          <div v-if="getAbonnementActif(selectedSirene)?.token_actif" class="bg-white rounded-lg p-4 border border-gray-200 max-w-md">
+            <div class="flex items-center gap-2 mb-2">
+              <Key :size="16" class="text-purple-600" />
+              <p class="text-xs font-semibold text-gray-700">Token crypté</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <code class="flex-1 text-xs bg-gray-100 px-3 py-2 rounded border border-gray-200 font-mono truncate max-w-xs">
+                {{ getAbonnementActif(selectedSirene).token_actif.token_crypte }}
+              </code>
+              <button
+                @click="copyToken(getAbonnementActif(selectedSirene).token_actif.token_crypte)"
+                class="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-1 text-xs font-medium"
+                title="Copier le token"
+              >
+                <Copy :size="14" />
+                Copier
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">
+              Expire le {{ new Date(getAbonnementActif(selectedSirene).token_actif.date_expiration).toLocaleDateString('fr-FR') }}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center h-96">
         <div class="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
@@ -391,6 +491,11 @@ const expandedHoraires = ref<Set<string>>(new Set())
 const openDropdownId = ref<string | null>(null)
 const previewChaineId = ref<string | null>(null)
 
+// Sirène sélectionnée
+const selectedSirene = computed(() => {
+  return sirenes.value.find(s => s.id === selectedSireneId.value) || null
+})
+
 // Mapping des jours (0=Dimanche, 1=Lundi, ..., 6=Samedi)
 const joursMapping: Record<number, string> = {
   0: 'Dim',
@@ -734,6 +839,30 @@ const getDureeSonnerie = (prog: ApiProgrammation): number | null => {
   }
 
   return null
+}
+
+/**
+ * Copier le token crypté dans le presse-papier
+ */
+const copyToken = async (token: string) => {
+  try {
+    await navigator.clipboard.writeText(token)
+    notificationStore.success('Token copié dans le presse-papier')
+  } catch (err) {
+    notificationStore.error('Impossible de copier le token')
+  }
+}
+
+/**
+ * Obtenir le statut de l'abonnement actif
+ */
+const getAbonnementActif = (sirene: any) => {
+  if (!sirene?.abonnements || sirene.abonnements.length === 0) {
+    return null
+  }
+
+  // Chercher le premier abonnement actif
+  return sirene.abonnements.find((abo: any) => abo.statut === 'actif') || null
 }
 
 // Charger les sirènes au montage
