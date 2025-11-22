@@ -41,9 +41,8 @@
                 v-for="annee in annesScolairesDisponibles"
                 :key="annee.annee"
                 :value="annee.annee"
-                :class="{ 'font-semibold': annee.hasCalendrier }"
               >
-                {{ annee.annee }}{{ annee.hasCalendrier ? ' ✓' : '' }}
+                {{ annee.annee }}
               </option>
             </select>
           </div>
@@ -770,32 +769,25 @@ const getPeriodeStatusClass = (periode: PeriodeVacances) => {
   return 'bg-gray-100 text-gray-700'
 }
 
-// Générer une liste d'années scolaires disponibles
+// Lister les années scolaires disponibles depuis les calendriers chargés
 const annesScolairesDisponibles = computed(() => {
+  // Extraire les années scolaires uniques depuis les calendriers chargés
   const annees: Array<{ annee: string, hasCalendrier: boolean, calendrierId?: string }> = []
-  const now = new Date()
-  const currentYear = now.getFullYear()
-  const currentMonth = now.getMonth() + 1 // 1-12
 
-  // Déterminer jusqu'à quelle année on peut aller dans le futur
-  // Si on est entre septembre et décembre, on peut avoir l'année N+1
-  // Sinon, on reste sur l'année en cours maximum
-  const maxFutureYear = currentMonth >= 9 ? 1 : 0
-
-  // Générer de 5 ans avant à maxFutureYear après l'année actuelle
-  for (let i = -5; i <= maxFutureYear; i++) {
-    const year = currentYear + i
-    const anneeScolaire = `${year}-${year + 1}`
-
-    // Vérifier si un calendrier existe pour cette année
-    const calendrier = calendriers.value.find(cal => cal.annee_scolaire === anneeScolaire)
-
+  calendriers.value.forEach(calendrier => {
     annees.push({
-      annee: anneeScolaire,
-      hasCalendrier: !!calendrier,
-      calendrierId: calendrier?.id
+      annee: calendrier.annee_scolaire,
+      hasCalendrier: true,
+      calendrierId: calendrier.id
     })
-  }
+  })
+
+  // Trier par année (décroissant - plus récent en premier)
+  annees.sort((a, b) => {
+    const [yearA] = a.annee.split('-').map(Number)
+    const [yearB] = b.annee.split('-').map(Number)
+    return yearB - yearA
+  })
 
   return annees
 })
@@ -848,23 +840,13 @@ const loadPays = async () => {
 const onAnneeScolaireChange = async () => {
   if (!selectedAnneeScolaire.value || !selectedPaysId.value) return
 
-  // Get selected pays object
-  const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
-  if (!selectedPays) return
-
   loading.value = true
   try {
-    // Charger le calendrier avec code_iso ET annee_scolaire
-    const response = await calendrierScolaireService.getAll(
-      1,
-      selectedPays.code_iso,
-      selectedAnneeScolaire.value,
-      true
-    )
+    // Trouver le calendrier dans les calendriers déjà chargés
+    const calendrier = calendriers.value.find(c => c.annee_scolaire === selectedAnneeScolaire.value)
 
-    if (response.success && response.data && response.data.length > 0) {
+    if (calendrier) {
       // Calendrier trouvé
-      const calendrier = response.data[0]
       selectedCalendrierId.value = calendrier.id
       currentCalendrier.value = calendrier
       periodes.value = calendrier.periodes_vacances || []
@@ -964,7 +946,8 @@ const submitEditPeriodes = async () => {
       notificationStore.success('Succès', 'Périodes de vacances modifiées avec succès')
       showEditPeriodesModal.value = false
 
-      // Recharger le calendrier
+      // Recharger les calendriers pour mettre à jour la liste
+      await loadCalendriers()
       await onAnneeScolaireChange()
     }
   } catch (error: any) {
@@ -1086,6 +1069,9 @@ const submitCreateCalendrier = async () => {
       )
       showCreateModal.value = false
       isEditCalendrierMode.value = false
+
+      // Recharger les calendriers pour mettre à jour la liste
+      await loadCalendriers()
       await onAnneeScolaireChange()
     }
   } catch (error: any) {
@@ -1212,6 +1198,39 @@ const submitAddJourFerie = async () => {
   }
 }
 
+const loadCalendriers = async () => {
+  if (!selectedPaysId.value) {
+    calendriers.value = []
+    return
+  }
+
+  // Get selected pays object
+  const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
+  if (!selectedPays) return
+
+  try {
+    loading.value = true
+    // Charger tous les calendriers du pays sélectionné
+    const response = await calendrierScolaireService.getAll(
+      100,
+      selectedPays.code_iso,
+      undefined, // Ne pas filtrer par année scolaire
+      true // Uniquement les calendriers actifs
+    )
+
+    if (response.success && response.data) {
+      calendriers.value = response.data
+    } else {
+      calendriers.value = []
+    }
+  } catch (error: any) {
+    console.error('Failed to load calendriers:', error)
+    calendriers.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
 const onPaysChange = async () => {
   // Reset selections
   selectedAnneeScolaire.value = ''
@@ -1227,9 +1246,8 @@ const onPaysChange = async () => {
     return
   }
 
-  // Get selected pays object
-  const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
-  if (!selectedPays) return
+  // Charger tous les calendriers du pays sélectionné
+  await loadCalendriers()
 
   // Auto-select calendrier de l'année en cours pour ce pays
   const now = new Date()
@@ -1246,9 +1264,12 @@ const onPaysChange = async () => {
     targetYear = `${year - 1}-${year}`
   }
 
-  // Auto-select année en cours
-  selectedAnneeScolaire.value = targetYear
-  await onAnneeScolaireChange()
+  // Auto-select année en cours si elle existe dans les calendriers
+  const currentYearCalendrier = calendriers.value.find(c => c.annee_scolaire === targetYear)
+  if (currentYearCalendrier) {
+    selectedAnneeScolaire.value = targetYear
+    await onAnneeScolaireChange()
+  }
 }
 
 const loadEcoles = async () => {
