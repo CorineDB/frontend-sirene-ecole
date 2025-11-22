@@ -13,12 +13,13 @@ import type {
   PrioritePanne,
   StatutIntervention,
   ResultatIntervention,
-  StatutOrdreMission
+  StatutOrdreMission,
+  StatutCandidature
 } from '@/types/api'
 
 interface Props {
-  type: 'abonnement' | 'panne' | 'priorite' | 'intervention' | 'resultat' | 'ordre-mission'
-  status: StatutAbonnement | StatutPanne | PrioritePanne | StatutIntervention | ResultatIntervention | StatutOrdreMission | string
+  type: 'abonnement' | 'panne' | 'priorite' | 'intervention' | 'resultat' | 'ordre-mission' | 'candidature'
+  status: StatutAbonnement | StatutPanne | PrioritePanne | StatutIntervention | ResultatIntervention | StatutOrdreMission | StatutCandidature | string
 }
 
 const props = defineProps<Props>()
@@ -87,6 +88,16 @@ const statusLabel = computed(() => {
     return labels[props.status] || props.status
   }
 
+  if (props.type === 'candidature') {
+    const labels: Record<string, string> = {
+      'en_attente': 'En attente',
+      'acceptee': 'Acceptée',
+      'refusee': 'Refusée',
+      'retiree': 'Retirée'
+    }
+    return labels[props.status] || props.status
+  }
+
   return props.status
 })
 
@@ -150,6 +161,16 @@ const statusColor = computed(() => {
       'en_cours': 'blue',
       'termine': 'green',
       'cloture': 'gray'
+    }
+    return colors[props.status] || 'gray'
+  }
+
+  if (props.type === 'candidature') {
+    const colors: Record<string, any> = {
+      'en_attente': 'yellow',
+      'acceptee': 'green',
+      'refusee': 'red',
+      'retiree': 'gray'
     }
     return colors[props.status] || 'gray'
   }
