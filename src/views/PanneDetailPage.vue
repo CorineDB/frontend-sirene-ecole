@@ -360,7 +360,7 @@ const {
   isLoading: isLoadingPanne,
   hasError: hasErrorPanne,
   error: errorPanne,
-  fetchPanneById,
+  fetchById,
   validerPanne,
   cloturerPanne
 } = usePannes()
@@ -370,7 +370,7 @@ const {
   rapports,
   accepterCandidature,
   refuserCandidature,
-  fetchRapportsByIntervention
+  fetchRapports
 } = useInterventions()
 
 // Local state
@@ -480,11 +480,11 @@ const handleRefuserCandidature = async (candidatureId: string) => {
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
-    await fetchPanneById(id)
+    await fetchById(id)
 
     // If there's an intervention, fetch its reports
     if (intervention.value) {
-      await fetchRapportsByIntervention(intervention.value.id)
+      await fetchRapports(intervention.value.id)
     }
 
     // TODO: Fetch candidatures if ordre mission exists
