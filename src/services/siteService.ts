@@ -1,4 +1,4 @@
-import apiClient from './apiClient'
+import apiClient from './api'
 
 export interface SireneRequest {
   numero_serie: string
