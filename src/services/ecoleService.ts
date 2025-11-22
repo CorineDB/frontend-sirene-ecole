@@ -146,6 +146,7 @@ export interface SitePrincipalRequest {
   ville_id: string
   latitude?: number
   longitude?: number
+  types_etablissement: string[]
   sirene: SireneRequest
 }
 
@@ -155,6 +156,7 @@ export interface SiteAnnexeRequest {
   ville_id?: string
   latitude?: number
   longitude?: number
+  types_etablissement?: string[]
   sirene: SireneRequest
 }
 
@@ -163,7 +165,7 @@ export interface InscriptionEcoleRequest {
   nom_complet: string
   telephone_contact: string
   email_contact?: string
-  types_etablissement: string[]
+  est_prive: boolean
   responsable_nom: string
   responsable_prenom: string
   responsable_telephone: string
@@ -176,9 +178,12 @@ export interface UpdateEcoleRequest {
   nom_complet?: string
   telephone_contact?: string
   email_contact?: string
+  est_prive?: boolean
   responsable_nom?: string
   responsable_prenom?: string
   responsable_telephone?: string
+  site_principal?: SitePrincipalRequest
+  sites_annexe?: SiteAnnexeRequest[]
 }
 
 export interface ApiResponse<T> {
