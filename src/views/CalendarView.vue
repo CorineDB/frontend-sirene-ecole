@@ -1264,10 +1264,12 @@ const onPaysChange = async () => {
     targetYear = `${year - 1}-${year}`
   }
 
-  // Auto-select année en cours si elle existe dans les calendriers
+  // Auto-select année en cours (même si elle n'a pas de calendrier)
+  // Cela permettra d'afficher le bouton "Créer un calendrier" si besoin
+  selectedAnneeScolaire.value = targetYear
+
   const currentYearCalendrier = calendriers.value.find(c => c.annee_scolaire === targetYear)
   if (currentYearCalendrier) {
-    selectedAnneeScolaire.value = targetYear
     await onAnneeScolaireChange()
   }
 }
