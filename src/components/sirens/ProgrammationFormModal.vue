@@ -276,7 +276,8 @@
               </div>
             </div>
 
-            <div>
+            <!-- Section visible uniquement si jours fériés activés -->
+            <div v-if="formData.jours_feries_inclus">
               <div class="flex items-center justify-between mb-3">
                 <label class="block text-sm font-semibold text-gray-700">
                   Exceptions de jours fériés
@@ -298,31 +299,41 @@
                     class="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1"
                   >
                     <Plus :size="16" />
-                    Ajouter une exception
+                    Ajouter manuellement
                   </button>
                 </div>
               </div>
 
               <!-- Jours fériés chargés du calendrier -->
               <div v-if="joursFeriesCalendrier.length > 0" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div class="flex items-center gap-2 mb-2">
+                <div class="flex items-center gap-2 mb-3">
                   <Calendar :size="16" class="text-green-600" />
                   <span class="text-sm font-semibold text-green-800">
-                    {{ joursFeriesCalendrier.length }} jour(s) férié(s) du calendrier
+                    {{ joursFeriesCalendrier.length }} jour(s) férié(s) du calendrier - Cliquez pour exclure
                   </span>
                 </div>
-                <div class="space-y-1 max-h-40 overflow-y-auto">
+                <div class="space-y-2 max-h-60 overflow-y-auto">
                   <div
                     v-for="jf in joursFeriesCalendrier"
                     :key="jf.id"
-                    class="flex items-center justify-between p-2 bg-white rounded text-xs"
+                    class="flex items-center justify-between p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    <div class="flex items-center gap-2">
-                      <span class="font-medium text-gray-900">{{ jf.intitule_journee }}</span>
-                      <span class="text-gray-600">{{ new Date(jf.date).toLocaleDateString('fr-FR') }}</span>
+                    <div class="flex items-center gap-2 flex-1">
+                      <span class="font-medium text-gray-900 text-sm">{{ jf.intitule_journee }}</span>
+                      <span class="text-gray-600 text-xs">{{ new Date(jf.date).toLocaleDateString('fr-FR') }}</span>
                       <span v-if="jf.est_national" class="text-xs" title="National">🏛️</span>
                       <span v-if="jf.recurrent" class="text-xs" title="Récurrent">🔄</span>
                     </div>
+                    <button
+                      v-if="!isJourFerieInExceptions(jf.date)"
+                      @click="ajouterJourFerieCommeException(jf, 'exclude')"
+                      class="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors flex items-center gap-1"
+                      title="Exclure ce jour férié"
+                    >
+                      <X :size="14" />
+                      Exclure
+                    </button>
+                    <span v-else class="text-xs text-gray-500 italic">Déjà ajouté</span>
                   </div>
                 </div>
               </div>
@@ -395,15 +406,15 @@
               </div>
             </div>
 
-            <div class="p-4 bg-yellow-50 rounded-lg">
+            <div v-if="formData.jours_feries_inclus" class="p-4 bg-blue-50 rounded-lg">
               <div class="flex items-start gap-3">
-                <AlertCircle :size="20" class="text-yellow-600 mt-0.5" />
+                <AlertCircle :size="20" class="text-blue-600 mt-0.5" />
                 <div>
-                  <p class="text-sm font-semibold text-yellow-900 mb-1">À propos des exceptions</p>
-                  <p class="text-xs text-yellow-700">
-                    Les exceptions permettent d'inclure ou d'exclure des jours fériés spécifiques.
-                    Si "Activer pendant les jours fériés" est coché, vous pouvez exclure certains jours fériés.
-                    Sinon, vous pouvez inclure des jours fériés spécifiques.
+                  <p class="text-sm font-semibold text-blue-900 mb-1">À propos des exceptions</p>
+                  <p class="text-xs text-blue-700">
+                    Par défaut, la sonnerie fonctionnera pendant tous les jours fériés du calendrier.
+                    Vous pouvez exclure des jours fériés spécifiques en cliquant sur le bouton "Exclure" ci-dessus,
+                    ou ajouter manuellement des dates d'exception.
                   </p>
                 </div>
               </div>
@@ -751,14 +762,38 @@ const getJourLabelFromNum = (num: number): string => {
 const ajouterException = () => {
   formData.value.jours_feries_exceptions.push({
     date: today,
-    action: 'exclude',
+    action: formData.value.jours_feries_inclus ? 'exclude' : 'include',
     est_national: false,
-    recurrent: false
+    recurrent: false,
+    intitule_journee: null
   })
 }
 
 const supprimerException = (index: number) => {
   formData.value.jours_feries_exceptions.splice(index, 1)
+}
+
+// Vérifier si un jour férié est déjà dans les exceptions
+const isJourFerieInExceptions = (date: string): boolean => {
+  return formData.value.jours_feries_exceptions.some(ex => ex.date === date)
+}
+
+// Ajouter un jour férié comme exception
+const ajouterJourFerieCommeException = (jourFerie: JourFerie, action: 'include' | 'exclude') => {
+  if (isJourFerieInExceptions(jourFerie.date)) {
+    notificationStore.warning('Ce jour férié est déjà dans les exceptions')
+    return
+  }
+
+  formData.value.jours_feries_exceptions.push({
+    date: jourFerie.date,
+    action,
+    est_national: jourFerie.est_national,
+    recurrent: jourFerie.recurrent,
+    intitule_journee: jourFerie.intitule_journee
+  })
+
+  notificationStore.success(`${jourFerie.intitule_journee} ajouté comme exception`)
 }
 
 // Charger les données de la sirène
@@ -874,30 +909,9 @@ const chargerJoursFeriesCalendrier = async () => {
       }
     }
 
-    // Proposer d'ajouter comme exceptions
+    // Afficher les jours fériés chargés
     if (joursFeriesCalendrier.value.length > 0) {
-      const count = joursFeriesCalendrier.value.length
-      if (confirm(`${count} jour(s) férié(s) trouvé(s). Voulez-vous les ajouter comme exceptions ?`)) {
-        // Ajouter tous les jours fériés comme exceptions
-        joursFeriesCalendrier.value.forEach(jourFerie => {
-          // Vérifier si l'exception n'existe pas déjà
-          const exists = formData.value.jours_feries_exceptions.some(
-            ex => ex.date === jourFerie.date
-          )
-
-          if (!exists) {
-            formData.value.jours_feries_exceptions.push({
-              date: jourFerie.date,
-              action: formData.value.jours_feries_inclus ? 'exclude' : 'include',
-              est_national: jourFerie.est_national,
-              recurrent: jourFerie.recurrent,
-              intitule_journee: jourFerie.intitule_journee
-            })
-          }
-        })
-
-        notificationStore.success(`${count} jour(s) férié(s) ajouté(s) comme exceptions`)
-      }
+      notificationStore.success(`${joursFeriesCalendrier.value.length} jour(s) férié(s) chargé(s) du calendrier`)
     } else {
       notificationStore.info('Aucun jour férié trouvé pour ce calendrier')
     }
