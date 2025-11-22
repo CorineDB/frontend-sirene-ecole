@@ -429,14 +429,17 @@ const resetFilters = async () => {
 
 const handleValider = async (panneId: string) => {
   // Simple validation - in real app, would open a modal for more details
-  const priorite = prompt('Priorité (basse/moyenne/haute/urgente):', 'moyenne') as any
-  const ville_id = prompt('ID de la ville:')
+  const nombreTechniciens = prompt('Nombre de techniciens requis:', '1')
+  const dateDebut = prompt('Date début candidature (YYYY-MM-DD):')
+  const dateFin = prompt('Date fin candidature (YYYY-MM-DD):')
+  const commentaire = prompt('Commentaire (optionnel):')
 
-  if (priorite && ville_id) {
+  if (nombreTechniciens) {
     await validerPanne(panneId, {
-      priorite,
-      description_validation: 'Validée',
-      ville_id
+      nombre_techniciens_requis: parseInt(nombreTechniciens),
+      date_debut_candidature: dateDebut || undefined,
+      date_fin_candidature: dateFin || undefined,
+      commentaire: commentaire || undefined
     })
     await fetchAllPannes()
   }
