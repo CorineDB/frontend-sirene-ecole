@@ -258,8 +258,8 @@
           </div>
         </div>
 
-        <!-- Step 3: Site Principal -->
-        <div v-show="currentStep === 2" class="space-y-4">
+        <!-- Step 3: Site Principal (mode création uniquement) -->
+        <div v-show="!isEditMode && currentStep === 2" class="space-y-4">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Site principal</h3>
 
           <div>
@@ -385,8 +385,8 @@
           </div>
         </div>
 
-        <!-- Step 4: Sites Annexes (optionnel) -->
-        <div v-show="currentStep === 3" class="space-y-4">
+        <!-- Step 4: Sites Annexes (mode création uniquement, optionnel) -->
+        <div v-show="!isEditMode && currentStep === 3" class="space-y-4">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-900">Sites annexes (optionnel)</h3>
             <button
@@ -612,7 +612,13 @@ const notificationStore = useNotificationStore()
 
 const isEditMode = computed(() => !!props.ecole)
 
-const steps = ['École', 'Responsable', 'Site principal', 'Sites annexes']
+const steps = computed(() => {
+  // En mode édition, on ne gère que les infos de base (École et Responsable)
+  // Les sites sont gérés séparément dans SchoolDetailView
+  return isEditMode.value
+    ? ['École', 'Responsable']
+    : ['École', 'Responsable', 'Site principal', 'Sites annexes']
+})
 const currentStep = ref(0)
 const loading = ref(false)
 const villes = ref<Ville[]>([])
@@ -809,9 +815,11 @@ const prepareDataForSubmission = () => {
 }
 
 const handleSubmit = async () => {
-  // Validate step 2 (site principal) in all cases
-  if (!validateStep(2)) {
-    currentStep.value = 2
+  // En mode édition, valider step 1 (responsable)
+  // En mode création, valider step 2 (site principal)
+  const lastStep = isEditMode.value ? 1 : 2
+  if (!validateStep(lastStep)) {
+    currentStep.value = lastStep
     return
   }
 
@@ -824,8 +832,19 @@ const handleSubmit = async () => {
     const dataToSubmit = prepareDataForSubmission()
 
     if (isEditMode.value) {
-      // Update mode - send all data like in create mode
-      response = await ecoleService.update(props.ecole.id, dataToSubmit)
+      // Update mode - envoyer uniquement les champs de base (pas les sites)
+      const updateData = {
+        nom: dataToSubmit.nom,
+        nom_complet: dataToSubmit.nom_complet,
+        telephone_contact: dataToSubmit.telephone_contact,
+        email_contact: dataToSubmit.email_contact,
+        est_prive: dataToSubmit.est_prive,
+        responsable_nom: dataToSubmit.responsable_nom,
+        responsable_prenom: dataToSubmit.responsable_prenom,
+        responsable_telephone: dataToSubmit.responsable_telephone
+      }
+
+      response = await ecoleService.update(props.ecole.id, updateData)
 
       if (response.success && response.data) {
         notificationStore.success(

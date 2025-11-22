@@ -182,8 +182,6 @@ export interface UpdateEcoleRequest {
   responsable_nom?: string
   responsable_prenom?: string
   responsable_telephone?: string
-  site_principal?: SitePrincipalRequest
-  sites_annexe?: SiteAnnexeRequest[]
 }
 
 export interface ApiResponse<T> {
