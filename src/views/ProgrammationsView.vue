@@ -411,8 +411,11 @@ const loadSirenes = async () => {
     { errorMessage: 'Impossible de charger les sirènes programmables' }
   )
 
-  if (result?.success && result.data?.data) {
-    sirenes.value = result.data.data
+  if (result?.success && result.data) {
+    // L'API retourne: { success: true, data: [...], pagination: {...} }
+    if (Array.isArray(result.data)) {
+      sirenes.value = result.data
+    }
   }
 }
 
