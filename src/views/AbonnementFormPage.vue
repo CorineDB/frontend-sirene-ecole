@@ -186,9 +186,9 @@ const route = useRoute()
 
 // Composable
 const {
-  createAbonnement,
-  updateAbonnement,
-  fetchAbonnementById,
+  create,
+  update,
+  fetchById,
   abonnement,
   isLoading,
   hasError,
@@ -214,10 +214,10 @@ const handleSubmit = async () => {
   try {
     if (isEditMode.value) {
       // Update existing abonnement
-      await updateAbonnement(route.params.id as string, form.value)
+      await update(route.params.id as string, form.value)
     } else {
       // Create new abonnement
-      const response = await createAbonnement(form.value)
+      const response = await create(form.value)
       if (response.data?.id) {
         router.push(`/abonnements/${response.data.id}`)
         return
@@ -233,7 +233,7 @@ const handleSubmit = async () => {
 onMounted(async () => {
   if (isEditMode.value) {
     const id = route.params.id as string
-    await fetchAbonnementById(id)
+    await fetchById(id)
 
     if (abonnement.value) {
       // Populate form with existing data
