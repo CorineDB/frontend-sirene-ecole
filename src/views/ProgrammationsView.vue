@@ -407,8 +407,8 @@ const joursMapping: Record<number, string> = {
  */
 const loadSirenes = async () => {
   const result = await execute(
-    () => sirenService.getAllSirens({ per_page: 1000 }),
-    { errorMessage: 'Impossible de charger les sirènes' }
+    () => sirenService.getSirensProgrammables({ per_page: 1000 }),
+    { errorMessage: 'Impossible de charger les sirènes programmables' }
   )
 
   if (result?.success && result.data?.data) {
