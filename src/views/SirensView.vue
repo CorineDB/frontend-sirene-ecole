@@ -226,12 +226,8 @@ const formatDate = (dateString: string) => {
  * Obtenir le statut de l'abonnement actif
  */
 const getAbonnementActif = (sirene: any) => {
-  if (!sirene?.abonnements || sirene.abonnements.length === 0) {
-    return null
-  }
-
-  // Chercher le premier abonnement actif
-  return sirene.abonnements.find((abo: any) => abo.statut === 'actif') || null
+  // L'API retourne directement abonnement_actif, pas un tableau abonnements
+  return sirene?.abonnement_actif || null
 }
 
 /**
