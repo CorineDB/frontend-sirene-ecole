@@ -324,9 +324,35 @@
 
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">
-              Numéro de série de la sirène <span class="text-red-600">*</span>
+              Sirène <span class="text-red-600">*</span>
             </label>
-            <div class="flex gap-2">
+
+            <!-- Mode édition : afficher les détails de la sirène avec icône crayon -->
+            <div v-if="isEditMode && !isEditingSirenePrincipal && formData.site_principal.sirene.numero_serie" class="border border-gray-300 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-pink-50">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Bell :size="20" class="text-white" />
+                  </div>
+                  <div>
+                    <p class="text-xs text-purple-600 font-semibold">Sirène installée</p>
+                    <p class="text-base font-bold text-purple-900">{{ formData.site_principal.sirene.numero_serie }}</p>
+                  </div>
+                </div>
+                <button
+                  @click="isEditingSirenePrincipal = true"
+                  type="button"
+                  class="px-3 py-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-2"
+                  title="Modifier la sirène"
+                >
+                  <Pencil :size="18" />
+                  <span class="text-sm font-medium">Modifier</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Mode création OU mode édition avec modification activée -->
+            <div v-else class="flex gap-2">
               <select
                 v-model="formData.site_principal.sirene.numero_serie"
                 class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -344,6 +370,15 @@
                 title="Recharger les sirènes"
               >
                 <RefreshCw :size="20" />
+              </button>
+              <button
+                v-if="isEditMode && isEditingSirenePrincipal"
+                @click="isEditingSirenePrincipal = false"
+                type="button"
+                class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                title="Annuler la modification"
+              >
+                <X :size="20" />
               </button>
             </div>
             <p v-if="errors['site_principal.sirene.numero_serie']" class="text-sm text-red-600 mt-1">{{ errors['site_principal.sirene.numero_serie'] }}</p>
@@ -443,9 +478,35 @@
 
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Numéro de série de la sirène <span class="text-red-600">*</span>
+                Sirène <span class="text-red-600">*</span>
               </label>
-              <div class="flex gap-2">
+
+              <!-- Mode édition : afficher les détails de la sirène avec icône crayon -->
+              <div v-if="isEditMode && !isEditingSireneAnnexe[index] && site.sirene.numero_serie" class="border border-gray-300 rounded-lg p-3 bg-gradient-to-br from-purple-50 to-pink-50">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Bell :size="16" class="text-white" />
+                    </div>
+                    <div>
+                      <p class="text-xs text-purple-600 font-semibold">Sirène</p>
+                      <p class="text-sm font-bold text-purple-900">{{ site.sirene.numero_serie }}</p>
+                    </div>
+                  </div>
+                  <button
+                    @click="isEditingSireneAnnexe[index] = true"
+                    type="button"
+                    class="px-2 py-1 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1"
+                    title="Modifier la sirène"
+                  >
+                    <Pencil :size="16" />
+                    <span class="text-xs font-medium">Modifier</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Mode création OU mode édition avec modification activée -->
+              <div v-else class="flex gap-2">
                 <select
                   v-model="site.sirene.numero_serie"
                   class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -462,6 +523,15 @@
                   title="Recharger les sirènes"
                 >
                   <RefreshCw :size="18" />
+                </button>
+                <button
+                  v-if="isEditMode && isEditingSireneAnnexe[index]"
+                  @click="isEditingSireneAnnexe[index] = false"
+                  type="button"
+                  class="px-3 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                  title="Annuler la modification"
+                >
+                  <X :size="18" />
                 </button>
               </div>
             </div>
@@ -516,7 +586,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
-import { X, Plus, Building2, Trash2, RefreshCw } from 'lucide-vue-next'
+import { X, Plus, Building2, Trash2, RefreshCw, Pencil, Bell } from 'lucide-vue-next'
 import ecoleService, { type InscriptionEcoleRequest } from '../../services/ecoleService'
 import villeService, { type Ville } from '../../services/villeService'
 import sireneService, { type Sirene } from '../../services/sireneService'
@@ -550,6 +620,10 @@ const pays = ref<Pays[]>([])
 const sirenesdisponibles = ref<Sirene[]>([])
 const selectedPaysContact = ref<string>('')
 const selectedPaysResponsable = ref<string>('')
+
+// États pour gérer l'édition des sirènes
+const isEditingSirenePrincipal = ref(false)
+const isEditingSireneAnnexe = ref<Record<number, boolean>>({})
 
 // Location for site principal (two-way binding with formData)
 const sitePrincipalLocation = computed({
@@ -819,11 +893,19 @@ const close = () => {
   currentStep.value = 0
   loading.value = false
 
+  // Réinitialiser les états d'édition des sirènes
+  isEditingSirenePrincipal.value = false
+  isEditingSireneAnnexe.value = {}
+
   emit('close')
 }
 
 watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
+    // Réinitialiser les états d'édition des sirènes
+    isEditingSirenePrincipal.value = false
+    isEditingSireneAnnexe.value = {}
+
     // Charger les données nécessaires
     await Promise.all([
       loadPays(),
