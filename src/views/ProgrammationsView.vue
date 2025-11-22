@@ -51,119 +51,147 @@
         <div
           v-for="prog in programmations"
           :key="prog.id"
-          class="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-xl transition-all"
+          class="bg-white rounded-xl border border-gray-200 hover:shadow-xl transition-all overflow-hidden"
         >
-          <!-- Header with status badge -->
-          <div class="flex items-start justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
-              <Clock :size="24" class="text-white" />
-            </div>
-            <span
-              :class="prog.actif ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'"
-              class="text-xs px-2 py-1 rounded-full font-semibold"
-            >
-              {{ prog.actif ? 'Active' : 'Inactive' }}
-            </span>
-          </div>
-
-          <!-- Programmation Name -->
-          <h3 class="text-lg font-bold text-gray-900 mb-1">
-            {{ prog.nom_programmation }}
-          </h3>
-
-          <!-- Période -->
-          <div class="flex items-center gap-2 text-sm text-gray-600 mb-3">
-            <Calendar :size="16" class="text-gray-400" />
-            <span>{{ formatDate(prog.date_debut) }} → {{ formatDate(prog.date_fin) }}</span>
-          </div>
-
-          <!-- Horaires -->
-          <div class="space-y-2 text-sm mb-4">
-            <div class="flex items-center gap-2 text-gray-600">
-              <Clock :size="16" class="text-gray-400" />
-              <span class="font-semibold">Horaires:</span>
-            </div>
-            <div class="pl-6 space-y-2">
-              <div
-                v-for="(horaire, idx) in prog.horaires_sonneries"
-                :key="idx"
-                class="flex items-center justify-between p-2 bg-gray-50 rounded"
-              >
-                <span class="text-blue-600 font-semibold font-mono">
-                  {{ formatHoraire(horaire) }}
-                </span>
-                <div class="flex gap-1 flex-wrap">
-                  <span
-                    v-for="jourNum in horaire.jours"
-                    :key="jourNum"
-                    class="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-semibold"
-                  >
-                    {{ getJourLabel(jourNum) }}
-                  </span>
+          <!-- Header with gradient background -->
+          <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-4">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center backdrop-blur">
+                  <Clock :size="20" class="text-white" />
                 </div>
+                <div>
+                  <h3 class="text-lg font-bold text-white">
+                    {{ prog.nom_programmation }}
+                  </h3>
+                  <p class="text-xs text-purple-100">
+                    {{ formatDate(prog.date_debut) }} → {{ formatDate(prog.date_fin) }}
+                  </p>
+                </div>
+              </div>
+              <span
+                :class="prog.actif ? 'bg-green-400 text-green-900' : 'bg-gray-300 text-gray-700'"
+                class="text-xs px-2 py-1 rounded-full font-semibold"
+              >
+                {{ prog.actif ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="p-4 space-y-4">
+            <!-- Horaires section -->
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-1 h-4 bg-blue-500 rounded"></div>
+                <span class="text-sm font-bold text-gray-700">Horaires de sonnerie</span>
+              </div>
+              <div class="space-y-2">
+                <div
+                  v-for="(horaire, idx) in prog.horaires_sonneries"
+                  :key="idx"
+                  class="flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-100"
+                >
+                  <div class="flex items-center gap-2">
+                    <Clock :size="14" class="text-blue-500" />
+                    <span class="text-blue-700 font-bold font-mono text-sm">
+                      {{ formatHoraire(horaire) }}
+                    </span>
+                    <span v-if="horaire.duree_sonnerie" class="text-xs text-blue-600">
+                      ({{ horaire.duree_sonnerie }}s)
+                    </span>
+                  </div>
+                  <div class="flex gap-1 flex-wrap">
+                    <span
+                      v-for="jourNum in horaire.jours"
+                      :key="jourNum"
+                      class="px-1.5 py-0.5 bg-blue-200 text-blue-800 rounded text-xs font-semibold"
+                    >
+                      {{ getJourLabel(jourNum) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Jours fériés section -->
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-1 h-4 bg-amber-500 rounded"></div>
+                <span class="text-sm font-bold text-gray-700">Jours fériés</span>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span
+                  :class="prog.jours_feries_inclus ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-700 border-gray-200'"
+                  class="px-3 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1"
+                >
+                  <Star :size="12" />
+                  {{ prog.jours_feries_inclus ? 'Inclus' : 'Exclus' }}
+                </span>
+                <span
+                  v-if="prog.jours_feries_exceptions && prog.jours_feries_exceptions.length > 0"
+                  class="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold border border-amber-200"
+                >
+                  {{ prog.jours_feries_exceptions.length }} exception(s)
+                </span>
+              </div>
+            </div>
+
+            <!-- Chaîne cryptée section -->
+            <div v-if="prog.chaine_cryptee">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-1 h-4 bg-indigo-500 rounded"></div>
+                <span class="text-sm font-bold text-gray-700">Chaîne cryptée ESP8266</span>
+              </div>
+              <div class="bg-indigo-50 rounded-lg border border-indigo-200 p-3">
+                <div class="flex items-start gap-2">
+                  <Key :size="14" class="text-indigo-500 mt-0.5 flex-shrink-0" />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs text-indigo-600 font-mono break-all">
+                      {{ prog.chaine_cryptee }}
+                    </p>
+                  </div>
+                  <button
+                    @click="copierChaineCryptee(prog.chaine_cryptee)"
+                    class="flex-shrink-0 p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
+                    title="Copier la chaîne cryptée"
+                  >
+                    <Copy :size="14" />
+                  </button>
+                </div>
+                <p v-if="prog.chaine_programmee" class="text-xs text-indigo-500 mt-2">
+                  {{ prog.chaine_programmee }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Informations supplémentaires -->
+            <div v-if="prog.calendrier || prog.ecole || prog.site" class="bg-gray-50 rounded-lg p-3 space-y-1.5">
+              <div v-if="prog.calendrier" class="flex items-center gap-2 text-xs text-gray-600">
+                <Calendar :size="12" class="text-gray-400" />
+                <span class="font-medium">Calendrier:</span>
+                <span>{{ prog.calendrier.nom }}</span>
+              </div>
+              <div v-if="prog.ecole" class="flex items-center gap-2 text-xs text-gray-600">
+                <Building2 :size="12" class="text-gray-400" />
+                <span class="font-medium">École:</span>
+                <span>{{ prog.ecole.nom }}</span>
+              </div>
+              <div v-if="prog.site" class="flex items-center gap-2 text-xs text-gray-600">
+                <MapPin :size="12" class="text-gray-400" />
+                <span class="font-medium">Site:</span>
+                <span>{{ prog.site.nom }}</span>
               </div>
             </div>
           </div>
 
-          <!-- Jours fériés -->
-          <div class="mb-4">
-            <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
-              <Star :size="16" class="text-gray-400" />
-              <span class="font-semibold">Jours fériés:</span>
-            </div>
-            <div class="pl-6">
-              <span
-                :class="prog.jours_feries_inclus ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-700'"
-                class="px-2 py-1 rounded text-xs font-semibold inline-block"
-              >
-                {{ prog.jours_feries_inclus ? 'Inclus' : 'Exclus' }}
-              </span>
-              <span
-                v-if="prog.jours_feries_exceptions && prog.jours_feries_exceptions.length > 0"
-                class="ml-2 px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-xs font-semibold inline-block"
-              >
-                {{ prog.jours_feries_exceptions.length }} exception(s)
-              </span>
-            </div>
-          </div>
-
-          <!-- Informations supplémentaires -->
-          <div v-if="prog.calendrier || prog.ecole || prog.site" class="mb-4 space-y-1">
-            <div v-if="prog.calendrier" class="flex items-center gap-2 text-xs text-gray-600">
-              <Calendar :size="14" class="text-gray-400" />
-              <span>Calendrier: {{ prog.calendrier.nom }}</span>
-            </div>
-            <div v-if="prog.ecole" class="flex items-center gap-2 text-xs text-gray-600">
-              <Building2 :size="14" class="text-gray-400" />
-              <span>École: {{ prog.ecole.nom }}</span>
-            </div>
-            <div v-if="prog.site" class="flex items-center gap-2 text-xs text-gray-600">
-              <MapPin :size="14" class="text-gray-400" />
-              <span>Site: {{ prog.site.nom }}</span>
-            </div>
-          </div>
-
-          <!-- ESP8266 Data Preview -->
-          <div class="mt-4 p-3 bg-purple-50 rounded-lg">
-            <div class="flex items-center gap-2 text-xs text-purple-700 mb-1">
-              <Key :size="14" class="text-purple-500" />
-              <span class="font-semibold">Format ESP8266:</span>
-            </div>
-            <p class="text-xs text-purple-600 font-mono">
-              {{ prog.horaires_sonneries.length }} horaire(s) configuré(s)
-            </p>
-            <p v-if="prog.chaine_cryptee" class="text-xs text-purple-600 font-mono mt-1 truncate">
-              Chaîne: {{ prog.chaine_cryptee.substring(0, 32) }}...
-            </p>
-          </div>
-
-          <!-- Actions -->
-          <div class="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between gap-2">
+          <!-- Actions footer -->
+          <div class="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-2">
             <Can permission="manage_sirens">
               <div class="flex items-center gap-2">
                 <button
                   @click="openEditModal(prog)"
-                  class="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1"
+                  class="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 font-medium"
                   title="Modifier"
                 >
                   <Edit :size="14" />
@@ -171,7 +199,7 @@
                 </button>
                 <button
                   @click="confirmDelete(prog)"
-                  class="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1"
+                  class="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1 font-medium"
                   title="Supprimer"
                 >
                   <Trash :size="14" />
@@ -180,8 +208,8 @@
               </div>
               <button
                 @click="toggleActif(prog)"
-                :class="prog.actif ? 'text-gray-600 hover:bg-gray-50' : 'text-green-600 hover:bg-green-50'"
-                class="px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1"
+                :class="prog.actif ? 'text-gray-600 hover:bg-gray-100' : 'text-green-600 hover:bg-green-50'"
+                class="px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 font-medium"
                 :title="prog.actif ? 'Désactiver' : 'Activer'"
               >
                 <Power :size="14" />
@@ -238,7 +266,7 @@
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import ProgrammationFormModal from '../components/sirens/ProgrammationFormModal.vue'
-import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, MapPin } from 'lucide-vue-next'
+import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, MapPin, Copy } from 'lucide-vue-next'
 import { Can } from '@/components/permissions'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
@@ -412,6 +440,18 @@ const deleteProgrammation = async (prog: ApiProgrammation) => {
   if (result?.success) {
     notificationStore.success('Programmation supprimée')
     loadProgrammations()
+  }
+}
+
+/**
+ * Copier la chaîne cryptée dans le presse-papier
+ */
+const copierChaineCryptee = async (chaine: string) => {
+  try {
+    await navigator.clipboard.writeText(chaine)
+    notificationStore.success('Chaîne cryptée copiée dans le presse-papier')
+  } catch (err) {
+    notificationStore.error('Erreur lors de la copie')
   }
 }
 
