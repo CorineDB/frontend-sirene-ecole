@@ -307,29 +307,52 @@
                 <div
                   v-for="(exception, index) in formData.jours_feries_exceptions"
                   :key="index"
-                  class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                  class="p-3 bg-gray-50 rounded-lg space-y-3"
                 >
-                  <Calendar :size="20" class="text-gray-400" />
-                  <input
-                    v-model="exception.date"
-                    type="date"
-                    required
-                    class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <select
-                    v-model="exception.action"
-                    class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="exclude">Exclure</option>
-                    <option value="include">Inclure</option>
-                  </select>
-                  <button
-                    type="button"
-                    @click="supprimerException(index)"
-                    class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Trash :size="18" />
-                  </button>
+                  <!-- Ligne 1: Date et Action -->
+                  <div class="flex items-center gap-3">
+                    <Calendar :size="20" class="text-gray-400" />
+                    <input
+                      v-model="exception.date"
+                      type="date"
+                      required
+                      class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <select
+                      v-model="exception.action"
+                      class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="exclude">Exclure</option>
+                      <option value="include">Inclure</option>
+                    </select>
+                    <button
+                      type="button"
+                      @click="supprimerException(index)"
+                      class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash :size="18" />
+                    </button>
+                  </div>
+
+                  <!-- Ligne 2: Checkboxes pour est_national et recurrent -->
+                  <div class="flex items-center gap-4 ml-9">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input
+                        v-model="exception.est_national"
+                        type="checkbox"
+                        class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span class="text-xs text-gray-700">National</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input
+                        v-model="exception.recurrent"
+                        type="checkbox"
+                        class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span class="text-xs text-gray-700">Récurrent (annuel)</span>
+                    </label>
+                  </div>
                 </div>
 
                 <p v-if="formData.jours_feries_exceptions.length === 0" class="text-sm text-gray-500 text-center py-4">
@@ -688,7 +711,12 @@ const getJourLabelFromNum = (num: number): string => {
 
 // Exceptions
 const ajouterException = () => {
-  formData.value.jours_feries_exceptions.push({ date: today, action: 'exclude' })
+  formData.value.jours_feries_exceptions.push({
+    date: today,
+    action: 'exclude',
+    est_national: false,
+    recurrent: false
+  })
 }
 
 const supprimerException = (index: number) => {
@@ -740,7 +768,9 @@ const chargerJoursFeriesCalendrier = async () => {
           if (!exists) {
             formData.value.jours_feries_exceptions.push({
               date: jourFerie.date,
-              action: formData.value.jours_feries_inclus ? 'exclude' : 'include'
+              action: formData.value.jours_feries_inclus ? 'exclude' : 'include',
+              est_national: jourFerie.est_national,
+              recurrent: jourFerie.recurrent
             })
           }
         })

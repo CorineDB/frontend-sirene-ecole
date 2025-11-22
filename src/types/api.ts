@@ -446,6 +446,8 @@ export interface HoraireSonnerie {
 export interface JourFerieException {
   date: string // Format: YYYY-MM-DD
   action: 'include' | 'exclude'
+  est_national?: boolean | null // Jour férié national (true) ou local (false)
+  recurrent?: boolean | null // Récurrent/annuel (true) ou exceptionnel (false)
 }
 
 // Calendrier scolaire (pour la relation)

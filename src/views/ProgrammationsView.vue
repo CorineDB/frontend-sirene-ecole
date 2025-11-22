@@ -167,9 +167,13 @@
                     <div
                       v-for="(exception, idx) in prog.jours_feries_exceptions.slice(0, 3)"
                       :key="idx"
-                      class="flex items-center justify-between text-xs"
+                      class="flex items-center justify-between gap-2 text-xs"
                     >
-                      <span class="text-amber-700">{{ formatDate(exception.date) }}</span>
+                      <div class="flex items-center gap-1 flex-1">
+                        <span class="text-amber-700">{{ formatDate(exception.date) }}</span>
+                        <span v-if="exception.est_national" class="text-xs text-amber-600" title="National">🏛️</span>
+                        <span v-if="exception.recurrent" class="text-xs text-amber-600" title="Récurrent">🔄</span>
+                      </div>
                       <span
                         :class="exception.action === 'include' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
                         class="px-2 py-0.5 rounded text-xs font-medium"
