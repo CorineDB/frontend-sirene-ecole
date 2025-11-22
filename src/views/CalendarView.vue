@@ -11,7 +11,7 @@
 
       <!-- Filtres -->
       <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div :class="['grid grid-cols-1 gap-4', isEcoleUser ? 'md:grid-cols-2' : 'md:grid-cols-3']">
           <!-- Pays -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">Pays</label>
@@ -47,8 +47,8 @@
             </select>
           </div>
 
-          <!-- École -->
-          <div>
+          <!-- École (masqué pour les utilisateurs de type École) -->
+          <div v-if="!isEcoleUser">
             <label class="block text-sm font-semibold text-gray-700 mb-2">
               École <span class="text-xs text-gray-500">(optionnel, pour jours fériés spécifiques)</span>
             </label>
@@ -417,7 +417,7 @@
               <option v-for="pays in paysList" :key="pays.id" :value="pays.id">{{ pays.nom }}</option>
             </select>
           </div>
-          <div>
+          <div v-if="!isEcoleUser">
             <label class="block text-sm font-medium text-gray-700 mb-1">École <span class="text-xs text-gray-500">(optionnel)</span></label>
             <select v-model="newJourFerie.ecole_id" class="w-full px-3 py-2 border rounded-lg">
               <option value="">Aucune école</option>
@@ -588,6 +588,19 @@ const newCalendrier = ref({
 const currentMonth = ref(new Date().getMonth())
 const currentYear = ref(new Date().getFullYear())
 const weekDays = ref(['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'])
+
+// Computed: Vérifier si l'utilisateur est de type École
+const isEcoleUser = computed(() => {
+  return authStore.user?.user_account_type_type === 'App\\Models\\Ecole'
+})
+
+// Computed: ID de l'école effective (user école ou sélection manuelle)
+const effectiveEcoleId = computed(() => {
+  if (isEcoleUser.value && authStore.user?.user_account_type_id) {
+    return authStore.user.user_account_type_id
+  }
+  return selectedEcoleId.value || undefined
+})
 
 // Utility function to format dates in local time (avoid timezone issues)
 const formatLocalDate = (date: Date | string): string => {
@@ -1093,7 +1106,7 @@ const openAddJourFerieModal = () => {
   newJourFerie.value = {
     lier_calendrier: true,
     pays_id: selectedPaysId.value,
-    ecole_id: selectedEcoleId.value || '',
+    ecole_id: effectiveEcoleId.value || '',
     intitule_journee: '',
     date: '',
     est_national: false,
@@ -1294,7 +1307,7 @@ const loadJoursFeriesFromAPI = async () => {
 
   loadingJoursFeries.value = true
   try {
-    if (selectedEcoleId.value) {
+    if (effectiveEcoleId.value) {
       // École sélectionnée: charger jours fériés du calendrier + école
       const [calendrierResponse, ecoleResponse] = await Promise.all([
         // Jours fériés du calendrier uniquement (sans écoles)
@@ -1306,7 +1319,7 @@ const loadJoursFeriesFromAPI = async () => {
         // Jours fériés spécifiques à l'école
         jourFerieService.getJoursFeries({
           calendrier_id: selectedCalendrierId.value,
-          ecole_id: selectedEcoleId.value,
+          ecole_id: effectiveEcoleId.value,
           per_page: 1000
         })
       ])
@@ -1356,7 +1369,7 @@ const loadJoursFeriesFromAPI = async () => {
 }
 
 const loadJoursFeriesPanel = async () => {
-  if (!selectedCalendrierId.value || !selectedEcoleId.value) return
+  if (!selectedCalendrierId.value || !effectiveEcoleId.value) return
   await loadJoursFeriesFromAPI()
 }
 
@@ -1376,7 +1389,7 @@ const calculateSchoolDays = async () => {
   try {
     const response = await calendrierScolaireService.calculateSchoolDays(
       selectedCalendrierId.value,
-      selectedEcoleId.value || undefined
+      effectiveEcoleId.value
     )
     if (response.success && response.data) {
       schoolDays.value = response.data.school_days
@@ -1388,15 +1401,18 @@ const calculateSchoolDays = async () => {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    loadPays(),
-    loadEcoles()
-  ])
+  // Charger les pays et les écoles (seulement si pas utilisateur École)
+  const promises = [loadPays()]
 
-  // Auto-set selectedEcoleId si l'utilisateur est de type École
-  if (authStore.user && authStore.user.user_account_type_type === 'App\\Models\\Ecole' && authStore.user.user_account_type_id) {
-    selectedEcoleId.value = authStore.user.user_account_type_id
-    console.log('Auto-selected École:', selectedEcoleId.value, 'for user type:', authStore.user.user_account_type_type)
+  if (!isEcoleUser.value) {
+    promises.push(loadEcoles())
+  }
+
+  await Promise.all(promises)
+
+  // Log pour utilisateur École
+  if (isEcoleUser.value && authStore.user?.user_account_type_id) {
+    console.log('Utilisateur École détecté - ID école:', authStore.user.user_account_type_id)
   }
 
   // Sélectionner le premier pays par défaut
