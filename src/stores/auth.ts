@@ -31,6 +31,9 @@ export interface User {
   roleSlug?: string // Le slug du rôle pour compatibilité
   doit_changer_mot_de_passe: boolean
   mot_de_passe_change: boolean
+  // Polymorphic relationship fields
+  user_account_type_id?: string | null
+  user_account_type_type?: string | null // Ex: "App\Models\Ecole", "App\Models\Technicien"
   created_at?: string
 }
 
@@ -70,6 +73,8 @@ const transformApiUser = (apiUser: ApiUser): User => {
     roleSlug: apiUser.role?.slug || mapUserTypeToRole(apiUser.type),
     doit_changer_mot_de_passe: apiUser.doit_changer_mot_de_passe || false,
     mot_de_passe_change: apiUser.mot_de_passe_change || false,
+    user_account_type_id: apiUser.user_account_type_id || null,
+    user_account_type_type: apiUser.user_account_type_type || null,
   }
 }
 
