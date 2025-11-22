@@ -48,7 +48,7 @@ import { useAuthStore } from '../../stores/auth'
 import {
   Bell, LayoutDashboard, Building2, Users, Wrench,
   AlertCircle, CreditCard, Calendar, Settings,
-  Globe, ShieldCheck, FileText, BarChart3, Package
+  Globe, ShieldCheck, FileText, BarChart3, Package, Clock
 } from 'lucide-vue-next'
 
 interface NavItem {
@@ -72,6 +72,7 @@ const navItems: NavItem[] = [
   { label: 'Mes missions', to: '/my-missions', icon: Wrench, roles: ['technicien'] },
   { label: 'Modèles de sirène', to: '/siren-models', icon: Package, roles: ['admin'] },
   { label: 'Sirènes', to: '/sirens', icon: Bell, roles: ['admin', 'user', 'ecole', 'technicien'] },
+  { label: 'Programmations', to: '/programmations', icon: Clock, roles: ['admin', 'ecole'] },
   { label: 'Pannes', to: '/breakdowns', icon: AlertCircle, roles: ['admin', 'ecole', 'technicien'] },
   { label: 'Ordres de mission', to: '/work-orders', icon: FileText, roles: ['admin', 'technicien'] },
   { label: 'Abonnements', to: '/subscriptions', icon: CreditCard, roles: ['admin', 'ecole'] },

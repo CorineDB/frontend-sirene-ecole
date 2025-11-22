@@ -319,6 +319,8 @@ export interface ApiEcole {
   id: string
   nom: string
   nom_complet: string
+  ville_id?: string | null
+  ville?: ApiVille | null
   // Add other fields from the JSON if needed for display elsewhere
 }
 
@@ -326,6 +328,8 @@ export interface ApiSite {
   id: string
   nom: string
   adresse: string
+  ville_id?: string | null
+  ville?: ApiVille | null
   // Add other fields from the JSON if needed for display elsewhere
 }
 
@@ -433,40 +437,101 @@ export interface DeclarerPanneRequest {
 
 // ==================== Programmations ====================
 
+// Format horaire ESP8266
+export interface HoraireSonnerie {
+  heure: number // 0-23
+  minute: number // 0-59
+  jours: number[] // 0-6 (0=Dimanche, 1=Lundi, ..., 6=Samedi)
+  duree_sonnerie?: number // Durée en secondes (optionnel)
+  description?: string | null // Description de l'horaire (optionnel)
+}
+
+// Exception de jour férié
+export interface JourFerieException {
+  date: string // Format: YYYY-MM-DD
+  action: 'include' | 'exclude'
+  est_national?: boolean | null // Jour férié national (true) ou local (false)
+  recurrent?: boolean | null // Récurrent/annuel (true) ou exceptionnel (false)
+  intitule_journee?: string | null // Nom du jour férié (ex: "Noël", "Nouvel An")
+}
+
+// Calendrier scolaire (pour la relation)
+export interface ApiCalendrierScolaire {
+  id: string
+  nom: string
+  annee_scolaire: string
+  date_debut: string
+  date_fin: string
+}
+
+// Abonnement (pour la relation)
+export interface ApiAbonnement {
+  id: string
+  nom: string
+  date_debut: string
+  date_fin: string
+  actif: boolean
+}
+
 export interface ApiProgrammation {
   id: string
+  ecole_id: string
+  site_id?: string | null
   sirene_id: string
-  nom: string
-  heure_debut: string
-  heure_fin?: string | null
-  jours_semaine?: string[] | null // ['lundi', 'mardi', ...]
+  abonnement_id?: string | null
+  calendrier_id?: string | null
+  nom_programmation: string
+  horaires_sonneries: HoraireSonnerie[] // Format ESP8266
+  jour_semaine?: number[] | null // Jours de la semaine globaux (optionnel)
+  jours_feries_inclus: boolean
+  jours_feries_exceptions?: JourFerieException[] | null
+  chaine_programmee?: string | null // Chaîne programmée générée
+  chaine_cryptee?: string | null // Chaîne cryptée pour ESP8266
+  date_debut: string // Format: YYYY-MM-DD
+  date_fin: string // Format: YYYY-MM-DD
   actif: boolean
+  cree_par?: string | null
   created_at?: string
   updated_at?: string
   deleted_at?: string | null
+  // Relations (loaded optionally)
+  ecole?: ApiEcole
+  site?: ApiSite
+  sirene?: ApiSiren
+  abonnement?: ApiAbonnement
+  calendrier?: ApiCalendrierScolaire
 }
 
 export interface CreateProgrammationRequest {
-  nom: string
-  heure_debut: string
-  heure_fin?: string | null
-  jours_semaine?: string[] | null
+  nom_programmation: string
+  date_debut: string // Format: YYYY-MM-DD
+  date_fin: string // Format: YYYY-MM-DD
   actif?: boolean
+  calendrier_id?: string | null
+  horaires_sonneries: HoraireSonnerie[] // Requis, min 1
+  jours_feries_inclus?: boolean
+  jours_feries_exceptions?: JourFerieException[]
+  abonnement_id?: string | null
 }
 
 export interface UpdateProgrammationRequest {
-  nom?: string
-  heure_debut?: string
-  heure_fin?: string | null
-  jours_semaine?: string[] | null
+  nom_programmation?: string
+  date_debut?: string
+  date_fin?: string
   actif?: boolean
+  calendrier_id?: string | null
+  horaires_sonneries?: HoraireSonnerie[]
+  jours_feries_inclus?: boolean
+  jours_feries_exceptions?: JourFerieException[]
+  abonnement_id?: string | null
 }
 
 export interface ApiProgrammationsListResponse {
   success: boolean
   message?: string
-  data?: {
-    programmations: ApiProgrammation[]
+  data?: ApiProgrammation[] | {
+    programmations?: ApiProgrammation[]
+    data?: ApiProgrammation[]
     pagination?: ApiPagination
   }
 }

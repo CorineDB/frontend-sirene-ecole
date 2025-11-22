@@ -11,8 +11,8 @@
       <!-- Header -->
       <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-600 to-cyan-600">
         <div class="text-white">
-          <h2 class="text-2xl font-bold">Enregistrement d'une nouvelle école</h2>
-          <p class="text-blue-100 text-sm mt-1">Remplissez les informations de l'établissement</p>
+          <h2 class="text-2xl font-bold">{{ isEditMode ? "Modifier l'école" : "Enregistrement d'une nouvelle école" }}</h2>
+          <p class="text-blue-100 text-sm mt-1">{{ isEditMode ? "Modifiez les informations de l'établissement" : "Remplissez les informations de l'établissement" }}</p>
         </div>
         <button
           @click="close"
@@ -153,25 +153,33 @@
 
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">
-              Types d'établissement <span class="text-red-600">*</span>
+              Type d'école <span class="text-red-600">*</span>
             </label>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <label
-                v-for="type in typesEtablissement"
-                :key="type.value"
-                class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
-                :class="{ 'bg-blue-50 border-blue-500': formData.types_etablissement.includes(type.value) }"
+            <div class="flex gap-4">
+              <label class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                :class="{ 'bg-blue-50 border-blue-500': formData.est_prive === false }"
               >
                 <input
-                  type="checkbox"
-                  :value="type.value"
-                  v-model="formData.types_etablissement"
-                  class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  type="radio"
+                  :value="false"
+                  v-model="formData.est_prive"
+                  class="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
                 />
-                <span class="text-sm font-medium text-gray-900">{{ type.label }}</span>
+                <span class="text-sm font-medium text-gray-900">Publique</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                :class="{ 'bg-blue-50 border-blue-500': formData.est_prive === true }"
+              >
+                <input
+                  type="radio"
+                  :value="true"
+                  v-model="formData.est_prive"
+                  class="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                />
+                <span class="text-sm font-medium text-gray-900">Privée</span>
               </label>
             </div>
-            <p v-if="errors.types_etablissement" class="text-sm text-red-600 mt-1">{{ errors.types_etablissement }}</p>
+            <p v-if="errors.est_prive" class="text-sm text-red-600 mt-1">{{ errors.est_prive }}</p>
           </div>
         </div>
 
@@ -250,8 +258,8 @@
           </div>
         </div>
 
-        <!-- Step 3: Site Principal -->
-        <div v-show="currentStep === 2" class="space-y-4">
+        <!-- Step 3: Site Principal (mode création uniquement) -->
+        <div v-show="!isEditMode && currentStep === 2" class="space-y-4">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Site principal</h3>
 
           <div>
@@ -285,6 +293,29 @@
             <p v-if="errors['site_principal.ville_id']" class="text-sm text-red-600 mt-1">{{ errors['site_principal.ville_id'] }}</p>
           </div>
 
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              Types d'établissement <span class="text-red-600">*</span>
+            </label>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <label
+                v-for="type in typesEtablissement"
+                :key="type.value"
+                class="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                :class="{ 'bg-blue-50 border-blue-500': formData.site_principal.types_etablissement.includes(type.value) }"
+              >
+                <input
+                  type="checkbox"
+                  :value="type.value"
+                  v-model="formData.site_principal.types_etablissement"
+                  class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <span class="text-sm font-medium text-gray-900">{{ type.label }}</span>
+              </label>
+            </div>
+            <p v-if="errors['site_principal.types_etablissement']" class="text-sm text-red-600 mt-1">{{ errors['site_principal.types_etablissement'] }}</p>
+          </div>
+
           <!-- Location Picker for Site Principal -->
           <LocationPicker
             v-model="sitePrincipalLocation"
@@ -293,9 +324,35 @@
 
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">
-              Numéro de série de la sirène <span class="text-red-600">*</span>
+              Sirène <span class="text-red-600">*</span>
             </label>
-            <div class="flex gap-2">
+
+            <!-- Mode édition : afficher les détails de la sirène avec icône crayon -->
+            <div v-if="isEditMode && !isEditingSirenePrincipal && formData.site_principal.sirene.numero_serie" class="border border-gray-300 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-pink-50">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Bell :size="20" class="text-white" />
+                  </div>
+                  <div>
+                    <p class="text-xs text-purple-600 font-semibold">Sirène installée</p>
+                    <p class="text-base font-bold text-purple-900">{{ formData.site_principal.sirene.numero_serie }}</p>
+                  </div>
+                </div>
+                <button
+                  @click="isEditingSirenePrincipal = true"
+                  type="button"
+                  class="px-3 py-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-2"
+                  title="Modifier la sirène"
+                >
+                  <Pencil :size="18" />
+                  <span class="text-sm font-medium">Modifier</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Mode création OU mode édition avec modification activée -->
+            <div v-else class="flex gap-2">
               <select
                 v-model="formData.site_principal.sirene.numero_serie"
                 class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -314,13 +371,22 @@
               >
                 <RefreshCw :size="20" />
               </button>
+              <button
+                v-if="isEditMode && isEditingSirenePrincipal"
+                @click="isEditingSirenePrincipal = false"
+                type="button"
+                class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                title="Annuler la modification"
+              >
+                <X :size="20" />
+              </button>
             </div>
             <p v-if="errors['site_principal.sirene.numero_serie']" class="text-sm text-red-600 mt-1">{{ errors['site_principal.sirene.numero_serie'] }}</p>
           </div>
         </div>
 
-        <!-- Step 4: Sites Annexes (Optionnel) -->
-        <div v-show="currentStep === 3" class="space-y-4">
+        <!-- Step 4: Sites Annexes (mode création uniquement, optionnel) -->
+        <div v-show="!isEditMode && currentStep === 3" class="space-y-4">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-900">Sites annexes (optionnel)</h3>
             <button
@@ -391,10 +457,56 @@
             </div>
 
             <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Types d'établissement</label>
+              <div class="grid grid-cols-2 gap-2">
+                <label
+                  v-for="type in typesEtablissement"
+                  :key="type.value"
+                  class="flex items-center gap-2 p-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer text-sm"
+                  :class="{ 'bg-blue-50 border-blue-500': site.types_etablissement?.includes(type.value) }"
+                >
+                  <input
+                    type="checkbox"
+                    :value="type.value"
+                    v-model="site.types_etablissement"
+                    class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span class="font-medium text-gray-900">{{ type.label }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Numéro de série de la sirène <span class="text-red-600">*</span>
+                Sirène <span class="text-red-600">*</span>
               </label>
-              <div class="flex gap-2">
+
+              <!-- Mode édition : afficher les détails de la sirène avec icône crayon -->
+              <div v-if="isEditMode && !isEditingSireneAnnexe[index] && site.sirene.numero_serie" class="border border-gray-300 rounded-lg p-3 bg-gradient-to-br from-purple-50 to-pink-50">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Bell :size="16" class="text-white" />
+                    </div>
+                    <div>
+                      <p class="text-xs text-purple-600 font-semibold">Sirène</p>
+                      <p class="text-sm font-bold text-purple-900">{{ site.sirene.numero_serie }}</p>
+                    </div>
+                  </div>
+                  <button
+                    @click="isEditingSireneAnnexe[index] = true"
+                    type="button"
+                    class="px-2 py-1 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1"
+                    title="Modifier la sirène"
+                  >
+                    <Pencil :size="16" />
+                    <span class="text-xs font-medium">Modifier</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Mode création OU mode édition avec modification activée -->
+              <div v-else class="flex gap-2">
                 <select
                   v-model="site.sirene.numero_serie"
                   class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -411,6 +523,15 @@
                   title="Recharger les sirènes"
                 >
                   <RefreshCw :size="18" />
+                </button>
+                <button
+                  v-if="isEditMode && isEditingSireneAnnexe[index]"
+                  @click="isEditingSireneAnnexe[index] = false"
+                  type="button"
+                  class="px-3 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                  title="Annuler la modification"
+                >
+                  <X :size="18" />
                 </button>
               </div>
             </div>
@@ -455,7 +576,7 @@
             type="button"
             class="px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ loading ? 'Enregistrement...' : 'Enregistrer l\'école' }}
+            {{ loading ? (isEditMode ? 'Modification...' : 'Enregistrement...') : (isEditMode ? 'Modifier l\'école' : 'Enregistrer l\'école') }}
           </button>
         </div>
       </div>
@@ -465,7 +586,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
-import { X, Plus, Building2, Trash2, RefreshCw } from 'lucide-vue-next'
+import { X, Plus, Building2, Trash2, RefreshCw, Pencil, Bell } from 'lucide-vue-next'
 import ecoleService, { type InscriptionEcoleRequest } from '../../services/ecoleService'
 import villeService, { type Ville } from '../../services/villeService'
 import sireneService, { type Sirene } from '../../services/sireneService'
@@ -475,11 +596,13 @@ import { useNotificationStore } from '../../stores/notifications'
 
 interface Props {
   isOpen: boolean
+  ecole?: any | null
 }
 
 interface Emits {
   (e: 'close'): void
   (e: 'created', ecole: any): void
+  (e: 'updated', ecole: any): void
 }
 
 const props = defineProps<Props>()
@@ -487,7 +610,15 @@ const emit = defineEmits<Emits>()
 
 const notificationStore = useNotificationStore()
 
-const steps = ['École', 'Responsable', 'Site principal', 'Sites annexes']
+const isEditMode = computed(() => !!props.ecole)
+
+const steps = computed(() => {
+  // En mode édition, on ne gère que les infos de base (École et Responsable)
+  // Les sites sont gérés séparément dans SchoolDetailView
+  return isEditMode.value
+    ? ['École', 'Responsable']
+    : ['École', 'Responsable', 'Site principal', 'Sites annexes']
+})
 const currentStep = ref(0)
 const loading = ref(false)
 const villes = ref<Ville[]>([])
@@ -495,6 +626,10 @@ const pays = ref<Pays[]>([])
 const sirenesdisponibles = ref<Sirene[]>([])
 const selectedPaysContact = ref<string>('')
 const selectedPaysResponsable = ref<string>('')
+
+// États pour gérer l'édition des sirènes
+const isEditingSirenePrincipal = ref(false)
+const isEditingSireneAnnexe = ref<Record<number, boolean>>({})
 
 // Location for site principal (two-way binding with formData)
 const sitePrincipalLocation = computed({
@@ -520,7 +655,7 @@ const formData = ref<InscriptionEcoleRequest>({
   nom_complet: '',
   telephone_contact: '',
   email_contact: '',
-  types_etablissement: [],
+  est_prive: false,
   responsable_nom: '',
   responsable_prenom: '',
   responsable_telephone: '',
@@ -529,6 +664,7 @@ const formData = ref<InscriptionEcoleRequest>({
     ville_id: '',
     latitude: undefined,
     longitude: undefined,
+    types_etablissement: [],
     sirene: {
       numero_serie: ''
     }
@@ -578,6 +714,33 @@ const getPaysById = (id: string): Pays | undefined => {
   return pays.value.find(p => p.id === id)
 }
 
+const extractPhoneNumber = (fullPhone: string, indicatif: string): string => {
+  // Si le numéro commence par l'indicatif, on le retire
+  if (fullPhone && indicatif && fullPhone.startsWith(indicatif)) {
+    return fullPhone.substring(indicatif.length)
+  }
+  return fullPhone
+}
+
+const findPaysIdByIndicatif = (phoneNumber: string): string | null => {
+  // Essayer de trouver un pays dont l'indicatif correspond au début du numéro
+  if (!phoneNumber) return null
+
+  // Trier les pays par longueur d'indicatif décroissante pour matcher les indicatifs les plus longs d'abord
+  const sortedPays = [...pays.value].sort((a, b) => {
+    const lenA = a.indicatif_tel?.length || 0
+    const lenB = b.indicatif_tel?.length || 0
+    return lenB - lenA
+  })
+
+  for (const p of sortedPays) {
+    if (p.indicatif_tel && phoneNumber.startsWith(p.indicatif_tel)) {
+      return p.id
+    }
+  }
+  return null
+}
+
 const addSiteAnnexe = () => {
   formData.value.sites_annexe?.push({
     nom: '',
@@ -585,6 +748,7 @@ const addSiteAnnexe = () => {
     ville_id: '',
     latitude: undefined,
     longitude: undefined,
+    types_etablissement: [],
     sirene: {
       numero_serie: ''
     }
@@ -602,7 +766,6 @@ const validateStep = (step: number): boolean => {
     if (!formData.value.nom.trim()) errors.value.nom = 'Le nom est requis'
     if (!formData.value.nom_complet.trim()) errors.value.nom_complet = 'Le nom complet est requis'
     if (!formData.value.telephone_contact.trim()) errors.value.telephone_contact = 'Le téléphone est requis'
-    if (formData.value.types_etablissement.length === 0) errors.value.types_etablissement = 'Sélectionnez au moins un type'
   } else if (step === 1) {
     if (!formData.value.responsable_nom.trim()) errors.value.responsable_nom = 'Le nom du responsable est requis'
     if (!formData.value.responsable_prenom.trim()) errors.value.responsable_prenom = 'Le prénom du responsable est requis'
@@ -610,6 +773,7 @@ const validateStep = (step: number): boolean => {
   } else if (step === 2) {
     if (!formData.value.site_principal.adresse.trim()) errors.value['site_principal.adresse'] = 'L\'adresse est requise'
     if (!formData.value.site_principal.ville_id) errors.value['site_principal.ville_id'] = 'La ville est requise'
+    if (formData.value.site_principal.types_etablissement.length === 0) errors.value['site_principal.types_etablissement'] = 'Sélectionnez au moins un type'
     if (!formData.value.site_principal.sirene.numero_serie) errors.value['site_principal.sirene.numero_serie'] = 'La sirène est requise'
   }
 
@@ -627,30 +791,89 @@ const previousStep = () => {
   errors.value = {}
 }
 
+const prepareDataForSubmission = () => {
+  // Clone the form data
+  const data = JSON.parse(JSON.stringify(formData.value))
+
+  // Concaténer l'indicatif du pays avec le téléphone de contact
+  if (selectedPaysContact.value) {
+    const paysContact = getPaysById(selectedPaysContact.value)
+    if (paysContact?.indicatif_tel && data.telephone_contact) {
+      data.telephone_contact = `${paysContact.indicatif_tel}${data.telephone_contact}`
+    }
+  }
+
+  // Concaténer l'indicatif du pays avec le téléphone du responsable
+  if (selectedPaysResponsable.value) {
+    const paysResponsable = getPaysById(selectedPaysResponsable.value)
+    if (paysResponsable?.indicatif_tel && data.responsable_telephone) {
+      data.responsable_telephone = `${paysResponsable.indicatif_tel}${data.responsable_telephone}`
+    }
+  }
+
+  return data
+}
+
 const handleSubmit = async () => {
-  if (!validateStep(2)) {
-    currentStep.value = 2
+  // En mode édition, valider step 1 (responsable)
+  // En mode création, valider step 2 (site principal)
+  const lastStep = isEditMode.value ? 1 : 2
+  if (!validateStep(lastStep)) {
+    currentStep.value = lastStep
     return
   }
 
   loading.value = true
 
   try {
-    const response = await ecoleService.inscrire(formData.value)
+    let response
 
-    if (response.success && response.data) {
-      notificationStore.success(
-        'École enregistrée',
-        `L'école "${response.data.nom}" a été enregistrée avec succès. Mot de passe temporaire: ${response.data.mot_de_passe_temporaire || 'N/A'}`
-      )
-      emit('created', response.data)
-      close()
+    // Préparer les données avec les indicatifs concaténés
+    const dataToSubmit = prepareDataForSubmission()
+
+    if (isEditMode.value) {
+      // Update mode - envoyer uniquement les champs de base (pas les sites)
+      const updateData = {
+        nom: dataToSubmit.nom,
+        nom_complet: dataToSubmit.nom_complet,
+        telephone_contact: dataToSubmit.telephone_contact,
+        email_contact: dataToSubmit.email_contact,
+        est_prive: dataToSubmit.est_prive,
+        responsable_nom: dataToSubmit.responsable_nom,
+        responsable_prenom: dataToSubmit.responsable_prenom,
+        responsable_telephone: dataToSubmit.responsable_telephone
+      }
+
+      response = await ecoleService.update(props.ecole.id, updateData)
+
+      if (response.success && response.data) {
+        notificationStore.success(
+          'École modifiée',
+          `L'école "${response.data.nom}" a été modifiée avec succès.`
+        )
+        emit('updated', response.data)
+        close()
+      } else {
+        notificationStore.error('Erreur', response.message || 'Impossible de modifier l\'école')
+      }
     } else {
-      notificationStore.error('Erreur', response.message || 'Impossible d\'enregistrer l\'école')
+      // Create mode
+      response = await ecoleService.inscrire(dataToSubmit)
+
+      if (response.success && response.data) {
+        notificationStore.success(
+          'École enregistrée',
+          `L'école "${response.data.nom}" a été enregistrée avec succès. Mot de passe temporaire: ${response.data.mot_de_passe_temporaire || 'N/A'}`
+        )
+        emit('created', response.data)
+        close()
+      } else {
+        notificationStore.error('Erreur', response.message || 'Impossible d\'enregistrer l\'école')
+      }
     }
   } catch (error: any) {
-    console.error('Failed to register school:', error)
-    const message = error.response?.data?.message || 'Impossible d\'enregistrer l\'école'
+    console.error('Failed to save school:', error)
+    const message = error.response?.data?.message || (isEditMode.value ? 'Impossible de modifier l\'école' : 'Impossible d\'enregistrer l\'école')
     notificationStore.error('Erreur', message)
 
     if (error.response?.data?.errors) {
@@ -667,7 +890,7 @@ const close = () => {
     nom_complet: '',
     telephone_contact: '',
     email_contact: '',
-    types_etablissement: [],
+    est_prive: false,
     responsable_nom: '',
     responsable_prenom: '',
     responsable_telephone: '',
@@ -676,6 +899,7 @@ const close = () => {
       ville_id: '',
       latitude: undefined,
       longitude: undefined,
+      types_etablissement: [],
       sirene: {
         numero_serie: ''
       }
@@ -688,14 +912,88 @@ const close = () => {
   currentStep.value = 0
   loading.value = false
 
+  // Réinitialiser les états d'édition des sirènes
+  isEditingSirenePrincipal.value = false
+  isEditingSireneAnnexe.value = {}
+
   emit('close')
 }
 
-watch(() => props.isOpen, (isOpen) => {
+watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
-    loadPays()
-    loadVilles()
-    loadSirenesDisponibles()
+    // Réinitialiser les états d'édition des sirènes
+    isEditingSirenePrincipal.value = false
+    isEditingSireneAnnexe.value = {}
+
+    // Charger les données nécessaires
+    await Promise.all([
+      loadPays(),
+      loadVilles(),
+      loadSirenesDisponibles()
+    ])
+
+    // Pre-fill form data when opening in edit mode
+    if (isEditMode.value && props.ecole) {
+      const ecole = props.ecole
+
+      // Détecter le pays à partir du numéro de téléphone de contact
+      const paysContactId = ecole.site_principal?.ville?.pays_id || findPaysIdByIndicatif(ecole.telephone_contact || '')
+      selectedPaysContact.value = paysContactId || ''
+
+      // Détecter le pays à partir du numéro de téléphone du responsable
+      const paysResponsableId = findPaysIdByIndicatif(ecole.responsable_telephone || '')
+      selectedPaysResponsable.value = paysResponsableId || ''
+
+      // Extraire les numéros de téléphone sans indicatif
+      let telephoneContact = ecole.telephone_contact || ''
+      let telephoneResponsable = ecole.responsable_telephone || ''
+
+      if (paysContactId) {
+        const paysContact = getPaysById(paysContactId)
+        if (paysContact?.indicatif_tel) {
+          telephoneContact = extractPhoneNumber(telephoneContact, paysContact.indicatif_tel)
+        }
+      }
+
+      if (paysResponsableId) {
+        const paysResponsable = getPaysById(paysResponsableId)
+        if (paysResponsable?.indicatif_tel) {
+          telephoneResponsable = extractPhoneNumber(telephoneResponsable, paysResponsable.indicatif_tel)
+        }
+      }
+
+      formData.value = {
+        nom: ecole.nom || '',
+        nom_complet: ecole.nom_complet || '',
+        telephone_contact: telephoneContact,
+        email_contact: ecole.email_contact || '',
+        est_prive: ecole.est_prive || false,
+        responsable_nom: ecole.responsable_nom || '',
+        responsable_prenom: ecole.responsable_prenom || '',
+        responsable_telephone: telephoneResponsable,
+        site_principal: {
+          adresse: ecole.site_principal?.adresse || '',
+          ville_id: ecole.site_principal?.ville_id || '',
+          latitude: ecole.site_principal?.latitude,
+          longitude: ecole.site_principal?.longitude,
+          types_etablissement: ecole.site_principal?.types_etablissement || ecole.types_etablissement || [],
+          sirene: {
+            numero_serie: ecole.site_principal?.sirene?.numero_serie || ''
+          }
+        },
+        sites_annexe: ecole.sites_annexe?.map((site: any) => ({
+          nom: site.nom || '',
+          adresse: site.adresse || '',
+          ville_id: site.ville_id || '',
+          latitude: site.latitude,
+          longitude: site.longitude,
+          types_etablissement: site.types_etablissement || [],
+          sirene: {
+            numero_serie: site.sirene?.numero_serie || ''
+          }
+        })) || []
+      }
+    }
   }
 })
 
