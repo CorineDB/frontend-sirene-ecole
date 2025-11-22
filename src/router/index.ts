@@ -87,6 +87,19 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/InterventionsListPage.vue'),
     meta: { requiresAuth: true }
   },
+  // New Ordres de Mission Routes (with composables)
+  {
+    path: '/ordres-mission',
+    name: 'OrdresMissionList',
+    component: () => import('../views/OrdreMissionListPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/ordres-mission/:id',
+    name: 'OrdreMissionDetail',
+    component: () => import('../views/OrdreMissionDetailPage.vue'),
+    meta: { requiresAuth: true }
+  },
   {
     path: '/technicians',
     name: 'Technicians',

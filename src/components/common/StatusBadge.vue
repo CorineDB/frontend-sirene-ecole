@@ -12,12 +12,13 @@ import type {
   StatutPanne,
   PrioritePanne,
   StatutIntervention,
-  ResultatIntervention
+  ResultatIntervention,
+  StatutOrdreMission
 } from '@/types/api'
 
 interface Props {
-  type: 'abonnement' | 'panne' | 'priorite' | 'intervention' | 'resultat'
-  status: StatutAbonnement | StatutPanne | PrioritePanne | StatutIntervention | ResultatIntervention | string
+  type: 'abonnement' | 'panne' | 'priorite' | 'intervention' | 'resultat' | 'ordre-mission'
+  status: StatutAbonnement | StatutPanne | PrioritePanne | StatutIntervention | ResultatIntervention | StatutOrdreMission | string
 }
 
 const props = defineProps<Props>()
@@ -76,6 +77,16 @@ const statusLabel = computed(() => {
     return labels[props.status] || props.status
   }
 
+  if (props.type === 'ordre-mission') {
+    const labels: Record<string, string> = {
+      'en_attente': 'En attente',
+      'en_cours': 'En cours',
+      'termine': 'Terminé',
+      'cloture': 'Clôturé'
+    }
+    return labels[props.status] || props.status
+  }
+
   return props.status
 })
 
@@ -129,6 +140,16 @@ const statusColor = computed(() => {
       'resolu': 'green',
       'partiellement_resolu': 'yellow',
       'non_resolu': 'red'
+    }
+    return colors[props.status] || 'gray'
+  }
+
+  if (props.type === 'ordre-mission') {
+    const colors: Record<string, any> = {
+      'en_attente': 'yellow',
+      'en_cours': 'blue',
+      'termine': 'green',
+      'cloture': 'gray'
     }
     return colors[props.status] || 'gray'
   }
