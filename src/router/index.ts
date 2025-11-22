@@ -13,6 +13,25 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/DashboardView.vue'),
     meta: { requiresAuth: true }
   },
+  // New Dashboards Routes
+  {
+    path: '/dashboard/technicien',
+    name: 'TechnicienDashboard',
+    component: () => import('../views/TechnicienDashboard.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard/pannes',
+    name: 'AdminPannesDashboard',
+    component: () => import('../views/AdminPannesDashboard.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/rapports',
+    name: 'RapportsList',
+    component: () => import('../views/RapportsListPage.vue'),
+    meta: { requiresAuth: true }
+  },
   {
     path: '/login',
     name: 'Login',
