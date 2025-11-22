@@ -468,7 +468,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import ProgrammationFormModal from '../components/sirens/ProgrammationFormModal.vue'
 import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, MapPin, Copy, MoreVertical, ChevronDown, ChevronUp, Send, Eye, X, Copy as CopyIcon } from 'lucide-vue-next'
