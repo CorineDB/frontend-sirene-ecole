@@ -295,10 +295,19 @@
 
         <!-- Périodes de vacances en bas -->
         <div class="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Palmtree :size="20" class="text-green-600" />
-            Périodes de vacances
-          </h2>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Palmtree :size="20" class="text-green-600" />
+              Périodes de vacances
+            </h2>
+            <button
+              @click="openEditPeriodesModal"
+              class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+            >
+              <Edit :size="14" />
+              Modifier
+            </button>
+          </div>
           <div class="space-y-3">
             <div
               v-for="periode in periodesSorted"
@@ -450,6 +459,76 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Modifier Périodes de Vacances -->
+    <div v-if="showEditPeriodesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Modifier les périodes de vacances</h2>
+
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-sm text-gray-600">Année scolaire: <span class="font-semibold">{{ currentCalendrier?.annee_scolaire }}</span></p>
+            <button @click="addTempPeriodeVacances" class="text-blue-600 text-sm hover:underline flex items-center gap-1">
+              <Plus :size="14" />
+              Ajouter une période
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            <div
+              v-for="(periode, index) in tempPeriodes"
+              :key="index"
+              class="flex gap-2 p-3 bg-gray-50 rounded-lg"
+            >
+              <div class="flex-1 space-y-2">
+                <input
+                  type="text"
+                  v-model="periode.nom"
+                  placeholder="Nom de la période (ex: Vacances de Noël)"
+                  class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-xs text-gray-600 mb-1">Date de début</label>
+                    <input
+                      type="date"
+                      v-model="periode.date_debut"
+                      class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-600 mb-1">Date de fin</label>
+                    <input
+                      type="date"
+                      v-model="periode.date_fin"
+                      class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+              <button
+                @click="removeTempPeriodeVacances(index)"
+                class="p-2 text-red-500 hover:bg-red-50 rounded transition-colors h-fit"
+                title="Supprimer"
+              >
+                <Trash2 :size="18" />
+              </button>
+            </div>
+
+            <div v-if="tempPeriodes.length === 0" class="text-center py-8 text-gray-500">
+              Aucune période de vacances. Cliquez sur "Ajouter une période" pour commencer.
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <button @click="showEditPeriodesModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
+          <button @click="submitEditPeriodes" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Enregistrer les périodes
+          </button>
+        </div>
+      </div>
+    </div>
   </DashboardLayout>
 </template>
 
@@ -483,8 +562,10 @@ const loadingJoursFeries = ref(false)
 const showCreateModal = ref(false)
 const isEditCalendrierMode = ref(false)
 const showAddJourFerieModal = ref(false)
+const showEditPeriodesModal = ref(false)
 const isEditMode = ref(false)
 const editingJourFerieId = ref<string>('')
+const tempPeriodes = ref<{ nom: string; date_debut: string; date_fin: string }[]>([])
 const newJourFerie = ref({
   lier_calendrier: true,
   pays_id: '',
@@ -837,6 +918,61 @@ const openEditCalendrierModal = () => {
   }
 
   showCreateModal.value = true
+}
+
+const openEditPeriodesModal = () => {
+  if (!currentCalendrier.value) return
+
+  // Copier les périodes actuelles dans tempPeriodes pour modification
+  tempPeriodes.value = currentCalendrier.value.periodes_vacances.map(p => ({
+    nom: p.nom,
+    date_debut: p.date_debut.split('T')[0],
+    date_fin: p.date_fin.split('T')[0]
+  }))
+
+  showEditPeriodesModal.value = true
+}
+
+const addTempPeriodeVacances = () => {
+  tempPeriodes.value.push({ nom: '', date_debut: '', date_fin: '' })
+}
+
+const removeTempPeriodeVacances = (index: number) => {
+  tempPeriodes.value.splice(index, 1)
+}
+
+const submitEditPeriodes = async () => {
+  if (!currentCalendrier.value) return
+
+  // Valider que toutes les périodes ont les champs requis
+  const validPeriodes = tempPeriodes.value.filter(p => p.nom && p.date_debut && p.date_fin)
+
+  if (validPeriodes.length === 0) {
+    notificationStore.warning('Attention', 'Veuillez ajouter au moins une période de vacances valide')
+    return
+  }
+
+  try {
+    loading.value = true
+
+    // Mettre à jour uniquement les périodes de vacances
+    const response = await calendrierScolaireService.update(currentCalendrier.value.id, {
+      periodes_vacances: validPeriodes
+    })
+
+    if (response.success) {
+      notificationStore.success('Succès', 'Périodes de vacances modifiées avec succès')
+      showEditPeriodesModal.value = false
+
+      // Recharger le calendrier
+      await onAnneeScolaireChange()
+    }
+  } catch (error: any) {
+    console.error('Failed to update periodes:', error)
+    notificationStore.error('Erreur', 'Impossible de modifier les périodes de vacances')
+  } finally {
+    loading.value = false
+  }
 }
 
 const createCalendrier = async () => {
