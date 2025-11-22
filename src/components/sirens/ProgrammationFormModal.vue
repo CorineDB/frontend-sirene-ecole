@@ -315,36 +315,62 @@
                       <span v-if="jf.recurrent" class="text-xs" title="Récurrent">🔄</span>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span
-                        v-if="getJourFerieExceptionAction(jf.date) === 'include'"
-                        class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded font-medium"
-                      >
-                        Inclus
-                      </span>
-                      <span
-                        v-else-if="getJourFerieExceptionAction(jf.date) === 'exclude'"
-                        class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded font-medium"
-                      >
-                        Exclu
-                      </span>
-                      <button
-                        v-if="getJourFerieExceptionAction(jf.date) === 'include'"
-                        @click="toggleJourFerieAction(jf.date)"
-                        class="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors flex items-center gap-1"
-                        title="Exclure ce jour férié"
-                      >
-                        <X :size="14" />
-                        Exclure
-                      </button>
-                      <button
-                        v-else-if="getJourFerieExceptionAction(jf.date) === 'exclude'"
-                        @click="toggleJourFerieAction(jf.date)"
-                        class="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors flex items-center gap-1"
-                        title="Inclure ce jour férié"
-                      >
-                        <Check :size="14" />
-                        Inclure
-                      </button>
+                      <!-- Pas encore ajouté aux exceptions -->
+                      <template v-if="!isJourFerieInExceptions(jf.date)">
+                        <button
+                          @click="ajouterJourFerieCommeException(jf, 'include')"
+                          class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center gap-1"
+                          title="Ajouter à la programmation"
+                        >
+                          <Plus :size="14" />
+                          Ajouter
+                        </button>
+                      </template>
+
+                      <!-- Déjà dans les exceptions -->
+                      <template v-else>
+                        <span
+                          v-if="getJourFerieExceptionAction(jf.date) === 'include'"
+                          class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded font-medium"
+                        >
+                          Inclus
+                        </span>
+                        <span
+                          v-else-if="getJourFerieExceptionAction(jf.date) === 'exclude'"
+                          class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded font-medium"
+                        >
+                          Exclu
+                        </span>
+
+                        <!-- Basculer Include/Exclude -->
+                        <button
+                          v-if="getJourFerieExceptionAction(jf.date) === 'include'"
+                          @click="toggleJourFerieAction(jf.date)"
+                          class="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors flex items-center gap-1"
+                          title="Exclure ce jour férié"
+                        >
+                          <X :size="14" />
+                          Exclure
+                        </button>
+                        <button
+                          v-else-if="getJourFerieExceptionAction(jf.date) === 'exclude'"
+                          @click="toggleJourFerieAction(jf.date)"
+                          class="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors flex items-center gap-1"
+                          title="Inclure ce jour férié"
+                        >
+                          <Check :size="14" />
+                          Inclure
+                        </button>
+
+                        <!-- Retirer complètement -->
+                        <button
+                          @click="retirerJourFerieException(jf.date)"
+                          class="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors flex items-center gap-1"
+                          title="Retirer de la liste"
+                        >
+                          <Trash :size="14" />
+                        </button>
+                      </template>
                     </div>
                   </div>
                 </div>
@@ -356,9 +382,9 @@
                   <div>
                     <p class="text-sm font-semibold text-blue-900 mb-1">Gestion des jours fériés</p>
                     <p class="text-xs text-blue-700">
-                      Après avoir chargé les jours fériés, tous sont automatiquement <strong>inclus</strong>.
-                      Cliquez sur "Exclure" pour désactiver la sonnerie sur un jour férié spécifique.
-                      Vous pouvez basculer entre "Inclure" et "Exclure" à tout moment.
+                      Cliquez sur <strong>"Ajouter"</strong> pour inclure un jour férié dans la programmation.
+                      Utilisez <strong>"Exclure"</strong>/<strong>"Inclure"</strong> pour basculer l'action.
+                      Le bouton <strong>"Retirer"</strong> (🗑️) supprime définitivement le jour férié de la liste.
                     </p>
                   </div>
                 </div>
@@ -751,6 +777,17 @@ const ajouterJourFerieCommeException = (jourFerie: JourFerie, action: 'include' 
     recurrent: jourFerie.recurrent,
     intitule_journee: jourFerie.intitule_journee
   })
+
+  notificationStore.success('Jour férié ajouté à la programmation')
+}
+
+// Retirer un jour férié de la liste des exceptions
+const retirerJourFerieException = (date: string) => {
+  const index = formData.value.jours_feries_exceptions.findIndex(ex => ex.date === date)
+  if (index !== -1) {
+    formData.value.jours_feries_exceptions.splice(index, 1)
+    notificationStore.info('Jour férié retiré de la liste')
+  }
 }
 
 // Charger les données de la sirène
@@ -866,28 +903,9 @@ const chargerJoursFeriesCalendrier = async () => {
       }
     }
 
-    // Ajouter automatiquement tous les jours fériés comme exceptions avec action="include"
+    // Afficher le résultat du chargement
     if (joursFeriesCalendrier.value.length > 0) {
-      let addedCount = 0
-      joursFeriesCalendrier.value.forEach(jourFerie => {
-        // Vérifier si l'exception n'existe pas déjà
-        if (!isJourFerieInExceptions(jourFerie.date)) {
-          formData.value.jours_feries_exceptions.push({
-            date: jourFerie.date,
-            action: 'include',
-            est_national: jourFerie.est_national,
-            recurrent: jourFerie.recurrent,
-            intitule_journee: jourFerie.intitule_journee
-          })
-          addedCount++
-        }
-      })
-
-      if (addedCount > 0) {
-        notificationStore.success(`${addedCount} jour(s) férié(s) ajouté(s) comme inclus`)
-      } else {
-        notificationStore.info('Tous les jours fériés sont déjà dans les exceptions')
-      }
+      notificationStore.success(`${joursFeriesCalendrier.value.length} jour(s) férié(s) chargé(s) du calendrier`)
     } else {
       notificationStore.info('Aucun jour férié trouvé pour ce calendrier')
     }
