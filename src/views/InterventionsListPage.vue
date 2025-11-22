@@ -243,12 +243,11 @@ const {
   isLoading,
   hasError,
   error,
-  fetchInterventions,
-  fetchInterventionsByStatut,
-  fetchInterventionsDuJour,
-  fetchInterventionsAVenir,
-  demarrerIntervention,
-  terminerIntervention
+  fetchAll,
+  fetchDuJour,
+  fetchAVenir,
+  demarrer,
+  terminer
 } = useInterventions()
 
 // Local state
@@ -362,9 +361,9 @@ const formatTime = (dateString: string) => {
 const handleFilterChange = async () => {
   if (filterStatus.value !== 'all') {
     viewMode.value = 'all'
-    await fetchInterventionsByStatut(filterStatus.value)
+    await fetchAll()
   } else {
-    await fetchInterventions()
+    await fetchAll()
   }
 }
 
@@ -372,30 +371,30 @@ const showTodayOnly = async () => {
   viewMode.value = 'today'
   filterStatus.value = 'all'
   filterType.value = 'all'
-  await fetchInterventionsDuJour()
+  await fetchDuJour()
 }
 
 const showUpcoming = async () => {
   viewMode.value = 'upcoming'
   filterStatus.value = 'all'
   filterType.value = 'all'
-  await fetchInterventionsAVenir()
+  await fetchAVenir()
 }
 
 const resetFilters = async () => {
   viewMode.value = 'all'
   filterStatus.value = 'all'
   filterType.value = 'all'
-  await fetchInterventions()
+  await fetchAll()
 }
 
 const handleDemarrer = async (id: string) => {
   if (confirm('Démarrer cette intervention ?')) {
-    await demarrerIntervention(id, {
+    await demarrer(id, {
       heure_arrivee: new Date().toISOString(),
       notes_arrivee: 'Arrivé sur site'
     })
-    await fetchInterventions()
+    await fetchAll()
   }
 }
 
@@ -403,12 +402,12 @@ const handleTerminer = async (id: string) => {
   // In production, would open a modal for full details
   const resultat = prompt('Résultat (resolu/partiel/non_resolu/reporte):') as any
   if (resultat) {
-    await terminerIntervention(id, {
+    await terminer(id, {
       heure_depart: new Date().toISOString(),
       resultat,
       notes_cloture: 'Intervention terminée'
     })
-    await fetchInterventions()
+    await fetchAll()
   }
 }
 
@@ -422,6 +421,6 @@ const handleViewDetails = (id: string) => {
 
 // Lifecycle
 onMounted(async () => {
-  await fetchInterventions()
+  await fetchAll()
 })
 </script>
