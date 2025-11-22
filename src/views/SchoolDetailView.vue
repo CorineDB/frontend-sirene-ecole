@@ -10,6 +10,16 @@
           <h1 class="text-3xl font-bold text-gray-900">Détail de l'école</h1>
           <p class="text-gray-600 mt-1">Informations complètes de l'établissement</p>
         </div>
+        <Can permission="manage_schools">
+          <button
+            v-if="ecole"
+            @click="openEditModal"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center gap-2"
+          >
+            <Edit :size="20" />
+            Modifier l'école
+          </button>
+        </Can>
       </div>
 
       <!-- Loading State -->
@@ -586,6 +596,14 @@
           Retour à la liste
         </button>
       </div>
+
+      <!-- École Form Modal -->
+      <EcoleFormModal
+        :is-open="editModalOpen"
+        :ecole="ecole"
+        @close="closeEditModal"
+        @updated="handleEcoleUpdated"
+      />
     </div>
   </DashboardLayout>
 </template>
@@ -594,10 +612,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
+import Can from '../components/permissions/Can.vue'
+import EcoleFormModal from '../components/schools/EcoleFormModal.vue'
 import {
   Building2, MapPin, Phone, Mail, ArrowLeft, Info, User,
   Calendar, Bell, CheckCircle, FileText, Hash, Star, Navigation, AlertCircle,
-  Clock, CreditCard, RefreshCw, Share2, Download
+  Clock, CreditCard, RefreshCw, Share2, Download, Edit
 } from 'lucide-vue-next'
 import ecoleService, { type Ecole } from '../services/ecoleService'
 import abonnementService from '../services/abonnementService'
@@ -610,6 +630,7 @@ const notificationStore = useNotificationStore()
 const ecole = ref<Ecole | null>(null)
 const loading = ref(true)
 const regeneratingQrCode = ref<Record<string, boolean>>({})
+const editModalOpen = ref(false)
 
 const activeSubscriptionsCount = computed(() => {
   let count = 0
@@ -769,6 +790,19 @@ const partagerQrCode = async (abonnement: any) => {
     }
     notificationStore.error('Erreur', 'Impossible de partager le QR code')
   }
+}
+
+const openEditModal = () => {
+  editModalOpen.value = true
+}
+
+const closeEditModal = () => {
+  editModalOpen.value = false
+}
+
+const handleEcoleUpdated = async () => {
+  await loadEcole()
+  closeEditModal()
 }
 
 onMounted(() => {

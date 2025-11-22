@@ -11,8 +11,8 @@
       <!-- Header -->
       <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-600 to-cyan-600">
         <div class="text-white">
-          <h2 class="text-2xl font-bold">Enregistrement d'une nouvelle école</h2>
-          <p class="text-blue-100 text-sm mt-1">Remplissez les informations de l'établissement</p>
+          <h2 class="text-2xl font-bold">{{ isEditMode ? "Modifier l'école" : "Enregistrement d'une nouvelle école" }}</h2>
+          <p class="text-blue-100 text-sm mt-1">{{ isEditMode ? "Modifiez les informations de l'établissement" : "Remplissez les informations de l'établissement" }}</p>
         </div>
         <button
           @click="close"
@@ -250,8 +250,8 @@
           </div>
         </div>
 
-        <!-- Step 3: Site Principal -->
-        <div v-show="currentStep === 2" class="space-y-4">
+        <!-- Step 3: Site Principal (Create mode only) -->
+        <div v-show="!isEditMode && currentStep === 2" class="space-y-4">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Site principal</h3>
 
           <div>
@@ -319,8 +319,8 @@
           </div>
         </div>
 
-        <!-- Step 4: Sites Annexes (Optionnel) -->
-        <div v-show="currentStep === 3" class="space-y-4">
+        <!-- Step 4: Sites Annexes (Create mode only, optionnel) -->
+        <div v-show="!isEditMode && currentStep === 3" class="space-y-4">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-900">Sites annexes (optionnel)</h3>
             <button
@@ -455,7 +455,7 @@
             type="button"
             class="px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ loading ? 'Enregistrement...' : 'Enregistrer l\'école' }}
+            {{ loading ? (isEditMode ? 'Modification...' : 'Enregistrement...') : (isEditMode ? 'Modifier l\'école' : 'Enregistrer l\'école') }}
           </button>
         </div>
       </div>
@@ -475,11 +475,13 @@ import { useNotificationStore } from '../../stores/notifications'
 
 interface Props {
   isOpen: boolean
+  ecole?: any | null
 }
 
 interface Emits {
   (e: 'close'): void
   (e: 'created', ecole: any): void
+  (e: 'updated', ecole: any): void
 }
 
 const props = defineProps<Props>()
@@ -487,7 +489,15 @@ const emit = defineEmits<Emits>()
 
 const notificationStore = useNotificationStore()
 
-const steps = ['École', 'Responsable', 'Site principal', 'Sites annexes']
+const isEditMode = computed(() => !!props.ecole)
+
+const steps = computed(() => {
+  // In edit mode, only allow editing basic info (école and responsable)
+  // Sites are managed separately
+  return isEditMode.value
+    ? ['École', 'Responsable']
+    : ['École', 'Responsable', 'Site principal', 'Sites annexes']
+})
 const currentStep = ref(0)
 const loading = ref(false)
 const villes = ref<Ville[]>([])
@@ -628,29 +638,60 @@ const previousStep = () => {
 }
 
 const handleSubmit = async () => {
-  if (!validateStep(2)) {
-    currentStep.value = 2
+  // In edit mode, validate step 1 (responsable), in create mode validate step 2 (site principal)
+  const lastStep = isEditMode.value ? 1 : 2
+  if (!validateStep(lastStep)) {
+    currentStep.value = lastStep
     return
   }
 
   loading.value = true
 
   try {
-    const response = await ecoleService.inscrire(formData.value)
+    let response
 
-    if (response.success && response.data) {
-      notificationStore.success(
-        'École enregistrée',
-        `L'école "${response.data.nom}" a été enregistrée avec succès. Mot de passe temporaire: ${response.data.mot_de_passe_temporaire || 'N/A'}`
-      )
-      emit('created', response.data)
-      close()
+    if (isEditMode.value) {
+      // Update mode - only send basic fields (sites are managed separately)
+      const updateData = {
+        nom: formData.value.nom,
+        nom_complet: formData.value.nom_complet,
+        telephone_contact: formData.value.telephone_contact,
+        email_contact: formData.value.email_contact,
+        responsable_nom: formData.value.responsable_nom,
+        responsable_prenom: formData.value.responsable_prenom,
+        responsable_telephone: formData.value.responsable_telephone
+      }
+
+      response = await ecoleService.update(props.ecole.id, updateData)
+
+      if (response.success && response.data) {
+        notificationStore.success(
+          'École modifiée',
+          `L'école "${response.data.nom}" a été modifiée avec succès.`
+        )
+        emit('updated', response.data)
+        close()
+      } else {
+        notificationStore.error('Erreur', response.message || 'Impossible de modifier l\'école')
+      }
     } else {
-      notificationStore.error('Erreur', response.message || 'Impossible d\'enregistrer l\'école')
+      // Create mode
+      response = await ecoleService.inscrire(formData.value)
+
+      if (response.success && response.data) {
+        notificationStore.success(
+          'École enregistrée',
+          `L'école "${response.data.nom}" a été enregistrée avec succès. Mot de passe temporaire: ${response.data.mot_de_passe_temporaire || 'N/A'}`
+        )
+        emit('created', response.data)
+        close()
+      } else {
+        notificationStore.error('Erreur', response.message || 'Impossible d\'enregistrer l\'école')
+      }
     }
   } catch (error: any) {
-    console.error('Failed to register school:', error)
-    const message = error.response?.data?.message || 'Impossible d\'enregistrer l\'école'
+    console.error('Failed to save school:', error)
+    const message = error.response?.data?.message || (isEditMode.value ? 'Impossible de modifier l\'école' : 'Impossible d\'enregistrer l\'école')
     notificationStore.error('Erreur', message)
 
     if (error.response?.data?.errors) {
@@ -696,6 +737,46 @@ watch(() => props.isOpen, (isOpen) => {
     loadPays()
     loadVilles()
     loadSirenesDisponibles()
+
+    // Pre-fill form data when opening in edit mode
+    if (isEditMode.value && props.ecole) {
+      const ecole = props.ecole
+
+      formData.value = {
+        nom: ecole.nom || '',
+        nom_complet: ecole.nom_complet || '',
+        telephone_contact: ecole.telephone_contact || '',
+        email_contact: ecole.email_contact || '',
+        types_etablissement: ecole.types_etablissement || [],
+        responsable_nom: ecole.responsable_nom || '',
+        responsable_prenom: ecole.responsable_prenom || '',
+        responsable_telephone: ecole.responsable_telephone || '',
+        site_principal: {
+          adresse: ecole.site_principal?.adresse || '',
+          ville_id: ecole.site_principal?.ville_id || '',
+          latitude: ecole.site_principal?.latitude,
+          longitude: ecole.site_principal?.longitude,
+          sirene: {
+            numero_serie: ecole.site_principal?.sirene?.numero_serie || ''
+          }
+        },
+        sites_annexe: ecole.sites_annexe?.map((site: any) => ({
+          nom: site.nom || '',
+          adresse: site.adresse || '',
+          ville_id: site.ville_id || '',
+          latitude: site.latitude,
+          longitude: site.longitude,
+          sirene: {
+            numero_serie: site.sirene?.numero_serie || ''
+          }
+        })) || []
+      }
+
+      // Set selected pays
+      if (ecole.site_principal?.ville?.pays_id) {
+        selectedPaysContact.value = ecole.site_principal.ville.pays_id
+      }
+    }
   }
 })
 
