@@ -559,6 +559,7 @@ import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
 import programmationService from '@/services/programmationService'
 import calendrierScolaireService, { type CalendrierScolaire, type JourFerie } from '@/services/calendrierScolaireService'
+import jourFerieService from '@/services/jourFerieService'
 import sirenService from '@/services/sirenService'
 import type {
   ApiProgrammation,
@@ -807,6 +808,7 @@ const loadCalendriers = async () => {
 }
 
 // Charger les jours fériés du calendrier sélectionné
+// Fonction basée sur loadJoursFeriesFromAPI de CalendarView
 const chargerJoursFeriesCalendrier = async () => {
   if (!formData.value.calendrier_id) {
     notificationStore.warning('Veuillez d\'abord sélectionner un calendrier')
@@ -815,25 +817,69 @@ const chargerJoursFeriesCalendrier = async () => {
 
   loadingJoursFeries.value = true
 
-  // Inclure l'ecole_id pour récupérer aussi les jours fériés spécifiques à l'école
-  const ecoleId = sireneData.value?.ecole_id
+  try {
+    const ecoleId = sireneData.value?.ecole_id
 
-  const result = await execute(
-    () => calendrierScolaireService.getJoursFeries(formData.value.calendrier_id, ecoleId),
-    { errorMessage: 'Impossible de charger les jours fériés', showNotification: false }
-  )
+    if (ecoleId) {
+      // École sélectionnée: charger jours fériés du calendrier + école
+      const [calendrierResponse, ecoleResponse] = await Promise.all([
+        // Jours fériés du calendrier uniquement (sans écoles)
+        jourFerieService.getJoursFeries({
+          calendrier_id: formData.value.calendrier_id,
+          ecole_id: 'null',
+          per_page: 1000
+        }),
+        // Jours fériés spécifiques à l'école
+        jourFerieService.getJoursFeries({
+          calendrier_id: formData.value.calendrier_id,
+          ecole_id: ecoleId,
+          per_page: 1000
+        })
+      ])
 
-  loadingJoursFeries.value = false
+      // Merger les deux listes avec déduplication par date
+      const joursFeriesCalendrierData = Array.isArray(calendrierResponse.data)
+        ? calendrierResponse.data
+        : (calendrierResponse.data as any)?.data || []
 
-  if (result?.success && result.data) {
-    joursFeriesCalendrier.value = result.data
+      const joursFeriesEcoleData = Array.isArray(ecoleResponse.data)
+        ? ecoleResponse.data
+        : (ecoleResponse.data as any)?.data || []
+
+      // Use Map to deduplicate by date - école-specific overrides calendrier
+      const joursFeriesMap = new Map<string, JourFerie>()
+
+      // Add calendrier holidays first
+      joursFeriesCalendrierData.forEach((jf: JourFerie) => {
+        joursFeriesMap.set(jf.date, jf)
+      })
+
+      // Override with école-specific holidays (higher priority)
+      joursFeriesEcoleData.forEach((jf: JourFerie) => {
+        joursFeriesMap.set(jf.date, jf)
+      })
+
+      joursFeriesCalendrier.value = Array.from(joursFeriesMap.values())
+    } else {
+      // Pas d'école sélectionnée: charger uniquement les jours fériés du calendrier (sans écoles)
+      const response = await jourFerieService.getJoursFeries({
+        calendrier_id: formData.value.calendrier_id,
+        ecole_id: 'null',
+        per_page: 1000
+      })
+
+      if (response.success && response.data) {
+        const data = Array.isArray(response.data) ? response.data : (response.data as any).data || []
+        joursFeriesCalendrier.value = data
+      }
+    }
 
     // Proposer d'ajouter comme exceptions
-    if (result.data.length > 0) {
-      const count = result.data.length
+    if (joursFeriesCalendrier.value.length > 0) {
+      const count = joursFeriesCalendrier.value.length
       if (confirm(`${count} jour(s) férié(s) trouvé(s). Voulez-vous les ajouter comme exceptions ?`)) {
         // Ajouter tous les jours fériés comme exceptions
-        result.data.forEach(jourFerie => {
+        joursFeriesCalendrier.value.forEach(jourFerie => {
           // Vérifier si l'exception n'existe pas déjà
           const exists = formData.value.jours_feries_exceptions.some(
             ex => ex.date === jourFerie.date
@@ -855,6 +901,12 @@ const chargerJoursFeriesCalendrier = async () => {
     } else {
       notificationStore.info('Aucun jour férié trouvé pour ce calendrier')
     }
+  } catch (error: any) {
+    console.error('Failed to load jours feries:', error)
+    notificationStore.error('Erreur', 'Impossible de charger les jours fériés')
+    joursFeriesCalendrier.value = []
+  } finally {
+    loadingJoursFeries.value = false
   }
 }
 
