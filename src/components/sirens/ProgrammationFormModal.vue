@@ -745,8 +745,8 @@ const loadCalendriers = async () => {
     await loadSireneData()
   }
 
-  // Filtrer par pays de l'école si disponible
-  const codeIso = sireneData.value?.ecole?.ville?.pays?.code_iso
+  // Filtrer par pays du site de la sirène si disponible
+  const codeIso = sireneData.value?.site?.ville?.pays?.code_iso
 
   // Obtenir l'année scolaire en cours
   const now = new Date()
