@@ -178,9 +178,12 @@ export interface UpdateEcoleRequest {
   nom_complet?: string
   telephone_contact?: string
   email_contact?: string
+  est_prive?: boolean
   responsable_nom?: string
   responsable_prenom?: string
   responsable_telephone?: string
+  site_principal?: SitePrincipalRequest
+  sites_annexe?: SiteAnnexeRequest[]
 }
 
 export interface ApiResponse<T> {

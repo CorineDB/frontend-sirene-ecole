@@ -258,8 +258,8 @@
           </div>
         </div>
 
-        <!-- Step 3: Site Principal (Create mode only) -->
-        <div v-show="!isEditMode && currentStep === 2" class="space-y-4">
+        <!-- Step 3: Site Principal -->
+        <div v-show="currentStep === 2" class="space-y-4">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Site principal</h3>
 
           <div>
@@ -350,8 +350,8 @@
           </div>
         </div>
 
-        <!-- Step 4: Sites Annexes (Create mode only, optionnel) -->
-        <div v-show="!isEditMode && currentStep === 3" class="space-y-4">
+        <!-- Step 4: Sites Annexes (optionnel) -->
+        <div v-show="currentStep === 3" class="space-y-4">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-900">Sites annexes (optionnel)</h3>
             <button
@@ -542,13 +542,7 @@ const notificationStore = useNotificationStore()
 
 const isEditMode = computed(() => !!props.ecole)
 
-const steps = computed(() => {
-  // In edit mode, only allow editing basic info (école and responsable)
-  // Sites are managed separately
-  return isEditMode.value
-    ? ['École', 'Responsable']
-    : ['École', 'Responsable', 'Site principal', 'Sites annexes']
-})
+const steps = ['École', 'Responsable', 'Site principal', 'Sites annexes']
 const currentStep = ref(0)
 const loading = ref(false)
 const villes = ref<Ville[]>([])
@@ -691,10 +685,9 @@ const previousStep = () => {
 }
 
 const handleSubmit = async () => {
-  // In edit mode, validate step 1 (responsable), in create mode validate step 2 (site principal)
-  const lastStep = isEditMode.value ? 1 : 2
-  if (!validateStep(lastStep)) {
-    currentStep.value = lastStep
+  // Validate step 2 (site principal) in all cases
+  if (!validateStep(2)) {
+    currentStep.value = 2
     return
   }
 
@@ -704,18 +697,8 @@ const handleSubmit = async () => {
     let response
 
     if (isEditMode.value) {
-      // Update mode - only send basic fields (sites are managed separately)
-      const updateData = {
-        nom: formData.value.nom,
-        nom_complet: formData.value.nom_complet,
-        telephone_contact: formData.value.telephone_contact,
-        email_contact: formData.value.email_contact,
-        responsable_nom: formData.value.responsable_nom,
-        responsable_prenom: formData.value.responsable_prenom,
-        responsable_telephone: formData.value.responsable_telephone
-      }
-
-      response = await ecoleService.update(props.ecole.id, updateData)
+      // Update mode - send all data like in create mode
+      response = await ecoleService.update(props.ecole.id, formData.value)
 
       if (response.success && response.data) {
         notificationStore.success(
