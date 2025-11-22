@@ -303,13 +303,47 @@
                 </div>
               </div>
 
+              <!-- Jours fériés chargés du calendrier -->
+              <div v-if="joursFeriesCalendrier.length > 0" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div class="flex items-center gap-2 mb-2">
+                  <Calendar :size="16" class="text-green-600" />
+                  <span class="text-sm font-semibold text-green-800">
+                    {{ joursFeriesCalendrier.length }} jour(s) férié(s) du calendrier
+                  </span>
+                </div>
+                <div class="space-y-1 max-h-40 overflow-y-auto">
+                  <div
+                    v-for="jf in joursFeriesCalendrier"
+                    :key="jf.id"
+                    class="flex items-center justify-between p-2 bg-white rounded text-xs"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="font-medium text-gray-900">{{ jf.intitule_journee }}</span>
+                      <span class="text-gray-600">{{ new Date(jf.date).toLocaleDateString('fr-FR') }}</span>
+                      <span v-if="jf.est_national" class="text-xs" title="National">🏛️</span>
+                      <span v-if="jf.recurrent" class="text-xs" title="Récurrent">🔄</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div class="space-y-3">
                 <div
                   v-for="(exception, index) in formData.jours_feries_exceptions"
                   :key="index"
                   class="p-3 bg-gray-50 rounded-lg space-y-3"
                 >
-                  <!-- Ligne 1: Date et Action -->
+                  <!-- Ligne 1: Intitulé -->
+                  <div class="flex items-center gap-3">
+                    <input
+                      v-model="exception.intitule_journee"
+                      type="text"
+                      placeholder="Nom du jour férié (ex: Noël, Nouvel An)"
+                      class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+
+                  <!-- Ligne 2: Date et Action -->
                   <div class="flex items-center gap-3">
                     <Calendar :size="20" class="text-gray-400" />
                     <input
@@ -334,7 +368,7 @@
                     </button>
                   </div>
 
-                  <!-- Ligne 2: Checkboxes pour est_national et recurrent -->
+                  <!-- Ligne 3: Checkboxes pour est_national et recurrent -->
                   <div class="flex items-center gap-4 ml-9">
                     <label class="flex items-center gap-2 cursor-pointer">
                       <input
@@ -810,7 +844,8 @@ const chargerJoursFeriesCalendrier = async () => {
               date: jourFerie.date,
               action: formData.value.jours_feries_inclus ? 'exclude' : 'include',
               est_national: jourFerie.est_national,
-              recurrent: jourFerie.recurrent
+              recurrent: jourFerie.recurrent,
+              intitule_journee: jourFerie.intitule_journee
             })
           }
         })

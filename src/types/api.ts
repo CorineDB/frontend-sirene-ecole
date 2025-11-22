@@ -452,6 +452,7 @@ export interface JourFerieException {
   action: 'include' | 'exclude'
   est_national?: boolean | null // Jour férié national (true) ou local (false)
   recurrent?: boolean | null // Récurrent/annuel (true) ou exceptionnel (false)
+  intitule_journee?: string | null // Nom du jour férié (ex: "Noël", "Nouvel An")
 }
 
 // Calendrier scolaire (pour la relation)
