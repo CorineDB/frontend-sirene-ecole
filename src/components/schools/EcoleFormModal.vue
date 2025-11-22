@@ -634,6 +634,33 @@ const getPaysById = (id: string): Pays | undefined => {
   return pays.value.find(p => p.id === id)
 }
 
+const extractPhoneNumber = (fullPhone: string, indicatif: string): string => {
+  // Si le numéro commence par l'indicatif, on le retire
+  if (fullPhone && indicatif && fullPhone.startsWith(indicatif)) {
+    return fullPhone.substring(indicatif.length)
+  }
+  return fullPhone
+}
+
+const findPaysIdByIndicatif = (phoneNumber: string): string | null => {
+  // Essayer de trouver un pays dont l'indicatif correspond au début du numéro
+  if (!phoneNumber) return null
+
+  // Trier les pays par longueur d'indicatif décroissante pour matcher les indicatifs les plus longs d'abord
+  const sortedPays = [...pays.value].sort((a, b) => {
+    const lenA = a.indicatif_tel?.length || 0
+    const lenB = b.indicatif_tel?.length || 0
+    return lenB - lenA
+  })
+
+  for (const p of sortedPays) {
+    if (p.indicatif_tel && phoneNumber.startsWith(p.indicatif_tel)) {
+      return p.id
+    }
+  }
+  return null
+}
+
 const addSiteAnnexe = () => {
   formData.value.sites_annexe?.push({
     nom: '',
@@ -684,6 +711,29 @@ const previousStep = () => {
   errors.value = {}
 }
 
+const prepareDataForSubmission = () => {
+  // Clone the form data
+  const data = JSON.parse(JSON.stringify(formData.value))
+
+  // Concaténer l'indicatif du pays avec le téléphone de contact
+  if (selectedPaysContact.value) {
+    const paysContact = getPaysById(selectedPaysContact.value)
+    if (paysContact?.indicatif_tel && data.telephone_contact) {
+      data.telephone_contact = `${paysContact.indicatif_tel}${data.telephone_contact}`
+    }
+  }
+
+  // Concaténer l'indicatif du pays avec le téléphone du responsable
+  if (selectedPaysResponsable.value) {
+    const paysResponsable = getPaysById(selectedPaysResponsable.value)
+    if (paysResponsable?.indicatif_tel && data.responsable_telephone) {
+      data.responsable_telephone = `${paysResponsable.indicatif_tel}${data.responsable_telephone}`
+    }
+  }
+
+  return data
+}
+
 const handleSubmit = async () => {
   // Validate step 2 (site principal) in all cases
   if (!validateStep(2)) {
@@ -696,9 +746,12 @@ const handleSubmit = async () => {
   try {
     let response
 
+    // Préparer les données avec les indicatifs concaténés
+    const dataToSubmit = prepareDataForSubmission()
+
     if (isEditMode.value) {
       // Update mode - send all data like in create mode
-      response = await ecoleService.update(props.ecole.id, formData.value)
+      response = await ecoleService.update(props.ecole.id, dataToSubmit)
 
       if (response.success && response.data) {
         notificationStore.success(
@@ -712,7 +765,7 @@ const handleSubmit = async () => {
       }
     } else {
       // Create mode
-      response = await ecoleService.inscrire(formData.value)
+      response = await ecoleService.inscrire(dataToSubmit)
 
       if (response.success && response.data) {
         notificationStore.success(
@@ -769,25 +822,54 @@ const close = () => {
   emit('close')
 }
 
-watch(() => props.isOpen, (isOpen) => {
+watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
-    loadPays()
-    loadVilles()
-    loadSirenesDisponibles()
+    // Charger les données nécessaires
+    await Promise.all([
+      loadPays(),
+      loadVilles(),
+      loadSirenesDisponibles()
+    ])
 
     // Pre-fill form data when opening in edit mode
     if (isEditMode.value && props.ecole) {
       const ecole = props.ecole
 
+      // Détecter le pays à partir du numéro de téléphone de contact
+      const paysContactId = ecole.site_principal?.ville?.pays_id || findPaysIdByIndicatif(ecole.telephone_contact || '')
+      selectedPaysContact.value = paysContactId || ''
+
+      // Détecter le pays à partir du numéro de téléphone du responsable
+      const paysResponsableId = findPaysIdByIndicatif(ecole.responsable_telephone || '')
+      selectedPaysResponsable.value = paysResponsableId || ''
+
+      // Extraire les numéros de téléphone sans indicatif
+      let telephoneContact = ecole.telephone_contact || ''
+      let telephoneResponsable = ecole.responsable_telephone || ''
+
+      if (paysContactId) {
+        const paysContact = getPaysById(paysContactId)
+        if (paysContact?.indicatif_tel) {
+          telephoneContact = extractPhoneNumber(telephoneContact, paysContact.indicatif_tel)
+        }
+      }
+
+      if (paysResponsableId) {
+        const paysResponsable = getPaysById(paysResponsableId)
+        if (paysResponsable?.indicatif_tel) {
+          telephoneResponsable = extractPhoneNumber(telephoneResponsable, paysResponsable.indicatif_tel)
+        }
+      }
+
       formData.value = {
         nom: ecole.nom || '',
         nom_complet: ecole.nom_complet || '',
-        telephone_contact: ecole.telephone_contact || '',
+        telephone_contact: telephoneContact,
         email_contact: ecole.email_contact || '',
         est_prive: ecole.est_prive || false,
         responsable_nom: ecole.responsable_nom || '',
         responsable_prenom: ecole.responsable_prenom || '',
-        responsable_telephone: ecole.responsable_telephone || '',
+        responsable_telephone: telephoneResponsable,
         site_principal: {
           adresse: ecole.site_principal?.adresse || '',
           ville_id: ecole.site_principal?.ville_id || '',
@@ -809,11 +891,6 @@ watch(() => props.isOpen, (isOpen) => {
             numero_serie: site.sirene?.numero_serie || ''
           }
         })) || []
-      }
-
-      // Set selected pays
-      if (ecole.site_principal?.ville?.pays_id) {
-        selectedPaysContact.value = ecole.site_principal.ville.pays_id
       }
     }
   }
