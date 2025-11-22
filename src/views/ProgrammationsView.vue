@@ -51,44 +51,65 @@
         <div
           v-for="prog in programmations"
           :key="prog.id"
-          class="bg-white rounded-xl border border-gray-200 hover:shadow-xl transition-all overflow-hidden"
+          class="bg-white rounded-xl border border-gray-200 hover:shadow-xl transition-all overflow-hidden flex flex-col"
         >
-          <!-- Header with gradient background -->
+          <!-- SECTION HEADER: Informations générales -->
           <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-4">
-            <div class="flex items-start justify-between mb-2">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center backdrop-blur">
-                  <Clock :size="20" class="text-white" />
-                </div>
-                <div>
-                  <h3 class="text-lg font-bold text-white">
-                    {{ prog.nom_programmation }}
-                  </h3>
-                  <p class="text-xs text-purple-100">
-                    {{ formatDate(prog.date_debut) }} → {{ formatDate(prog.date_fin) }}
-                  </p>
+            <div class="flex items-start justify-between mb-3">
+              <div class="flex-1">
+                <h3 class="text-lg font-bold text-white mb-1">
+                  {{ prog.nom_programmation }}
+                </h3>
+                <p v-if="prog.calendrier" class="text-xs text-purple-100 mb-2">
+                  Année scolaire {{ prog.calendrier.nom }}
+                </p>
+                <div v-if="prog.sirene" class="text-xs text-purple-100 space-y-0.5">
+                  <div class="flex items-center gap-1">
+                    <Bell :size="12" />
+                    <span>{{ prog.sirene.numero_serie }}</span>
+                  </div>
+                  <div v-if="prog.sirene.modele_sirene" class="opacity-90">
+                    {{ prog.sirene.modele_sirene.nom }}
+                  </div>
                 </div>
               </div>
-              <span
-                :class="prog.actif ? 'bg-green-400 text-green-900' : 'bg-gray-300 text-gray-700'"
-                class="text-xs px-2 py-1 rounded-full font-semibold"
-              >
-                {{ prog.actif ? 'Active' : 'Inactive' }}
-              </span>
+              <div class="flex flex-col items-end gap-2">
+                <span
+                  :class="prog.actif ? 'bg-green-400 text-green-900' : 'bg-gray-300 text-gray-700'"
+                  class="text-xs px-2 py-1 rounded-full font-semibold"
+                >
+                  {{ prog.actif ? 'Active' : 'Inactive' }}
+                </span>
+                <div v-if="getDureeSonnerie(prog)" class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded text-white font-medium">
+                  {{ getDureeSonnerie(prog) }}s
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Content -->
-          <div class="p-4 space-y-4">
-            <!-- Horaires section -->
+          <!-- SECTION CONTENT -->
+          <div class="p-4 space-y-4 flex-1">
+            <!-- Sous-Section Horaires -->
             <div>
-              <div class="flex items-center gap-2 mb-2">
-                <div class="w-1 h-4 bg-blue-500 rounded"></div>
-                <span class="text-sm font-bold text-gray-700">Horaires de sonnerie</span>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-1 h-4 bg-blue-500 rounded"></div>
+                  <span class="text-sm font-bold text-gray-700">Horaires de sonnerie</span>
+                </div>
+                <button
+                  v-if="prog.chaine_cryptee"
+                  @click="copierChaineCryptee(prog.chaine_cryptee)"
+                  class="flex items-center gap-1 px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
+                  title="Copier la chaîne cryptée"
+                >
+                  <Copy :size="12" />
+                  Copier
+                </button>
               </div>
               <div class="space-y-2">
+                <!-- Afficher 3 premiers horaires ou tous si expanded -->
                 <div
-                  v-for="(horaire, idx) in prog.horaires_sonneries"
+                  v-for="(horaire, idx) in expandedHoraires.has(prog.id) ? prog.horaires_sonneries : prog.horaires_sonneries.slice(0, 3)"
                   :key="idx"
                   class="flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-100"
                 >
@@ -96,9 +117,6 @@
                     <Clock :size="14" class="text-blue-500" />
                     <span class="text-blue-700 font-bold font-mono text-sm">
                       {{ formatHoraire(horaire) }}
-                    </span>
-                    <span v-if="horaire.duree_sonnerie" class="text-xs text-blue-600">
-                      ({{ horaire.duree_sonnerie }}s)
                     </span>
                   </div>
                   <div class="flex gap-1 flex-wrap">
@@ -111,111 +129,131 @@
                     </span>
                   </div>
                 </div>
+                <!-- Bouton Voir +/- -->
+                <button
+                  v-if="prog.horaires_sonneries.length > 3"
+                  @click="toggleExpandHoraires(prog.id)"
+                  class="w-full py-1.5 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center justify-center gap-1"
+                >
+                  <component :is="expandedHoraires.has(prog.id) ? ChevronUp : ChevronDown" :size="14" />
+                  {{ expandedHoraires.has(prog.id) ? 'Voir moins' : `Voir ${prog.horaires_sonneries.length - 3} de plus` }}
+                </button>
               </div>
             </div>
 
-            <!-- Jours fériés section -->
+            <!-- Sous-Section Exceptions -->
             <div>
               <div class="flex items-center gap-2 mb-2">
                 <div class="w-1 h-4 bg-amber-500 rounded"></div>
-                <span class="text-sm font-bold text-gray-700">Jours fériés</span>
+                <span class="text-sm font-bold text-gray-700">Exceptions</span>
               </div>
-              <div class="flex items-center gap-2 flex-wrap">
-                <span
-                  :class="prog.jours_feries_inclus ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-700 border-gray-200'"
-                  class="px-3 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1"
-                >
-                  <Star :size="12" />
-                  {{ prog.jours_feries_inclus ? 'Inclus' : 'Exclus' }}
-                </span>
-                <span
-                  v-if="prog.jours_feries_exceptions && prog.jours_feries_exceptions.length > 0"
-                  class="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold border border-amber-200"
-                >
-                  {{ prog.jours_feries_exceptions.length }} exception(s)
-                </span>
-              </div>
-            </div>
-
-            <!-- Chaîne cryptée section -->
-            <div v-if="prog.chaine_cryptee">
-              <div class="flex items-center gap-2 mb-2">
-                <div class="w-1 h-4 bg-indigo-500 rounded"></div>
-                <span class="text-sm font-bold text-gray-700">Chaîne cryptée ESP8266</span>
-              </div>
-              <div class="bg-indigo-50 rounded-lg border border-indigo-200 p-3">
-                <div class="flex items-start gap-2">
-                  <Key :size="14" class="text-indigo-500 mt-0.5 flex-shrink-0" />
-                  <div class="flex-1 min-w-0">
-                    <p class="text-xs text-indigo-600 font-mono break-all">
-                      {{ prog.chaine_cryptee }}
-                    </p>
-                  </div>
-                  <button
-                    @click="copierChaineCryptee(prog.chaine_cryptee)"
-                    class="flex-shrink-0 p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
-                    title="Copier la chaîne cryptée"
-                  >
-                    <Copy :size="14" />
-                  </button>
+              <div class="space-y-2">
+                <!-- Jours fériés inclus/exclus -->
+                <div class="flex items-center gap-2">
+                  <Star :size="14" class="text-amber-500" />
+                  <span class="text-xs text-gray-700">
+                    Jours fériés:
+                    <span :class="prog.jours_feries_inclus ? 'text-green-600 font-semibold' : 'text-gray-600 font-semibold'">
+                      {{ prog.jours_feries_inclus ? 'Inclus' : 'Exclus' }}
+                    </span>
+                  </span>
                 </div>
-                <p v-if="prog.chaine_programmee" class="text-xs text-indigo-500 mt-2">
-                  {{ prog.chaine_programmee }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Informations supplémentaires -->
-            <div v-if="prog.calendrier || prog.ecole || prog.site" class="bg-gray-50 rounded-lg p-3 space-y-1.5">
-              <div v-if="prog.calendrier" class="flex items-center gap-2 text-xs text-gray-600">
-                <Calendar :size="12" class="text-gray-400" />
-                <span class="font-medium">Calendrier:</span>
-                <span>{{ prog.calendrier.nom }}</span>
-              </div>
-              <div v-if="prog.ecole" class="flex items-center gap-2 text-xs text-gray-600">
-                <Building2 :size="12" class="text-gray-400" />
-                <span class="font-medium">École:</span>
-                <span>{{ prog.ecole.nom }}</span>
-              </div>
-              <div v-if="prog.site" class="flex items-center gap-2 text-xs text-gray-600">
-                <MapPin :size="12" class="text-gray-400" />
-                <span class="font-medium">Site:</span>
-                <span>{{ prog.site.nom }}</span>
+                <!-- Liste exceptions spécifiques -->
+                <div v-if="prog.jours_feries_exceptions && prog.jours_feries_exceptions.length > 0" class="bg-amber-50 rounded-lg border border-amber-200 p-2">
+                  <div class="text-xs font-semibold text-amber-800 mb-1">
+                    {{ prog.jours_feries_exceptions.length }} exception(s) spécifique(s):
+                  </div>
+                  <div class="space-y-1">
+                    <div
+                      v-for="(exception, idx) in prog.jours_feries_exceptions.slice(0, 3)"
+                      :key="idx"
+                      class="flex items-center justify-between text-xs"
+                    >
+                      <span class="text-amber-700">{{ formatDate(exception.date) }}</span>
+                      <span
+                        :class="exception.action === 'include' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                        class="px-2 py-0.5 rounded text-xs font-medium"
+                      >
+                        {{ exception.action === 'include' ? 'Inclure' : 'Exclure' }}
+                      </span>
+                    </div>
+                    <div v-if="prog.jours_feries_exceptions.length > 3" class="text-xs text-amber-600 italic">
+                      +{{ prog.jours_feries_exceptions.length - 3 }} autre(s)
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Actions footer -->
-          <div class="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-2">
-            <Can permission="manage_sirens">
-              <div class="flex items-center gap-2">
-                <button
-                  @click="openEditModal(prog)"
-                  class="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 font-medium"
-                  title="Modifier"
-                >
-                  <Edit :size="14" />
-                  Éditer
-                </button>
-                <button
-                  @click="confirmDelete(prog)"
-                  class="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1 font-medium"
-                  title="Supprimer"
-                >
-                  <Trash :size="14" />
-                  Supprimer
-                </button>
+          <!-- SECTION ACTIONS: Validation -->
+          <div class="px-4 py-3 bg-gray-50 border-t border-gray-200 space-y-3">
+            <!-- Prévisualisation chaîne programmée -->
+            <div v-if="prog.chaine_programmee" class="bg-indigo-50 rounded-lg p-2 border border-indigo-200">
+              <div class="flex items-center gap-2 mb-1">
+                <Key :size="12" class="text-indigo-500" />
+                <span class="text-xs font-semibold text-indigo-700">Chaîne programmée:</span>
               </div>
-              <button
-                @click="toggleActif(prog)"
-                :class="prog.actif ? 'text-gray-600 hover:bg-gray-100' : 'text-green-600 hover:bg-green-50'"
-                class="px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1 font-medium"
-                :title="prog.actif ? 'Désactiver' : 'Activer'"
-              >
-                <Power :size="14" />
-                {{ prog.actif ? 'Désactiver' : 'Activer' }}
-              </button>
-            </Can>
+              <p class="text-xs text-indigo-600 font-mono truncate">
+                {{ prog.chaine_programmee }}
+              </p>
+            </div>
+
+            <!-- Actions buttons -->
+            <div class="flex items-center justify-between gap-2">
+              <Can permission="manage_sirens">
+                <div class="flex items-center gap-2 flex-1">
+                  <button
+                    @click="openEditModal(prog)"
+                    class="px-3 py-1.5 text-xs text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1 font-medium"
+                  >
+                    <Edit :size="14" />
+                    Modifier
+                  </button>
+                  <button
+                    @click="genererEtEnvoyer(prog)"
+                    class="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-1 font-medium"
+                    title="Générer et envoyer à la sirène"
+                  >
+                    <Send :size="14" />
+                    Envoyer
+                  </button>
+                </div>
+
+                <!-- Dropdown menu (three vertical dots) -->
+                <div class="relative">
+                  <button
+                    @click="toggleDropdown(prog.id)"
+                    class="p-1.5 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                    title="Plus d'actions"
+                  >
+                    <MoreVertical :size="18" />
+                  </button>
+
+                  <!-- Dropdown content -->
+                  <div
+                    v-if="openDropdownId === prog.id"
+                    class="absolute right-0 bottom-full mb-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[160px]"
+                  >
+                    <button
+                      @click="toggleActif(prog); toggleDropdown(prog.id)"
+                      class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 transition-colors"
+                      :class="prog.actif ? 'text-gray-700' : 'text-green-600'"
+                    >
+                      <Power :size="14" />
+                      {{ prog.actif ? 'Désactiver' : 'Activer' }}
+                    </button>
+                    <button
+                      @click="confirmDelete(prog); toggleDropdown(prog.id)"
+                      class="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                    >
+                      <Trash :size="14" />
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              </Can>
+            </div>
           </div>
         </div>
       </div>
@@ -266,7 +304,7 @@
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import ProgrammationFormModal from '../components/sirens/ProgrammationFormModal.vue'
-import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, MapPin, Copy } from 'lucide-vue-next'
+import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, MapPin, Copy, MoreVertical, ChevronDown, ChevronUp, Send } from 'lucide-vue-next'
 import { Can } from '@/components/permissions'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
@@ -282,6 +320,8 @@ const selectedSireneId = ref<string>('')
 const programmations = ref<ApiProgrammation[]>([])
 const isModalOpen = ref(false)
 const selectedProgrammation = ref<ApiProgrammation | null>(null)
+const expandedHoraires = ref<Set<string>>(new Set())
+const openDropdownId = ref<string | null>(null)
 
 // Mapping des jours (0=Dimanche, 1=Lundi, ..., 6=Samedi)
 const joursMapping: Record<number, string> = {
@@ -453,6 +493,95 @@ const copierChaineCryptee = async (chaine: string) => {
   } catch (err) {
     notificationStore.error('Erreur lors de la copie')
   }
+}
+
+/**
+ * Toggle l'expansion des horaires
+ */
+const toggleExpandHoraires = (progId: string) => {
+  if (expandedHoraires.value.has(progId)) {
+    expandedHoraires.value.delete(progId)
+  } else {
+    expandedHoraires.value.add(progId)
+  }
+  // Force reactivity
+  expandedHoraires.value = new Set(expandedHoraires.value)
+}
+
+/**
+ * Toggle dropdown menu
+ */
+const toggleDropdown = (progId: string) => {
+  openDropdownId.value = openDropdownId.value === progId ? null : progId
+}
+
+/**
+ * Générer et envoyer la chaîne cryptée à la sirène
+ */
+const genererEtEnvoyer = async (prog: ApiProgrammation) => {
+  if (!confirm(
+    `Voulez-vous générer une nouvelle chaîne cryptée et l'envoyer à la sirène ?\n\nCela mettra à jour la programmation "${prog.nom_programmation}".`
+  )) {
+    return
+  }
+
+  // D'abord générer la chaîne
+  const genererResult = await execute(
+    () => programmationService.genererChaineCryptee(selectedSireneId.value, prog.id),
+    {
+      errorMessage: 'Impossible de générer la chaîne cryptée',
+      showNotification: false,
+    }
+  )
+
+  if (!genererResult?.success) {
+    notificationStore.error('Échec de la génération de la chaîne cryptée')
+    return
+  }
+
+  // Ensuite envoyer à la sirène
+  const envoyerResult = await execute(
+    () => programmationService.envoyerSirene(selectedSireneId.value, prog.id),
+    {
+      errorMessage: 'Impossible d\'envoyer à la sirène',
+      showNotification: false,
+    }
+  )
+
+  if (envoyerResult?.success) {
+    notificationStore.success('Chaîne cryptée générée et envoyée à la sirène avec succès')
+    loadProgrammations()
+  } else {
+    notificationStore.error('La chaîne a été générée mais l\'envoi a échoué')
+    loadProgrammations()
+  }
+}
+
+/**
+ * Obtenir la sirène sélectionnée
+ */
+const getSelectedSirene = () => {
+  return sirenes.value.find(s => s.id === selectedSireneId.value)
+}
+
+/**
+ * Obtenir la durée de sonnerie commune (si toutes identiques)
+ */
+const getDureeSonnerie = (prog: ApiProgrammation): number | null => {
+  if (!prog.horaires_sonneries || prog.horaires_sonneries.length === 0) {
+    return null
+  }
+
+  const durees = prog.horaires_sonneries.map(h => h.duree_sonnerie).filter(d => d !== undefined && d !== null)
+  if (durees.length === 0) return null
+
+  // Si toutes les durées sont identiques
+  const firstDuree = durees[0]
+  if (durees.every(d => d === firstDuree)) {
+    return firstDuree as number
+  }
+
+  return null
 }
 
 // Charger les sirènes au montage
