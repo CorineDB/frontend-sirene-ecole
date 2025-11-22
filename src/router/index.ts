@@ -87,6 +87,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/InterventionsListPage.vue'),
     meta: { requiresAuth: true }
   },
+  {
+    path: '/interventions/:interventionId/rapport',
+    name: 'RapportForm',
+    component: () => import('../views/RapportFormPage.vue'),
+    meta: { requiresAuth: true }
+  },
   // New Ordres de Mission Routes (with composables)
   {
     path: '/ordres-mission',
