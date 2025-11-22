@@ -238,19 +238,35 @@
               <div
                 v-for="jourFerie in joursFeriesSorted"
                 :key="jourFerie.id"
-                class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
               >
                 <div class="flex items-start justify-between gap-2">
                   <div class="flex-1">
                     <p class="font-semibold text-gray-900 text-sm">{{ jourFerie.intitule_journee }}</p>
                     <p class="text-xs text-gray-600 mt-1">{{ formatDateShort(jourFerie.date) }}</p>
                   </div>
-                  <span
-                    :class="getJourFerieTypeClass(jourFerie)"
-                    class="text-xs px-2 py-0.5 rounded-full font-semibold whitespace-nowrap"
-                  >
-                    {{ getJourFerieTypeLabel(jourFerie) }}
-                  </span>
+                  <div class="flex items-center gap-2">
+                    <span
+                      :class="getJourFerieTypeClass(jourFerie)"
+                      class="text-xs px-2 py-0.5 rounded-full font-semibold whitespace-nowrap"
+                    >
+                      {{ getJourFerieTypeLabel(jourFerie) }}
+                    </span>
+                    <button
+                      @click="openEditJourFerieModal(jourFerie)"
+                      class="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-100 rounded transition-all"
+                      title="Modifier"
+                    >
+                      <Edit :size="14" class="text-blue-600" />
+                    </button>
+                    <button
+                      @click="deleteJourFerie(jourFerie)"
+                      class="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-all"
+                      title="Supprimer"
+                    >
+                      <Trash2 :size="14" class="text-red-600" />
+                    </button>
+                  </div>
                 </div>
                 <div v-if="jourFerie.recurrent" class="mt-2">
                   <span class="text-xs text-purple-600 flex items-center gap-1">
@@ -362,7 +378,7 @@
     <!-- Modal Ajouter Jour Férié -->
     <div v-if="showAddJourFerieModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl p-6 w-full max-w-md">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Ajouter un jour férié</h2>
+        <h2 class="text-xl font-bold text-gray-900 mb-4">{{ isEditMode ? 'Modifier un jour férié' : 'Ajouter un jour férié' }}</h2>
 
         <div class="space-y-4">
           <div>
@@ -406,13 +422,15 @@
         </div>
 
         <div class="flex items-center justify-between mt-6">
-          <label class="flex items-center gap-2">
+          <label v-if="!isEditMode" class="flex items-center gap-2">
             <input type="checkbox" v-model="continueAddingJourFerie" />
             <span class="text-sm text-gray-600">Continuer à ajouter</span>
           </label>
-          <div class="flex gap-3">
+          <div :class="isEditMode ? 'ml-auto' : ''" class="flex gap-3">
             <button @click="showAddJourFerieModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
-            <button @click="submitAddJourFerie" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Ajouter</button>
+            <button @click="submitAddJourFerie" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              {{ isEditMode ? 'Modifier' : 'Ajouter' }}
+            </button>
           </div>
         </div>
       </div>
@@ -424,7 +442,7 @@
 import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import {
-  Calendar, CalendarDays, Plus, Clock, Palmtree, School, Star, ChevronLeft, ChevronRight
+  Calendar, CalendarDays, Plus, Clock, Palmtree, School, Star, ChevronLeft, ChevronRight, Edit, Trash2
 } from 'lucide-vue-next'
 import calendrierScolaireService, { type CalendrierScolaire, type PeriodeVacances, type JourFerie } from '../services/calendrierScolaireService'
 import ecoleService, { type Ecole } from '../services/ecoleService'
@@ -449,6 +467,8 @@ const loading = ref(false)
 const loadingJoursFeries = ref(false)
 const showCreateModal = ref(false)
 const showAddJourFerieModal = ref(false)
+const isEditMode = ref(false)
+const editingJourFerieId = ref<string>('')
 const newJourFerie = ref({
   lier_calendrier: true,
   pays_id: '',
@@ -882,6 +902,8 @@ const submitCreateCalendrier = async () => {
 }
 
 const openAddJourFerieModal = () => {
+  isEditMode.value = false
+  editingJourFerieId.value = ''
   newJourFerie.value = {
     lier_calendrier: true,
     pays_id: selectedPaysId.value,
@@ -894,6 +916,45 @@ const openAddJourFerieModal = () => {
   showAddJourFerieModal.value = true
 }
 
+const openEditJourFerieModal = (jourFerie: JourFerie) => {
+  isEditMode.value = true
+  editingJourFerieId.value = jourFerie.id
+  newJourFerie.value = {
+    lier_calendrier: !!jourFerie.calendrier_id,
+    pays_id: jourFerie.pays_id || '',
+    ecole_id: jourFerie.ecole_id || '',
+    intitule_journee: jourFerie.intitule_journee,
+    date: jourFerie.date.split('T')[0], // Format YYYY-MM-DD pour input date
+    est_national: jourFerie.est_national || false,
+    recurrent: jourFerie.recurrent || false
+  }
+  showAddJourFerieModal.value = true
+}
+
+const deleteJourFerie = async (jourFerie: JourFerie) => {
+  if (!confirm(`Voulez-vous vraiment supprimer le jour férié "${jourFerie.intitule_journee}" ?`)) {
+    return
+  }
+
+  try {
+    loading.value = true
+    const response = await jourFerieService.deleteJourFerie(jourFerie.id)
+
+    if (response.success) {
+      notificationStore.success('Succès', 'Jour férié supprimé avec succès')
+
+      // Recharger les jours fériés
+      await loadJoursFeriesFromAPI()
+      await calculateSchoolDays()
+    }
+  } catch (error: any) {
+    console.error('Failed to delete jour ferie:', error)
+    notificationStore.error('Erreur', 'Impossible de supprimer le jour férié')
+  } finally {
+    loading.value = false
+  }
+}
+
 const submitAddJourFerie = async () => {
   if (!newJourFerie.value.intitule_journee || !newJourFerie.value.date) return
   // Si lié au calendrier, calendrier requis
@@ -903,35 +964,51 @@ const submitAddJourFerie = async () => {
 
   try {
     loading.value = true
-    const response = await jourFerieService.createJourFerie({
-      calendrier_id: newJourFerie.value.lier_calendrier ? selectedCalendrierId.value : null,
-      pays_id: newJourFerie.value.lier_calendrier ? null : (newJourFerie.value.pays_id || null),
-      ecole_id: newJourFerie.value.ecole_id || null,
-      intitule_journee: newJourFerie.value.intitule_journee,
-      date: newJourFerie.value.date,
-      est_national: newJourFerie.value.est_national,
-      recurrent: newJourFerie.value.recurrent,
-      actif: true
-    })
+    let response
+
+    if (isEditMode.value && editingJourFerieId.value) {
+      // Mode édition
+      response = await jourFerieService.updateJourFerie(editingJourFerieId.value, {
+        calendrier_id: newJourFerie.value.lier_calendrier ? selectedCalendrierId.value : null,
+        pays_id: newJourFerie.value.lier_calendrier ? null : (newJourFerie.value.pays_id || null),
+        ecole_id: newJourFerie.value.ecole_id || null,
+        intitule_journee: newJourFerie.value.intitule_journee,
+        date: newJourFerie.value.date,
+        est_national: newJourFerie.value.est_national,
+        recurrent: newJourFerie.value.recurrent,
+        actif: true
+      })
+    } else {
+      // Mode création
+      response = await jourFerieService.createJourFerie({
+        calendrier_id: newJourFerie.value.lier_calendrier ? selectedCalendrierId.value : null,
+        pays_id: newJourFerie.value.lier_calendrier ? null : (newJourFerie.value.pays_id || null),
+        ecole_id: newJourFerie.value.ecole_id || null,
+        intitule_journee: newJourFerie.value.intitule_journee,
+        date: newJourFerie.value.date,
+        est_national: newJourFerie.value.est_national,
+        recurrent: newJourFerie.value.recurrent,
+        actif: true
+      })
+    }
 
     if (response.success) {
-      notificationStore.success('Succès', 'Jour férié ajouté avec succès')
+      notificationStore.success('Succès', isEditMode.value ? 'Jour férié modifié avec succès' : 'Jour férié ajouté avec succès')
       newJourFerie.value = { lier_calendrier: true, pays_id: selectedPaysId.value, ecole_id: '', intitule_journee: '', date: '', est_national: false, recurrent: false }
 
       // Recharger les jours fériés
-      if (selectedEcoleId.value) {
-        await loadJoursFeriesPanel()
-      } else {
-        await onAnneeScolaireChange()
-      }
+      await loadJoursFeriesFromAPI()
+      await calculateSchoolDays()
 
-      if (!continueAddingJourFerie.value) {
+      if (!continueAddingJourFerie.value || isEditMode.value) {
         showAddJourFerieModal.value = false
+        isEditMode.value = false
+        editingJourFerieId.value = ''
       }
     }
   } catch (error: any) {
-    console.error('Failed to add jour ferie:', error)
-    notificationStore.error('Erreur', 'Impossible d\'ajouter le jour férié')
+    console.error('Failed to save jour ferie:', error)
+    notificationStore.error('Erreur', isEditMode.value ? 'Impossible de modifier le jour férié' : 'Impossible d\'ajouter le jour férié')
   } finally {
     loading.value = false
   }
