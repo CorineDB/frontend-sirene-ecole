@@ -152,7 +152,7 @@
         </div>
 
         <!-- Intervenants Section -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <div v-if="!isCandidaturesEnCours" class="bg-white rounded-xl border border-gray-200 p-6">
           <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Users :size="24" class="text-blue-600" />
             Intervenants ({{ intervenants.length }})
@@ -198,7 +198,7 @@
         </div>
 
         <!-- Interventions Section -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <div v-if="!isCandidaturesEnCours" class="bg-white rounded-xl border border-gray-200 p-6">
           <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Wrench :size="24" class="text-orange-600" />
             Interventions ({{ interventions.length }})
@@ -208,8 +208,7 @@
             <div
               v-for="intervention in interventions"
               :key="intervention.id"
-              class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-              @click="router.push(`/interventions/${intervention.id}`)"
+              class="border border-gray-200 rounded-lg p-4"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
@@ -246,14 +245,6 @@
                     {{ intervention.instructions }}
                   </p>
                 </div>
-
-                <button
-                  @click.stop="router.push(`/interventions/${intervention.id}`)"
-                  class="ml-4 px-3 py-1 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold transition-colors flex items-center gap-2"
-                >
-                  <ExternalLink :size="14" />
-                  Détails
-                </button>
               </div>
             </div>
           </div>
@@ -427,6 +418,23 @@ const intervenants = computed(() => {
 
 const hasInterventions = computed(() => interventions.value.length > 0)
 const hasIntervenants = computed(() => intervenants.value.length > 0)
+
+// Check if candidatures period is currently active
+const isCandidaturesEnCours = computed(() => {
+  if (!ordreMission.value) return false
+
+  const now = new Date()
+  const dateDebut = ordreMission.value.date_debut_candidature
+    ? new Date(ordreMission.value.date_debut_candidature)
+    : null
+  const dateFin = ordreMission.value.date_fin_candidature
+    ? new Date(ordreMission.value.date_fin_candidature)
+    : null
+
+  if (!dateDebut || !dateFin) return false
+
+  return now >= dateDebut && now <= dateFin
+})
 
 // Methods
 const formatDate = (dateString: string) => {
