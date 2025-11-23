@@ -43,38 +43,91 @@
               <StatusBadge type="abonnement" :status="abonnement.statut" />
             </div>
             <div class="flex gap-2">
-              <button
-                v-if="abonnement.statut === StatutAbonnement.ACTIF"
-                @click="handleRenouveler"
-                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center gap-2"
-              >
-                <RefreshCw :size="18" />
-                Renouveler
-              </button>
-              <button
-                v-if="abonnement.statut === StatutAbonnement.ACTIF"
-                @click="handleSuspendre"
-                class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold transition-colors flex items-center gap-2"
-              >
-                <Pause :size="18" />
-                Suspendre
-              </button>
-              <button
-                v-if="abonnement.statut === StatutAbonnement.SUSPENDU"
-                @click="handleReactiver"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors flex items-center gap-2"
-              >
-                <Play :size="18" />
-                Réactiver
-              </button>
-              <button
-                v-if="abonnement.statut !== StatutAbonnement.EXPIRE"
-                @click="handleAnnuler"
-                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors flex items-center gap-2"
-              >
-                <XCircle :size="18" />
-                Annuler
-              </button>
+              <!-- Boutons pour statut EN_ATTENTE -->
+              <template v-if="abonnement.statut === StatutAbonnement.EN_ATTENTE">
+                <button
+                  @click="handlePayer"
+                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center gap-2"
+                >
+                  <CreditCard :size="18" />
+                  Payer maintenant
+                </button>
+                <button
+                  @click="handlePartagerQr"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors flex items-center gap-2"
+                >
+                  <Share2 :size="18" />
+                  Partager QR Code
+                </button>
+              </template>
+
+              <!-- Boutons pour statut ACTIF -->
+              <template v-if="abonnement.statut === StatutAbonnement.ACTIF">
+                <button
+                  @click="handleTelechargerFacture"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors flex items-center gap-2"
+                >
+                  <FileText :size="18" />
+                  Télécharger facture
+                </button>
+                <button
+                  @click="handleRenouveler"
+                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center gap-2"
+                >
+                  <RefreshCw :size="18" />
+                  Renouveler
+                </button>
+                <button
+                  @click="handleSuspendre"
+                  class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold transition-colors flex items-center gap-2"
+                >
+                  <Pause :size="18" />
+                  Suspendre
+                </button>
+                <button
+                  @click="handleAnnuler"
+                  class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors flex items-center gap-2"
+                >
+                  <XCircle :size="18" />
+                  Annuler
+                </button>
+              </template>
+
+              <!-- Boutons pour statut EXPIRE -->
+              <template v-if="abonnement.statut === StatutAbonnement.EXPIRE">
+                <button
+                  @click="handleTelechargerFacture"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors flex items-center gap-2"
+                >
+                  <FileText :size="18" />
+                  Télécharger facture
+                </button>
+                <button
+                  @click="handleRenouveler"
+                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center gap-2"
+                >
+                  <RefreshCw :size="18" />
+                  Renouveler
+                </button>
+              </template>
+
+              <!-- Boutons pour statut SUSPENDU -->
+              <template v-if="abonnement.statut === StatutAbonnement.SUSPENDU">
+                <button
+                  @click="handleReactiver"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors flex items-center gap-2"
+                >
+                  <Play :size="18" />
+                  Réactiver
+                </button>
+                <button
+                  @click="handleAnnuler"
+                  class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors flex items-center gap-2"
+                >
+                  <XCircle :size="18" />
+                  Annuler
+                </button>
+              </template>
             </div>
           </div>
 
@@ -283,6 +336,8 @@ import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import { useAbonnements } from '@/composables/useAbonnements'
 import { StatutAbonnement } from '@/types/api'
+import cinetpayService from '@/services/cinetpayService'
+import { useNotificationStore } from '@/stores/notifications'
 import {
   ArrowLeft,
   RefreshCw,
@@ -296,11 +351,14 @@ import {
   Key,
   CreditCard,
   Download,
-  AlertCircle
+  AlertCircle,
+  Share2,
+  FileText
 } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
+const notificationStore = useNotificationStore()
 
 // Composable
 const {
@@ -393,6 +451,100 @@ const handleRegenererToken = async () => {
 const handleTelechargerQr = async () => {
   if (!abonnement.value) return
   await telechargerQrCode(abonnement.value.id)
+}
+
+const handlePayer = async () => {
+  if (!abonnement.value) return
+
+  try {
+    // Générer un ID de transaction
+    const transactionId = cinetpayService.generateTransactionId(abonnement.value.id)
+
+    // Préparer les données de paiement
+    const paymentData = {
+      transaction_id: transactionId,
+      amount: abonnement.value.montant,
+      description: `Paiement abonnement ${abonnement.value.numero_abonnement}`,
+      customer_name: abonnement.value.ecole?.nom || 'École',
+      customer_surname: '',
+      customer_phone_number: cinetpayService.formatPhoneNumber(abonnement.value.ecole?.telephone),
+      customer_email: abonnement.value.ecole?.email || undefined,
+      metadata: {
+        abonnement_id: abonnement.value.id,
+        ecole_id: abonnement.value.ecole_id,
+        type: 'abonnement_payment'
+      }
+    }
+
+    // Initier le paiement
+    notificationStore.info('Paiement', 'Ouverture de la fenêtre de paiement...')
+    const response = await cinetpayService.initierPaiement(paymentData)
+
+    if (response.status === 'ACCEPTED') {
+      notificationStore.success('Paiement réussi', 'Votre paiement a été accepté')
+      // Recharger l'abonnement pour voir le nouveau statut
+      await fetchById(abonnement.value.id)
+    }
+  } catch (err: any) {
+    console.error('Erreur paiement:', err)
+    notificationStore.error('Erreur de paiement', err.message || 'Impossible de traiter le paiement')
+  }
+}
+
+const handlePartagerQr = async () => {
+  if (!abonnement.value || !abonnement.value.qr_code_url) return
+
+  try {
+    // Vérifier si l'API Web Share est disponible
+    if (navigator.share) {
+      // Télécharger le QR code comme blob
+      const response = await fetch(abonnement.value.qr_code_url)
+      const blob = await response.blob()
+      const file = new File([blob], `qr-code-${abonnement.value.numero_abonnement}.png`, { type: 'image/png' })
+
+      await navigator.share({
+        title: `QR Code - ${abonnement.value.numero_abonnement}`,
+        text: `QR Code de paiement pour l'abonnement ${abonnement.value.numero_abonnement}`,
+        files: [file]
+      })
+
+      notificationStore.success('Partage', 'QR Code partagé avec succès')
+    } else {
+      // Fallback: copier l'URL dans le presse-papier
+      await navigator.clipboard.writeText(abonnement.value.qr_code_url)
+      notificationStore.success('Copié', 'Lien du QR Code copié dans le presse-papier')
+    }
+  } catch (err: any) {
+    console.error('Erreur partage QR:', err)
+    if (err.name !== 'AbortError') {
+      notificationStore.error('Erreur', 'Impossible de partager le QR Code')
+    }
+  }
+}
+
+const handleTelechargerFacture = async () => {
+  if (!abonnement.value) return
+
+  // TODO: Implémenter le téléchargement de facture quand le backend sera prêt
+  notificationStore.warning(
+    'Fonctionnalité à venir',
+    'Le téléchargement de facture sera bientôt disponible'
+  )
+
+  // Placeholder pour future implémentation:
+  // try {
+  //   const blob = await abonnementService.telechargerFacture(abonnement.value.id)
+  //   const url = window.URL.createObjectURL(blob)
+  //   const link = document.createElement('a')
+  //   link.href = url
+  //   link.download = `facture-${abonnement.value.numero_abonnement}.pdf`
+  //   document.body.appendChild(link)
+  //   link.click()
+  //   document.body.removeChild(link)
+  //   window.URL.revokeObjectURL(url)
+  // } catch (err) {
+  //   notificationStore.error('Erreur', 'Impossible de télécharger la facture')
+  // }
 }
 
 // Lifecycle
