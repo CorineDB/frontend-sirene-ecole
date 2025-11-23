@@ -6,7 +6,7 @@
           <h1 class="text-3xl font-bold text-gray-900">Rôles et permissions</h1>
           <p class="text-gray-600 mt-1">Gérer les rôles et leurs autorisations</p>
         </div>
-        <Can permission="manage_roles">
+        <Can permission="creer_role">
           <button
             @click="openCreateModal"
             class="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all"
@@ -71,8 +71,8 @@
             </div>
           </div>
 
-          <Can permission="manage_roles">
-            <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+          <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+            <Can permission="attribuer_permissions">
               <button
                 @click="openPermissionsModal(role)"
                 class="flex-1 text-sm text-blue-600 hover:text-blue-700 font-semibold py-2 hover:bg-blue-50 rounded transition-colors"
@@ -80,6 +80,8 @@
                 <Settings :size="16" class="inline mr-1" />
                 Permissions
               </button>
+            </Can>
+            <Can permission="modifier_role">
               <button
                 @click="openEditModal(role)"
                 class="flex-1 text-sm text-gray-600 hover:text-gray-700 font-semibold py-2 hover:bg-gray-50 rounded transition-colors"
@@ -87,14 +89,16 @@
                 <Edit :size="16" class="inline mr-1" />
                 Modifier
               </button>
+            </Can>
+            <Can permission="supprimer_role">
               <button
                 @click="confirmDelete(role)"
                 class="text-sm text-red-600 hover:text-red-700 font-semibold py-2 px-3 hover:bg-red-50 rounded transition-colors"
               >
                 <Trash2 :size="16" />
               </button>
-            </div>
-          </Can>
+            </Can>
+          </div>
         </div>
       </div>
     </div>

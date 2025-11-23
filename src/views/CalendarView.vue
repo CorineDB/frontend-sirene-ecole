@@ -11,7 +11,7 @@
 
       <!-- Filtres -->
       <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div :class="['grid grid-cols-1 gap-4', isEcoleUser ? 'md:grid-cols-2' : 'md:grid-cols-3']">
           <!-- Pays -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">Pays</label>
@@ -47,8 +47,8 @@
             </select>
           </div>
 
-          <!-- École -->
-          <div>
+          <!-- École (masqué pour les utilisateurs de type École) -->
+          <div v-if="!isEcoleUser">
             <label class="block text-sm font-semibold text-gray-700 mb-2">
               École <span class="text-xs text-gray-500">(optionnel, pour jours fériés spécifiques)</span>
             </label>
@@ -103,13 +103,15 @@
       <template v-else>
         <!-- Bouton Modifier Calendrier -->
         <div class="flex justify-end mb-4">
-          <button
-            @click="openEditCalendrierModal"
-            class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Edit :size="16" />
-            Modifier le calendrier
-          </button>
+          <Can permission="modifier_calendrier_scolaire">
+            <button
+              @click="openEditCalendrierModal"
+              class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Edit :size="16" />
+              Modifier le calendrier
+            </button>
+          </Can>
         </div>
 
         <!-- Statistiques -->
@@ -236,13 +238,15 @@
                   <div class="animate-spin w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full"></div>
                 </span>
               </h2>
-              <button
-                @click="openAddJourFerieModal"
-                class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
-              >
-                <Plus :size="14" />
-                Ajouter
-              </button>
+              <Can permission="creer_jour_ferie">
+                <button
+                  @click="openAddJourFerieModal"
+                  class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                >
+                  <Plus :size="14" />
+                  Ajouter
+                </button>
+              </Can>
             </div>
             <div class="space-y-3 max-h-96 overflow-y-auto">
               <div
@@ -262,20 +266,24 @@
                     >
                       {{ getJourFerieTypeLabel(jourFerie) }}
                     </span>
-                    <button
-                      @click="openEditJourFerieModal(jourFerie)"
-                      class="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-100 rounded transition-all"
-                      title="Modifier"
-                    >
-                      <Edit :size="14" class="text-blue-600" />
-                    </button>
-                    <button
-                      @click="deleteJourFerie(jourFerie)"
-                      class="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-all"
-                      title="Supprimer"
-                    >
-                      <Trash2 :size="14" class="text-red-600" />
-                    </button>
+                    <Can permission="modifier_jour_ferie">
+                      <button
+                        @click="openEditJourFerieModal(jourFerie)"
+                        class="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-100 rounded transition-all"
+                        title="Modifier"
+                      >
+                        <Edit :size="14" class="text-blue-600" />
+                      </button>
+                    </Can>
+                    <Can permission="supprimer_jour_ferie">
+                      <button
+                        @click="deleteJourFerie(jourFerie)"
+                        class="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-all"
+                        title="Supprimer"
+                      >
+                        <Trash2 :size="14" class="text-red-600" />
+                      </button>
+                    </Can>
                   </div>
                 </div>
                 <div v-if="jourFerie.recurrent" class="mt-2">
@@ -299,13 +307,15 @@
               <Palmtree :size="20" class="text-green-600" />
               Périodes de vacances
             </h2>
-            <button
-              @click="openEditPeriodesModal"
-              class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
-            >
-              <Edit :size="14" />
-              Modifier
-            </button>
+            <Can permission="modifier_calendrier_scolaire">
+              <button
+                @click="openEditPeriodesModal"
+                class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+              >
+                <Edit :size="14" />
+                Modifier
+              </button>
+            </Can>
           </div>
           <div class="space-y-3">
             <div
@@ -417,7 +427,7 @@
               <option v-for="pays in paysList" :key="pays.id" :value="pays.id">{{ pays.nom }}</option>
             </select>
           </div>
-          <div>
+          <div v-if="!isEcoleUser">
             <label class="block text-sm font-medium text-gray-700 mb-1">École <span class="text-xs text-gray-500">(optionnel)</span></label>
             <select v-model="newJourFerie.ecole_id" class="w-full px-3 py-2 border rounded-lg">
               <option value="">Aucune école</option>
@@ -542,8 +552,11 @@ import ecoleService, { type Ecole } from '../services/ecoleService'
 import paysService, { type Pays } from '../services/paysService'
 import jourFerieService from '../services/jourFerieService'
 import { useNotificationStore } from '../stores/notifications'
+import { useAuthStore } from '../stores/auth'
+import { Can } from '../components/permissions'
 
 const notificationStore = useNotificationStore()
+const authStore = useAuthStore()
 
 const paysList = ref<Pays[]>([])
 const calendriers = ref<CalendrierScolaire[]>([])
@@ -586,6 +599,19 @@ const newCalendrier = ref({
 const currentMonth = ref(new Date().getMonth())
 const currentYear = ref(new Date().getFullYear())
 const weekDays = ref(['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'])
+
+// Computed: Vérifier si l'utilisateur est de type École
+const isEcoleUser = computed(() => {
+  return authStore.user?.user_account_type_type === 'App\\Models\\Ecole'
+})
+
+// Computed: ID de l'école effective (user école ou sélection manuelle)
+const effectiveEcoleId = computed(() => {
+  if (isEcoleUser.value && authStore.user?.user_account_type_id) {
+    return authStore.user.user_account_type_id
+  }
+  return selectedEcoleId.value || undefined
+})
 
 // Utility function to format dates in local time (avoid timezone issues)
 const formatLocalDate = (date: Date | string): string => {
@@ -1091,7 +1117,7 @@ const openAddJourFerieModal = () => {
   newJourFerie.value = {
     lier_calendrier: true,
     pays_id: selectedPaysId.value,
-    ecole_id: selectedEcoleId.value || '',
+    ecole_id: effectiveEcoleId.value || '',
     intitule_journee: '',
     date: '',
     est_national: false,
@@ -1292,7 +1318,7 @@ const loadJoursFeriesFromAPI = async () => {
 
   loadingJoursFeries.value = true
   try {
-    if (selectedEcoleId.value) {
+    if (effectiveEcoleId.value) {
       // École sélectionnée: charger jours fériés du calendrier + école
       const [calendrierResponse, ecoleResponse] = await Promise.all([
         // Jours fériés du calendrier uniquement (sans écoles)
@@ -1304,7 +1330,7 @@ const loadJoursFeriesFromAPI = async () => {
         // Jours fériés spécifiques à l'école
         jourFerieService.getJoursFeries({
           calendrier_id: selectedCalendrierId.value,
-          ecole_id: selectedEcoleId.value,
+          ecole_id: effectiveEcoleId.value,
           per_page: 1000
         })
       ])
@@ -1354,7 +1380,7 @@ const loadJoursFeriesFromAPI = async () => {
 }
 
 const loadJoursFeriesPanel = async () => {
-  if (!selectedCalendrierId.value || !selectedEcoleId.value) return
+  if (!selectedCalendrierId.value || !effectiveEcoleId.value) return
   await loadJoursFeriesFromAPI()
 }
 
@@ -1374,7 +1400,7 @@ const calculateSchoolDays = async () => {
   try {
     const response = await calendrierScolaireService.calculateSchoolDays(
       selectedCalendrierId.value,
-      selectedEcoleId.value || undefined
+      effectiveEcoleId.value
     )
     if (response.success && response.data) {
       schoolDays.value = response.data.school_days
@@ -1386,10 +1412,19 @@ const calculateSchoolDays = async () => {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    loadPays(),
-    loadEcoles()
-  ])
+  // Charger les pays et les écoles (seulement si pas utilisateur École)
+  const promises = [loadPays()]
+
+  if (!isEcoleUser.value) {
+    promises.push(loadEcoles())
+  }
+
+  await Promise.all(promises)
+
+  // Log pour utilisateur École
+  if (isEcoleUser.value && authStore.user?.user_account_type_id) {
+    console.log('Utilisateur École détecté - ID école:', authStore.user.user_account_type_id)
+  }
 
   // Sélectionner le premier pays par défaut
   if (paysList.value.length > 0) {
