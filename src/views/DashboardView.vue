@@ -125,19 +125,33 @@ const { hasPermission, isAdmin } = usePermissions()
 // Rediriger vers le dashboard spécifique selon le type d'utilisateur
 onMounted(() => {
   const user = authStore.user
-  if (!user) return
+  console.log('=== DashboardView - Vérification redirection ===')
+  console.log('User:', user)
+  console.log('user_account_type_type:', user?.user_account_type_type)
+  console.log('user_account_type_id:', user?.user_account_type_id)
+  console.log('roleSlug:', user?.roleSlug)
+  console.log('role.slug:', user?.role?.slug)
+
+  if (!user) {
+    console.log('❌ Pas d\'utilisateur - pas de redirection')
+    return
+  }
 
   // Rediriger les utilisateurs École vers leur dashboard spécifique
   if (user.user_account_type_type === 'App\\Models\\Ecole') {
+    console.log('✅ Utilisateur École détecté - Redirection vers /dashboard/ecole')
     router.replace('/dashboard/ecole')
     return
   }
 
   // Rediriger les techniciens vers leur dashboard spécifique
   if (user.roleSlug === 'technicien' || user.role?.slug === 'technicien') {
+    console.log('✅ Utilisateur Technicien détecté - Redirection vers /dashboard/technicien')
     router.replace('/dashboard/technicien')
     return
   }
+
+  console.log('ℹ️ Utilisateur Admin - Reste sur dashboard central')
 })
 
 const stats = ref({
