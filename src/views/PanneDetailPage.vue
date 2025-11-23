@@ -200,6 +200,25 @@
               Ordre de mission
             </h2>
             <div class="flex gap-2">
+              <!-- Bouton de soumission de candidature (techniciens uniquement) -->
+              <button
+                v-if="canSubmitCandidature"
+                @click="handleSoumettreCondidature"
+                class="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+              >
+                <User :size="16" />
+                Soumettre ma candidature
+              </button>
+              <!-- Bouton de clôture des candidatures (admin uniquement) -->
+              <button
+                v-if="currentOrdreMission && isAdmin"
+                @click="handleCloturerCandidatures"
+                class="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+              >
+                <Clock :size="16" />
+                Clôturer les candidatures
+              </button>
+              <!-- Bouton voir détails -->
               <button
                 v-if="currentOrdreMission"
                 @click="router.push(`/ordres-mission/${currentOrdreMission.id}`)"
@@ -310,16 +329,7 @@
               <Wrench :size="24" class="text-orange-600" />
               Intervention
             </h2>
-            <div class="flex items-center gap-2">
-              <StatusBadge type="intervention" :status="currentIntervention.statut" />
-              <button
-                @click="router.push(`/interventions/${currentIntervention.id}`)"
-                class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold transition-colors flex items-center gap-2"
-              >
-                <ExternalLink :size="16" />
-                Voir détails
-              </button>
-            </div>
+            <StatusBadge type="intervention" :status="currentIntervention.statut" />
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -449,6 +459,7 @@ import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import { usePannes } from '@/composables/usePannes'
 import { useInterventions } from '@/composables/useInterventions'
+import { useAuthStore } from '@/stores/auth'
 import { StatutPanne, TypeIntervention } from '@/types/api'
 import {
   ArrowLeft,
@@ -470,6 +481,7 @@ import {
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 
 // Composables
 const {
@@ -558,6 +570,33 @@ const isStepCurrent = (stepStatus: string) => {
   return panne.value?.statut === stepStatus
 }
 
+// Check if user is a technicien
+const isTechnicien = computed(() => {
+  return authStore.user?.type === 'technicien'
+})
+
+// Check if user is admin
+const isAdmin = computed(() => {
+  return authStore.user?.type === 'admin'
+})
+
+// Check if candidatures are currently open
+const canSubmitCandidature = computed(() => {
+  if (!currentOrdreMission.value || !isTechnicien.value) return false
+
+  const now = new Date()
+  const dateDebut = currentOrdreMission.value.date_debut_candidature
+    ? new Date(currentOrdreMission.value.date_debut_candidature)
+    : null
+  const dateFin = currentOrdreMission.value.date_fin_candidature
+    ? new Date(currentOrdreMission.value.date_fin_candidature)
+    : null
+
+  if (!dateDebut || !dateFin) return false
+
+  return now >= dateDebut && now <= dateFin
+})
+
 // Methods
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -634,6 +673,45 @@ const handleRefuserCandidature = async (candidatureId: string) => {
   if (raison) {
     await refuserCandidature(candidatureId, { raison })
     // Refresh candidatures
+  }
+}
+
+const handleSoumettreCondidature = async () => {
+  if (!currentOrdreMission.value || !authStore.user) return
+
+  const message = prompt('Message pour votre candidature (optionnel):')
+
+  try {
+    // TODO: Implement soumettreCondidature API call
+    // await soumettreCondidature(currentOrdreMission.value.id, {
+    //   technicien_id: authStore.user.id,
+    //   message: message || ''
+    // })
+
+    alert('Candidature soumise avec succès!')
+    // Refresh data
+    await fetchById(route.params.id as string)
+  } catch (error) {
+    console.error('Erreur lors de la soumission de la candidature:', error)
+    alert('Erreur lors de la soumission de la candidature')
+  }
+}
+
+const handleCloturerCandidatures = async () => {
+  if (!currentOrdreMission.value) return
+
+  if (confirm('Êtes-vous sûr de vouloir clôturer les candidatures pour cet ordre de mission ?')) {
+    try {
+      // TODO: Implement cloturerCandidatures API call
+      // await cloturerCandidatures(currentOrdreMission.value.id)
+
+      alert('Candidatures clôturées avec succès!')
+      // Refresh data
+      await fetchById(route.params.id as string)
+    } catch (error) {
+      console.error('Erreur lors de la clôture des candidatures:', error)
+      alert('Erreur lors de la clôture des candidatures')
+    }
   }
 }
 
