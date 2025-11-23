@@ -70,31 +70,35 @@
           <div class="flex items-start justify-between mb-4">
             <div class="flex-1">
               <div class="flex items-center gap-3 mb-2">
-                <h3 class="text-lg font-bold text-gray-900">{{ mission.titre }}</h3>
+                <h3 class="text-lg font-bold text-gray-900">{{ mission.numero_ordre }}</h3>
                 <StatusBadge type="ordre_mission" :status="mission.statut" />
               </div>
-              <p v-if="mission.description" class="text-gray-600 text-sm mb-3">{{ mission.description }}</p>
+              <p v-if="mission.panne?.description" class="text-gray-600 text-sm mb-3">{{ mission.panne.description }}</p>
 
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p class="text-gray-600 mb-1">Référence</p>
-                  <p class="font-mono font-semibold text-gray-900">{{ mission.reference }}</p>
+                <div v-if="mission.panne?.numero_panne">
+                  <p class="text-gray-600 mb-1">N° Panne</p>
+                  <p class="font-mono font-semibold text-gray-900">{{ mission.panne.numero_panne }}</p>
+                </div>
+                <div v-if="mission.panne?.ecole">
+                  <p class="text-gray-600 mb-1">École</p>
+                  <p class="font-semibold text-gray-900">{{ mission.panne.ecole.nom }}</p>
+                </div>
+                <div v-if="mission.panne?.site">
+                  <p class="text-gray-600 mb-1">Site</p>
+                  <p class="font-semibold text-gray-900">{{ mission.panne.site.nom }}</p>
                 </div>
                 <div v-if="mission.ville">
                   <p class="text-gray-600 mb-1">Ville</p>
-                  <p class="font-semibold text-gray-900">{{ mission.ville.nom }}</p>
+                  <p class="font-semibold text-gray-900">{{ mission.ville.nom_complet }}</p>
                 </div>
-                <div v-if="mission.date_debut">
-                  <p class="text-gray-600 mb-1">Date de début</p>
-                  <p class="font-semibold text-gray-900">{{ formatDate(mission.date_debut) }}</p>
-                </div>
-                <div v-if="mission.date_fin">
-                  <p class="text-gray-600 mb-1">Date de fin</p>
-                  <p class="font-semibold text-gray-900">{{ formatDate(mission.date_fin) }}</p>
+                <div v-if="mission.date_generation">
+                  <p class="text-gray-600 mb-1">Date génération</p>
+                  <p class="font-semibold text-gray-900">{{ formatDate(mission.date_generation) }}</p>
                 </div>
                 <div v-if="mission.nombre_techniciens_requis">
-                  <p class="text-gray-600 mb-1">Techniciens requis</p>
-                  <p class="font-semibold text-gray-900">{{ mission.nombre_techniciens_requis }}</p>
+                  <p class="text-gray-600 mb-1">Techniciens</p>
+                  <p class="font-semibold text-gray-900">{{ mission.nombre_techniciens_acceptes || 0 }} / {{ mission.nombre_techniciens_requis }}</p>
                 </div>
               </div>
             </div>
@@ -115,30 +119,6 @@
               <span v-if="mission.date_limite_candidature" class="text-sm text-gray-600">
                 - Jusqu'au {{ formatDate(mission.date_limite_candidature) }}
               </span>
-            </div>
-          </div>
-
-          <!-- Missions Techniciens -->
-          <div v-if="mission.missionsTechniciens && mission.missionsTechniciens.length > 0" class="mt-4 pt-4 border-t border-gray-200">
-            <p class="text-sm font-semibold text-gray-700 mb-2">Mes candidatures / affectations:</p>
-            <div class="space-y-2">
-              <div
-                v-for="mt in mission.missionsTechniciens"
-                :key="mt.id"
-                class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
-                <div class="flex items-center gap-3">
-                  <div :class="getStatutCandidatureClass(mt.statut_candidature)" class="w-3 h-3 rounded-full"></div>
-                  <div>
-                    <p class="text-sm font-semibold text-gray-900">
-                      Candidature: {{ getStatutCandidatureLabel(mt.statut_candidature) }}
-                    </p>
-                    <p v-if="mt.statut_candidature === 'accepte'" class="text-sm text-gray-600">
-                      Statut mission: {{ getStatutMissionLabel(mt.statut) }}
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -169,7 +149,6 @@ import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import { useOrdresMission } from '@/composables/useOrdresMission'
 import { useNotificationStore } from '@/stores/notifications'
-import type { StatutCandidature, StatutMission } from '@/types/api'
 import {
   RefreshCw,
   AlertCircle,
@@ -211,47 +190,6 @@ const formatDateTime = (dateString: string) => {
     hour: '2-digit',
     minute: '2-digit'
   })
-}
-
-const getStatutCandidatureClass = (statut: StatutCandidature) => {
-  switch (statut) {
-    case 'en_attente':
-      return 'bg-yellow-500'
-    case 'accepte':
-      return 'bg-green-500'
-    case 'refuse':
-      return 'bg-red-500'
-    default:
-      return 'bg-gray-500'
-  }
-}
-
-const getStatutCandidatureLabel = (statut: StatutCandidature) => {
-  switch (statut) {
-    case 'en_attente':
-      return 'En attente'
-    case 'accepte':
-      return 'Acceptée'
-    case 'refuse':
-      return 'Refusée'
-    default:
-      return statut
-  }
-}
-
-const getStatutMissionLabel = (statut: StatutMission) => {
-  switch (statut) {
-    case 'en_attente':
-      return 'En attente'
-    case 'en_cours':
-      return 'En cours'
-    case 'termine':
-      return 'Terminée'
-    case 'annule':
-      return 'Annulée'
-    default:
-      return statut
-  }
 }
 
 const loadMissions = async () => {
