@@ -298,6 +298,7 @@ import { usePannes } from '@/composables/usePannes'
 import { StatutPanne, PrioritePanne } from '@/types/api'
 import sireneService from '@/services/sireneService'
 import type { Sirene } from '@/services/sireneService'
+import { useAuthStore } from '@/stores/auth'
 import {
   AlertCircle,
   AlertTriangle,
@@ -308,6 +309,7 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 // Composable
 const {
@@ -488,14 +490,16 @@ const handleDeclarer = async () => {
 onMounted(async () => {
   await fetchAllPannes()
 
-  // Charger les sirènes pour le formulaire de déclaration
+  // Charger les sirènes installées pour le formulaire de déclaration
+  // L'endpoint retourne automatiquement les sirènes selon l'utilisateur authentifié
   try {
-    const response = await sireneService.getAllSirenes()
+    const response = await sireneService.getSirenesInstallees()
     if (response.success && response.data) {
       sirenes.value = response.data
+      console.log(`Sirènes installées chargées: ${response.data.length}`)
     }
   } catch (err) {
-    console.error('Erreur lors du chargement des sirènes:', err)
+    console.error('Erreur lors du chargement des sirènes installées:', err)
   }
 })
 </script>

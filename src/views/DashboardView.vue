@@ -123,10 +123,18 @@ const router = useRouter()
 const { hasPermission, isAdmin } = usePermissions()
 
 // Rediriger vers le dashboard spécifique selon le type d'utilisateur
-onMounted(() => {
-  const user = authStore.user
+onMounted(async () => {
   console.log('=== DashboardView - Vérification redirection ===')
-  console.log('User:', user)
+
+  // Récupérer les données fraîches de l'utilisateur via /api/me
+  try {
+    await authStore.fetchUser()
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'utilisateur:', error)
+  }
+
+  const user = authStore.user
+  console.log('User après /api/me:', user)
   console.log('user_account_type_type:', user?.user_account_type_type)
   console.log('user_account_type_id:', user?.user_account_type_id)
   console.log('roleSlug:', user?.roleSlug)
