@@ -67,7 +67,7 @@ const navItems: NavItem[] = [
   { label: 'Écoles', to: '/schools', icon: Building2, roles: ['admin'] },
   { label: 'Profil', to: '/my-school', icon: Building2, roles: ['ecole'] },
   { label: 'Utilisateurs', to: '/users', icon: Users, roles: ['admin', 'ecole'] },
-  { label: 'Rôles & Permissions', to: '/roles', icon: ShieldCheck, roles: ['admin'] },
+  { label: 'Rôles & Permissions', to: '/roles', icon: ShieldCheck, roles: ['admin', 'ecole'] },
   { label: 'Techniciens', to: '/technicians', icon: Wrench, roles: ['admin'] },
   { label: 'Mes missions', to: '/my-missions', icon: Wrench, roles: ['technicien'] },
   { label: 'Modèles de sirène', to: '/siren-models', icon: Package, roles: ['admin'] },
