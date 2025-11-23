@@ -453,6 +453,10 @@ const handleTelechargerQr = async () => {
   await telechargerQrCode(abonnement.value.id)
 }
 
+const goToCheckout = (ecoleId: string, abonnementId: string) => {
+  router.push(`/checkout/${ecoleId}/${abonnementId}`)
+}
+
 const handlePayer = async () => {
   if (!abonnement.value) return
 
@@ -521,6 +525,51 @@ const handlePartagerQr = async () => {
     }
   }
 }
+
+
+
+const partagerQrCode = async (abonnement: any) => {
+  try {
+    if (!abonnement.qr_code_path) {
+      notificationStore.error('Erreur', 'Aucun QR code disponible')
+      return
+    }
+
+    const checkoutUrl = `${window.location.origin}/checkout/${ecole.value?.id}/${abonnement.id}`
+
+    // Télécharger le QR code via l'API (évite les problèmes CORS)
+    const blob = await abonnementService.telechargerQrCode(abonnement.id)
+    const file = new File([blob], `qr-code-${abonnement.numero_abonnement}.png`, { type: 'image/png' })
+
+    // Essayer d'utiliser l'API Web Share si disponible
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: `QR Code - ${abonnement.numero_abonnement}`,
+        text: `QR Code de paiement pour l'abonnement ${abonnement.numero_abonnement}\nMontant: ${formatMontant(abonnement.montant)} FCFA\nLien de paiement: ${checkoutUrl}`,
+        files: [file],
+      })
+      notificationStore.success('Succès', 'QR code partagé avec succès')
+    } else {
+      // Fallback: télécharger le QR code
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `qr-code-${abonnement.numero_abonnement}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(link.href)
+      notificationStore.success('Succès', 'QR code téléchargé avec succès')
+    }
+  } catch (error: any) {
+    console.error('Failed to share QR code:', error)
+    if (error.name === 'AbortError') {
+      // L'utilisateur a annulé le partage
+      return
+    }
+    notificationStore.error('Erreur', 'Impossible de partager le QR code')
+  }
+}
+
 
 const handleTelechargerFacture = async () => {
   if (!abonnement.value) return

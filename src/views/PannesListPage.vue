@@ -93,7 +93,7 @@
                 <AlertTriangle :size="20" :class="getPriorityTextColor(panne.priorite)" />
               </div>
               <div class="flex-1 min-w-0">
-                <h3 class="font-bold text-gray-900 mb-1">{{ panne.titre || 'Panne sans titre' }}</h3>
+                <h3 class="font-bold text-gray-900 mb-1">{{ panne.objet || 'Panne sans objet' }}</h3>
                 <p v-if="panne.ecole" class="text-sm text-gray-600 truncate">{{ panne.ecole.nom }}</p>
               </div>
             </div>
@@ -203,12 +203,12 @@
 
             <!-- Titre -->
             <div>
-              <label for="titre" class="block text-sm font-semibold text-gray-900 mb-2">
+              <label for="objet" class="block text-sm font-semibold text-gray-900 mb-2">
                 Titre de la panne <span class="text-red-600">*</span>
               </label>
               <input
-                id="titre"
-                v-model="declarationForm.titre"
+                id="objet"
+                v-model="declarationForm.objet"
                 type="text"
                 required
                 placeholder="Ex: Sirène ne fonctionne plus"
@@ -327,7 +327,7 @@ const sites = ref<ApiSite[]>([])
 // Form state for declaration
 const declarationForm = ref({
   sirene_id: '',
-  titre: '',
+  objet: '',
   description: '',
   priorite: PrioritePanne.MOYENNE
 })
@@ -418,9 +418,10 @@ const handleValider = async (panneId: string) => {
   const nombreTechniciens = prompt('Nombre de techniciens requis:', '1')
   const dateDebut = prompt('Date début candidature (YYYY-MM-DD):')
   const dateFin = prompt('Date fin candidature (YYYY-MM-DD):')
-  const commentaire = prompt('Commentaire (optionnel):')
+  const commentaire = prompt('Description de la mission:')
 
   if (nombreTechniciens) {
+  if (commentaire) {
     await validerPanne(panneId, {
       nombre_techniciens_requis: parseInt(nombreTechniciens),
       date_debut_candidature: dateDebut || undefined,
@@ -428,6 +429,7 @@ const handleValider = async (panneId: string) => {
       commentaire: commentaire || undefined
     })
     await fetchAllPannes()
+  }
   }
 }
 
@@ -439,13 +441,13 @@ const handleCloturer = async (panneId: string) => {
 }
 
 const handleDeclarer = async () => {
-  if (!declarationForm.value.sirene_id || !declarationForm.value.titre) {
+  if (!declarationForm.value.sirene_id || !declarationForm.value.objet) {
     alert('Veuillez remplir tous les champs obligatoires')
     return
   }
 
   await declarerPanne(declarationForm.value.sirene_id, {
-    titre: declarationForm.value.titre,
+    objet: declarationForm.value.objet,
     description: declarationForm.value.description,
     priorite: declarationForm.value.priorite
   })
@@ -453,7 +455,7 @@ const handleDeclarer = async () => {
   // Reset form and close modal
   declarationForm.value = {
     sirene_id: '',
-    titre: '',
+    objet: '',
     description: '',
     priorite: PrioritePanne.MOYENNE
   }

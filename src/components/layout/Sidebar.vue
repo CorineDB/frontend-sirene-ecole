@@ -65,7 +65,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'user', 'ecole', 'technicien'] },
   { label: 'Pays', to: '/countries', icon: Globe, roles: ['admin'] },
   { label: 'Écoles', to: '/schools', icon: Building2, roles: ['admin'] },
-  { label: 'Profil', to: '/my-school', icon: Building2, roles: ['ecole'] },
+  { label: 'Mon Ecole', to: '/my-school', icon: Building2, roles: ['ecole'] },
   { label: 'Utilisateurs', to: '/users', icon: Users, roles: ['admin', 'ecole'] },
   { label: 'Rôles & Permissions', to: '/roles', icon: ShieldCheck, roles: ['admin', 'ecole'] },
   { label: 'Techniciens', to: '/technicians', icon: Wrench, roles: ['admin'] },
@@ -79,6 +79,7 @@ const navItems: NavItem[] = [
   { label: 'Calendrier scolaire', to: '/calendar', icon: Calendar, roles: ['admin', 'ecole'] },
   { label: 'Rapports', to: '/reports', icon: BarChart3, roles: ['admin'] },
   { label: 'Paramètres', to: '/settings', icon: Settings, roles: ['admin'] },
+  { label: 'Profil', to: '/profile', icon: Settings, roles: ['ecole', 'technicien'] },
 ]
 
 const filteredNavItems = computed(() => {

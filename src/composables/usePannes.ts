@@ -2,13 +2,13 @@ import { ref, computed } from 'vue'
 import panneService from '@/services/panneService'
 import type { PanneFilters } from '@/services/panneService'
 import ordreMissionService from '@/services/ordreMissionService'
-import type {
-  ApiPanne,
-  ApiOrdreMission,
+import {
   StatutPanne,
+  type ApiPanne,
+  type ApiOrdreMission,
   PrioritePanne,
-  DeclarerPanneRequest,
-  ValiderPanneRequest
+  type DeclarerPanneRequest,
+  type ValiderPanneRequest
 } from '@/types/api'
 
 /**
@@ -310,11 +310,11 @@ export function usePannes() {
   /**
    * Rouvrir les candidatures
    */
-  const rouvrirCandidatures = async (ordreMissionId: string, adminId: string) => {
+  const rouvrirCandidatures = async (ordreMissionId: string) => {
     loading.value = true
     error.value = null
     try {
-      const response = await ordreMissionService.rouvrirCandidatures(ordreMissionId, adminId)
+      const response = await ordreMissionService.rouvrirCandidatures(ordreMissionId)
       if (response.data) {
         const index = ordresMission.value.findIndex(o => o.id === ordreMissionId)
         if (index !== -1) {

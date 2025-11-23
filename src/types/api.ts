@@ -756,6 +756,7 @@ export interface ApiPanne {
   sirene_id: string
   site_id: string
   numero_panne: string
+  objet: string
   description: string
   date_signalement: string
   priorite: PrioritePanne
