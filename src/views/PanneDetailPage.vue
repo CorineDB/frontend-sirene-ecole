@@ -10,10 +10,19 @@
           >
             <ArrowLeft :size="24" class="text-gray-600" />
           </button>
-          <div>
-            <h1 class="text-3xl font-bold text-gray-900">Détails de la panne</h1>
-            <p v-if="panne" class="text-gray-600 mt-1">{{ panne.titre || 'Panne sans titre' }}</p>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <AlertCircle :size="24" class="text-orange-600" />
+            </div>
+            <div>
+              <h1 class="text-3xl font-bold text-gray-900">{{ panne?.numero_panne || 'Détails de la panne' }}</h1>
+              <p v-if="panne" class="text-gray-600 mt-1">{{ panne.description || 'Aucune description' }}</p>
+            </div>
           </div>
+        </div>
+        <div v-if="panne" class="flex gap-2">
+          <StatusBadge type="panne" :status="panne.statut" />
+          <StatusBadge type="priorite" :status="panne.priorite" />
         </div>
       </div>
 
@@ -62,99 +71,167 @@
           </div>
         </div>
 
+        <!-- Actions -->
+        <div v-if="panne.statut === StatutPanne.DECLAREE || panne.statut === StatutPanne.RESOLUE" class="flex justify-end gap-2">
+          <button
+            v-if="panne.statut === StatutPanne.DECLAREE"
+            @click="handleValider"
+            class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center gap-2"
+          >
+            <CheckCircle :size="18" />
+            Valider la panne
+          </button>
+          <button
+            v-if="panne.statut === StatutPanne.RESOLUE"
+            @click="handleCloturer"
+            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors flex items-center gap-2"
+          >
+            <CheckCircle :size="18" />
+            Clôturer la panne
+          </button>
+        </div>
+
         <!-- Main Panne Info -->
         <div class="bg-white rounded-xl border border-gray-200 p-6">
-          <div class="flex items-start justify-between mb-6">
-            <div>
-              <h2 class="text-xl font-bold text-gray-900 mb-2">Informations sur la panne</h2>
-              <div class="flex gap-2">
-                <StatusBadge type="panne" :status="panne.statut" />
-                <StatusBadge type="priorite" :status="panne.priorite" />
+          <h2 class="text-xl font-bold text-gray-900 mb-4">Informations sur la panne</h2>
+
+          <div class="space-y-3">
+            <div class="flex items-center gap-3 text-gray-700">
+              <Calendar :size="18" class="text-gray-400 flex-shrink-0" />
+              <div>
+                <p class="text-sm text-gray-600">Date de signalement</p>
+                <p class="font-medium">{{ formatDateTime(panne.date_signalement) }}</p>
               </div>
             </div>
-            <div class="flex gap-2">
-              <button
-                v-if="panne.statut === StatutPanne.DECLAREE"
-                @click="handleValider"
-                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors"
-              >
-                Valider
-              </button>
-              <button
-                v-if="panne.statut === StatutPanne.RESOLUE"
-                @click="handleCloturer"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors"
-              >
-                Clôturer
-              </button>
+
+            <div v-if="panne.date_validation" class="flex items-center gap-3 text-gray-700">
+              <CheckCircle :size="18" class="text-gray-400 flex-shrink-0" />
+              <div>
+                <p class="text-sm text-gray-600">Date de validation</p>
+                <p class="font-medium">{{ formatDateTime(panne.date_validation) }}</p>
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-gray-100">
+              <p class="text-sm text-gray-600 mb-1">Description</p>
+              <p class="text-gray-900">{{ panne.description || 'Aucune description fournie' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sirène Info -->
+        <div v-if="panne.sirene" class="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Bell :size="24" class="text-blue-600" />
+            Sirène concernée
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p class="text-sm text-gray-600 mb-1">Numéro de série</p>
+              <p class="font-mono text-lg font-semibold text-gray-900">{{ panne.sirene.numero_serie }}</p>
+            </div>
+            <div v-if="panne.sirene.modele">
+              <p class="text-sm text-gray-600 mb-1">Modèle</p>
+              <p class="text-gray-900">{{ panne.sirene.modele.nom }}</p>
+              <p class="text-sm text-gray-500">{{ panne.sirene.modele.reference }}</p>
+            </div>
+            <div v-if="panne.sirene.date_installation">
+              <p class="text-sm text-gray-600 mb-1">Date d'installation</p>
+              <p class="text-gray-900">{{ formatDate(panne.sirene.date_installation) }}</p>
+            </div>
+            <div v-if="panne.sirene.etat">
+              <p class="text-sm text-gray-600 mb-1">État actuel</p>
+              <StatusBadge type="sirene_etat" :status="panne.sirene.etat" />
+            </div>
+            <div v-if="panne.sirene.modele?.version_firmware">
+              <p class="text-sm text-gray-600 mb-1">Version firmware</p>
+              <p class="text-gray-900">{{ panne.sirene.modele.version_firmware }}</p>
+            </div>
+            <div v-if="panne.sirene.modele?.prix_unitaire">
+              <p class="text-sm text-gray-600 mb-1">Prix unitaire</p>
+              <p class="text-gray-900">{{ panne.sirene.modele.prix_unitaire }} FCFA</p>
             </div>
           </div>
 
+          <div v-if="panne.sirene.modele?.description" class="mt-4 pt-4 border-t border-gray-100">
+            <p class="text-sm text-gray-600 mb-1">Description du modèle</p>
+            <p class="text-gray-900 text-sm">{{ panne.sirene.modele.description }}</p>
+          </div>
+        </div>
+
+        <!-- Site et École -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Building2 :size="24" class="text-green-600" />
+            Localisation
+          </h2>
+
           <div class="space-y-4">
-            <div>
-              <p class="text-sm text-gray-600 mb-1">Titre</p>
-              <p class="text-lg font-semibold text-gray-900">{{ panne.titre || 'N/A' }}</p>
-            </div>
-            <div>
-              <p class="text-sm text-gray-600 mb-1">Description</p>
-              <p class="text-gray-900">{{ panne.description || 'N/A' }}</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div v-if="panne.ecole">
-                <p class="text-sm text-gray-600 mb-1">École</p>
-                <p class="text-gray-900">{{ panne.ecole.nom }}</p>
-              </div>
-              <div v-if="panne.site">
+            <div v-if="panne.site" class="flex items-start gap-3">
+              <MapPin :size="18" class="text-gray-400 mt-1 flex-shrink-0" />
+              <div class="flex-1">
                 <p class="text-sm text-gray-600 mb-1">Site</p>
-                <p class="text-gray-900">{{ panne.site.nom }}</p>
+                <p class="font-semibold text-gray-900">{{ panne.site.nom }}</p>
+                <p v-if="panne.site.ville" class="text-sm text-gray-600 mt-1">
+                  {{ panne.site.ville.nom }}, {{ panne.site.ville.pays?.nom || '' }}
+                </p>
+                <p v-if="panne.site.adresse" class="text-sm text-gray-500 mt-1">
+                  {{ panne.site.adresse }}
+                </p>
               </div>
-              <div v-if="panne.sirene">
-                <p class="text-sm text-gray-600 mb-1">Sirène</p>
-                <p class="font-mono text-gray-900">{{ panne.sirene.numero_serie }}</p>
-              </div>
-              <div v-if="panne.declarant">
-                <p class="text-sm text-gray-600 mb-1">Déclarant</p>
-                <p class="text-gray-900">{{ panne.declarant.nom }}</p>
+            </div>
+
+            <div v-if="panne.ecole" class="flex items-start gap-3 pt-4 border-t border-gray-100">
+              <Building2 :size="18" class="text-gray-400 mt-1 flex-shrink-0" />
+              <div class="flex-1">
+                <p class="text-sm text-gray-600 mb-1">École</p>
+                <p class="font-semibold text-gray-900">{{ panne.ecole.nom || panne.ecole.nom_complet }}</p>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Ordre de Mission -->
-        <div v-if="ordreMission || panne.statut !== StatutPanne.DECLAREE" class="bg-white rounded-xl border border-gray-200 p-6">
+        <div v-if="currentOrdreMission || (panne.ordre_mission && panne.ordre_mission.length > 0) || panne.statut !== StatutPanne.DECLAREE" class="bg-white rounded-xl border border-gray-200 p-6">
           <div class="flex items-start justify-between mb-4">
             <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
               <FileText :size="24" class="text-purple-600" />
               Ordre de mission
             </h2>
             <button
-              v-if="!ordreMission && panne.statut === StatutPanne.VALIDEE"
+              v-if="!currentOrdreMission && panne.statut === StatutPanne.VALIDEE"
               class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold transition-colors"
             >
               Créer ordre de mission
             </button>
           </div>
 
-          <div v-if="ordreMission" class="space-y-4">
+          <div v-if="currentOrdreMission" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p class="text-sm text-gray-600 mb-1">Numéro d'ordre</p>
-                <p class="font-mono text-gray-900">{{ ordreMission.numero_ordre }}</p>
+                <p class="font-mono text-gray-900">{{ currentOrdreMission.numero_ordre }}</p>
               </div>
               <div>
-                <p class="text-sm text-gray-600 mb-1">Statut candidatures</p>
-                <StatusBadge
-                  type="ordre_mission"
-                  :status="ordreMission.candidatures_ouvertes ? 'ouvert' : 'ferme'"
-                />
+                <p class="text-sm text-gray-600 mb-1">Statut</p>
+                <StatusBadge type="ordre_mission" :status="currentOrdreMission.statut" />
               </div>
-              <div v-if="ordreMission.ville">
+              <div v-if="currentOrdreMission.ville">
                 <p class="text-sm text-gray-600 mb-1">Ville</p>
-                <p class="text-gray-900">{{ ordreMission.ville.nom }}</p>
+                <p class="text-gray-900">{{ currentOrdreMission.ville.nom }}</p>
+              </div>
+              <div v-if="currentOrdreMission.date_generation">
+                <p class="text-sm text-gray-600 mb-1">Date de génération</p>
+                <p class="text-gray-900">{{ formatDateTime(currentOrdreMission.date_generation) }}</p>
+              </div>
+              <div v-if="currentOrdreMission.date_fin_candidature">
+                <p class="text-sm text-gray-600 mb-1">Fin des candidatures</p>
+                <p class="text-gray-900">{{ formatDateTime(currentOrdreMission.date_fin_candidature) }}</p>
               </div>
               <div>
-                <p class="text-sm text-gray-600 mb-1">Date de clôture prévue</p>
-                <p class="text-gray-900">{{ formatDate(ordreMission.date_cloture_candidatures) }}</p>
+                <p class="text-sm text-gray-600 mb-1">Techniciens requis</p>
+                <p class="text-gray-900">{{ currentOrdreMission.nombre_techniciens_requis || 1 }}</p>
               </div>
             </div>
 
@@ -217,45 +294,54 @@
         </div>
 
         <!-- Intervention -->
-        <div v-if="intervention" class="bg-white rounded-xl border border-gray-200 p-6">
+        <div v-if="currentIntervention" class="bg-white rounded-xl border border-gray-200 p-6">
           <div class="flex items-start justify-between mb-4">
             <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
               <Wrench :size="24" class="text-orange-600" />
               Intervention
             </h2>
-            <StatusBadge type="intervention" :status="intervention.statut" />
+            <StatusBadge type="intervention" :status="currentIntervention.statut" />
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div v-if="currentIntervention.type_intervention">
               <p class="text-sm text-gray-600 mb-1">Type</p>
-              <p class="text-gray-900">{{ getTypeLabel(intervention.type) }}</p>
+              <p class="text-gray-900">{{ getTypeLabel(currentIntervention.type_intervention) }}</p>
             </div>
-            <div v-if="intervention.technicien">
+            <div v-if="currentIntervention.technicien">
               <p class="text-sm text-gray-600 mb-1">Technicien assigné</p>
-              <p class="text-gray-900">{{ intervention.technicien.nom }}</p>
+              <p class="text-gray-900">{{ currentIntervention.technicien.nom }}</p>
             </div>
-            <div v-if="intervention.date_intervention">
+            <div v-if="currentIntervention.date_intervention">
               <p class="text-sm text-gray-600 mb-1">Date d'intervention</p>
-              <p class="text-gray-900">{{ formatDateTime(intervention.date_intervention) }}</p>
+              <p class="text-gray-900">{{ formatDateTime(currentIntervention.date_intervention) }}</p>
             </div>
-            <div v-if="intervention.heure_arrivee">
-              <p class="text-sm text-gray-600 mb-1">Heure d'arrivée</p>
-              <p class="text-gray-900">{{ formatTime(intervention.heure_arrivee) }}</p>
+            <div v-if="currentIntervention.date_assignation">
+              <p class="text-sm text-gray-600 mb-1">Date d'assignation</p>
+              <p class="text-gray-900">{{ formatDateTime(currentIntervention.date_assignation) }}</p>
             </div>
-            <div v-if="intervention.heure_depart">
-              <p class="text-sm text-gray-600 mb-1">Heure de départ</p>
-              <p class="text-gray-900">{{ formatTime(intervention.heure_depart) }}</p>
+            <div v-if="currentIntervention.date_debut">
+              <p class="text-sm text-gray-600 mb-1">Date de début</p>
+              <p class="text-gray-900">{{ formatDateTime(currentIntervention.date_debut) }}</p>
             </div>
-            <div v-if="intervention.resultat">
-              <p class="text-sm text-gray-600 mb-1">Résultat</p>
-              <StatusBadge type="resultat" :status="intervention.resultat" />
+            <div v-if="currentIntervention.date_fin">
+              <p class="text-sm text-gray-600 mb-1">Date de fin</p>
+              <p class="text-gray-900">{{ formatDateTime(currentIntervention.date_fin) }}</p>
+            </div>
+            <div v-if="currentIntervention.nombre_techniciens_requis">
+              <p class="text-sm text-gray-600 mb-1">Techniciens requis</p>
+              <p class="text-gray-900">{{ currentIntervention.nombre_techniciens_requis }}</p>
             </div>
           </div>
 
-          <div v-if="intervention.description" class="mt-4">
-            <p class="text-sm text-gray-600 mb-1">Description</p>
-            <p class="text-gray-900">{{ intervention.description }}</p>
+          <div v-if="currentIntervention.instructions" class="mt-4 pt-4 border-t border-gray-100">
+            <p class="text-sm text-gray-600 mb-1">Instructions</p>
+            <p class="text-gray-900">{{ currentIntervention.instructions }}</p>
+          </div>
+
+          <div v-if="currentIntervention.observations" class="mt-4">
+            <p class="text-sm text-gray-600 mb-1">Observations</p>
+            <p class="text-gray-900">{{ currentIntervention.observations }}</p>
           </div>
 
           <!-- Rapports -->
@@ -307,6 +393,14 @@
           <h2 class="text-lg font-semibold text-gray-900 mb-4">Métadonnées</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
+              <p class="text-gray-600 mb-1">Numéro de panne</p>
+              <p class="font-mono text-gray-900">{{ panne.numero_panne }}</p>
+            </div>
+            <div>
+              <p class="text-gray-600 mb-1">ID Panne</p>
+              <p class="font-mono text-xs text-gray-700">{{ panne.id }}</p>
+            </div>
+            <div>
               <p class="text-gray-600 mb-1">Créée le</p>
               <p class="text-gray-900">{{ formatDateTime(panne.created_at) }}</p>
             </div>
@@ -314,13 +408,13 @@
               <p class="text-gray-600 mb-1">Dernière modification</p>
               <p class="text-gray-900">{{ formatDateTime(panne.updated_at) }}</p>
             </div>
-            <div>
-              <p class="text-gray-600 mb-1">ID Panne</p>
-              <p class="font-mono text-gray-900">{{ panne.id }}</p>
+            <div v-if="currentOrdreMission">
+              <p class="text-gray-600 mb-1">Numéro d'ordre de mission</p>
+              <p class="font-mono text-gray-900">{{ currentOrdreMission.numero_ordre }}</p>
             </div>
-            <div v-if="ordreMission">
+            <div v-if="currentOrdreMission">
               <p class="text-gray-600 mb-1">ID Ordre de mission</p>
-              <p class="font-mono text-gray-900">{{ ordreMission.id }}</p>
+              <p class="font-mono text-xs text-gray-700">{{ currentOrdreMission.id }}</p>
             </div>
           </div>
         </div>
@@ -347,7 +441,11 @@ import {
   Wrench,
   Users,
   User,
-  Star
+  Star,
+  MapPin,
+  Bell,
+  Building2,
+  Calendar
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -385,6 +483,34 @@ const workflowSteps = computed(() => [
   { status: StatutPanne.RESOLUE, label: 'Résolue', icon: CheckCircle },
   { status: StatutPanne.CLOTUREE, label: 'Clôturée', icon: CheckCircle }
 ])
+
+// Handle ordre_mission as array (from API) or single object (from composable)
+const currentOrdreMission = computed(() => {
+  if (!ordreMission.value) return null
+  // If it's an array, take the first element
+  if (Array.isArray(ordreMission.value)) {
+    return ordreMission.value.length > 0 ? ordreMission.value[0] : null
+  }
+  // If it's already an object, return it
+  return ordreMission.value
+})
+
+// Handle interventions as array (from API)
+const currentIntervention = computed(() => {
+  if (!intervention.value) {
+    // Check if panne has interventions array
+    if (panne.value?.interventions && Array.isArray(panne.value.interventions)) {
+      return panne.value.interventions.length > 0 ? panne.value.interventions[0] : null
+    }
+    return null
+  }
+  // If it's an array, take the first element
+  if (Array.isArray(intervention.value)) {
+    return intervention.value.length > 0 ? intervention.value[0] : null
+  }
+  // If it's already an object, return it
+  return intervention.value
+})
 
 const isStepComplete = (stepStatus: string) => {
   if (!panne.value) return false
@@ -457,9 +583,9 @@ const handleCloturer = async () => {
 }
 
 const handleAccepterCandidature = async (candidatureId: string) => {
-  if (!ordreMission.value) return
+  if (!currentOrdreMission.value) return
   const data = {
-    ordre_mission_id: ordreMission.value.id,
+    ordre_mission_id: currentOrdreMission.value.id,
     admin_id: 'admin-id', // Would come from auth context
     message: 'Candidature acceptée'
   }
@@ -483,8 +609,8 @@ onMounted(async () => {
     await fetchById(id)
 
     // If there's an intervention, fetch its reports
-    if (intervention.value) {
-      await fetchRapports(intervention.value.id)
+    if (currentIntervention.value) {
+      await fetchRapports(currentIntervention.value.id)
     }
 
     // TODO: Fetch candidatures if ordre mission exists
