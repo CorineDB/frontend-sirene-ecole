@@ -329,8 +329,7 @@
             <div
               v-for="intervention in interventions"
               :key="intervention.id"
-              class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer"
-              @click="router.push(`/interventions/${intervention.id}`)"
+              class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
@@ -371,14 +370,6 @@
                     {{ intervention.instructions }}
                   </p>
                 </div>
-
-                <button
-                  @click.stop="router.push(`/interventions/${intervention.id}`)"
-                  class="ml-4 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-                >
-                  <ExternalLink :size="14" />
-                  Détails
-                </button>
               </div>
             </div>
           </div>
