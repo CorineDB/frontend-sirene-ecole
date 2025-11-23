@@ -151,6 +151,119 @@
           </div>
         </div>
 
+        <!-- Intervenants Section -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Users :size="24" class="text-blue-600" />
+            Intervenants ({{ intervenants.length }})
+          </h2>
+
+          <div v-if="hasIntervenants" class="space-y-3">
+            <div
+              v-for="intervenant in intervenants"
+              :key="intervenant.id"
+              class="border border-gray-200 rounded-lg p-4"
+            >
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <User :size="24" class="text-blue-600" />
+                </div>
+
+                <div class="flex-1">
+                  <h4 class="font-semibold text-gray-900 mb-1">
+                    {{ intervenant.technicien?.nom || 'Technicien' }}
+                  </h4>
+                  <div class="text-sm text-gray-600 space-y-1">
+                    <p v-if="intervenant.technicien?.email">
+                      Email: {{ intervenant.technicien.email }}
+                    </p>
+                    <p v-if="intervenant.technicien?.telephone">
+                      Téléphone: {{ intervenant.technicien.telephone }}
+                    </p>
+                    <p v-if="intervenant.date_acceptation" class="text-green-600">
+                      Accepté le {{ formatDate(intervenant.date_acceptation) }}
+                    </p>
+                  </div>
+                </div>
+
+                <StatusBadge type="candidature" :status="intervenant.statut_candidature" />
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="text-center py-8 text-gray-500">
+            <Users :size="48" class="text-gray-300 mx-auto mb-2" />
+            <p>Aucun technicien assigné</p>
+          </div>
+        </div>
+
+        <!-- Interventions Section -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Wrench :size="24" class="text-orange-600" />
+            Interventions ({{ interventions.length }})
+          </h2>
+
+          <div v-if="hasInterventions" class="space-y-3">
+            <div
+              v-for="intervention in interventions"
+              :key="intervention.id"
+              class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+              @click="router.push(`/interventions/${intervention.id}`)"
+            >
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-2">
+                    <StatusBadge type="intervention" :status="intervention.statut" />
+                    <span v-if="intervention.date_intervention" class="text-sm font-semibold text-gray-900">
+                      {{ formatDate(intervention.date_intervention) }}
+                    </span>
+                  </div>
+
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div v-if="intervention.type_intervention">
+                      <p class="text-xs text-gray-600">Type</p>
+                      <p class="font-semibold text-gray-900">{{ intervention.type_intervention }}</p>
+                    </div>
+
+                    <div v-if="intervention.technicien">
+                      <p class="text-xs text-gray-600">Technicien</p>
+                      <p class="font-semibold text-gray-900">{{ intervention.technicien.nom }}</p>
+                    </div>
+
+                    <div v-if="intervention.date_debut">
+                      <p class="text-xs text-gray-600">Début</p>
+                      <p class="font-semibold text-gray-900">{{ formatDate(intervention.date_debut) }}</p>
+                    </div>
+
+                    <div v-if="intervention.date_fin">
+                      <p class="text-xs text-gray-600">Fin</p>
+                      <p class="font-semibold text-gray-900">{{ formatDate(intervention.date_fin) }}</p>
+                    </div>
+                  </div>
+
+                  <p v-if="intervention.instructions" class="text-sm text-gray-700 mt-2">
+                    {{ intervention.instructions }}
+                  </p>
+                </div>
+
+                <button
+                  @click.stop="router.push(`/interventions/${intervention.id}`)"
+                  class="ml-4 px-3 py-1 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold transition-colors flex items-center gap-2"
+                >
+                  <ExternalLink :size="14" />
+                  Détails
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="text-center py-8 text-gray-500">
+            <Wrench :size="48" class="text-gray-300 mx-auto mb-2" />
+            <p>Aucune intervention planifiée</p>
+          </div>
+        </div>
+
         <!-- Candidatures Section -->
         <div class="bg-white rounded-xl border border-gray-200 p-6">
           <div class="flex items-center justify-between mb-4">
@@ -253,7 +366,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
@@ -271,7 +384,9 @@ import {
   Lock,
   Unlock,
   Check,
-  X
+  X,
+  Wrench,
+  ExternalLink
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -295,6 +410,23 @@ const {
   accepterCandidature,
   refuserCandidature
 } = useInterventions()
+
+// Computed
+const interventions = computed(() => {
+  return ordreMission.value?.interventions || []
+})
+
+const intervenants = computed(() => {
+  // Get accepted candidatures (missions_techniciens with statut_candidature === 'acceptee')
+  if (!ordreMission.value?.missions_techniciens) return []
+
+  return ordreMission.value.missions_techniciens.filter(
+    (mt: any) => mt.statut_candidature === 'acceptee'
+  )
+})
+
+const hasInterventions = computed(() => interventions.value.length > 0)
+const hasIntervenants = computed(() => intervenants.value.length > 0)
 
 // Methods
 const formatDate = (dateString: string) => {
