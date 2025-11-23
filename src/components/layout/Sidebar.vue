@@ -65,7 +65,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'user', 'ecole', 'technicien'] },
   { label: 'Pays', to: '/countries', icon: Globe, roles: ['admin'] },
   { label: 'Écoles', to: '/schools', icon: Building2, roles: ['admin'] },
-  { label: 'Mon école', to: '/my-school', icon: Building2, roles: ['ecole'] },
+  { label: 'Profil', to: '/my-school', icon: Building2, roles: ['ecole'] },
   { label: 'Utilisateurs', to: '/users', icon: Users, roles: ['admin', 'ecole'] },
   { label: 'Rôles & Permissions', to: '/roles', icon: ShieldCheck, roles: ['admin'] },
   { label: 'Techniciens', to: '/technicians', icon: Wrench, roles: ['admin'] },
