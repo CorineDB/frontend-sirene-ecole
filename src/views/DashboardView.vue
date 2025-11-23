@@ -107,7 +107,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { usePermissions } from '../composables/usePermissions'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
@@ -118,7 +119,26 @@ import {
 } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const { hasPermission, isAdmin } = usePermissions()
+
+// Rediriger vers le dashboard spécifique selon le type d'utilisateur
+onMounted(() => {
+  const user = authStore.user
+  if (!user) return
+
+  // Rediriger les utilisateurs École vers leur dashboard spécifique
+  if (user.user_account_type_type === 'App\\Models\\Ecole') {
+    router.replace('/dashboard/ecole')
+    return
+  }
+
+  // Rediriger les techniciens vers leur dashboard spécifique
+  if (user.roleSlug === 'technicien' || user.role?.slug === 'technicien') {
+    router.replace('/dashboard/technicien')
+    return
+  }
+})
 
 const stats = ref({
   total_schools: 47,
