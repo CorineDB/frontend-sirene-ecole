@@ -32,6 +32,46 @@ export interface DashboardTechnicienStats {
 }
 
 /**
+ * Filtres pour les interventions
+ */
+export interface InterventionFilters {
+  ecole_id?: string
+  site_id?: string
+  technicien_id?: string
+  statut?: string // en_attente, planifiee, en_cours, terminee, annulee
+  date_debut?: string // Format: YYYY-MM-DD
+  date_fin?: string // Format: YYYY-MM-DD
+  per_page?: number
+}
+
+/**
+ * Filtres pour les ordres de mission
+ */
+export interface OrdreMissionFilters {
+  ecole_id?: string
+  ville_id?: string
+  priorite?: string // faible, moyenne, haute
+  per_page?: number
+}
+
+/**
+ * Helper pour construire les query parameters
+ */
+function buildQueryString(filters: Record<string, any>): string {
+  const params = new URLSearchParams()
+
+  Object.keys(filters).forEach(key => {
+    const value = filters[key]
+    if (value !== undefined && value !== null && value !== '') {
+      params.append(key, String(value))
+    }
+  })
+
+  const queryString = params.toString()
+  return queryString ? `?${queryString}` : ''
+}
+
+/**
  * Service pour gérer les données des dashboards
  */
 class DashboardService {
@@ -62,32 +102,36 @@ class DashboardService {
   /**
    * Récupérer les interventions en cours
    */
-  async getInterventionsEnCours(): Promise<ApiResponse<ApiIntervention[]>> {
-    const response = await apiClient.get<ApiResponse<ApiIntervention[]>>('/interventions-en-cours')
+  async getInterventionsEnCours(filters?: InterventionFilters): Promise<ApiResponse<ApiIntervention[]>> {
+    const queryString = filters ? buildQueryString(filters) : ''
+    const response = await apiClient.get<ApiResponse<ApiIntervention[]>>(`/interventions-en-cours${queryString}`)
     return response.data
   }
 
   /**
    * Récupérer les interventions du jour
    */
-  async getInterventionsDuJour(): Promise<ApiResponse<ApiIntervention[]>> {
-    const response = await apiClient.get<ApiResponse<ApiIntervention[]>>('/interventions-du-jour')
+  async getInterventionsDuJour(filters?: InterventionFilters): Promise<ApiResponse<ApiIntervention[]>> {
+    const queryString = filters ? buildQueryString(filters) : ''
+    const response = await apiClient.get<ApiResponse<ApiIntervention[]>>(`/interventions-du-jour${queryString}`)
     return response.data
   }
 
   /**
    * Récupérer les interventions à venir
    */
-  async getInterventionsAVenir(): Promise<ApiResponse<ApiIntervention[]>> {
-    const response = await apiClient.get<ApiResponse<ApiIntervention[]>>('/interventions-a-venir')
+  async getInterventionsAVenir(filters?: InterventionFilters): Promise<ApiResponse<ApiIntervention[]>> {
+    const queryString = filters ? buildQueryString(filters) : ''
+    const response = await apiClient.get<ApiResponse<ApiIntervention[]>>(`/interventions-a-venir${queryString}`)
     return response.data
   }
 
   /**
    * Récupérer les ordres de mission disponibles
    */
-  async getOrdresMissionDisponibles(): Promise<ApiResponse<ApiOrdreMission[]>> {
-    const response = await apiClient.get<ApiResponse<ApiOrdreMission[]>>('/ordres-mission-disponibles')
+  async getOrdresMissionDisponibles(filters?: OrdreMissionFilters): Promise<ApiResponse<ApiOrdreMission[]>> {
+    const queryString = filters ? buildQueryString(filters) : ''
+    const response = await apiClient.get<ApiResponse<ApiOrdreMission[]>>(`/ordres-mission-disponibles${queryString}`)
     return response.data
   }
 }

@@ -122,12 +122,22 @@
         </div>
       </div>
 
+      <!-- Filtres Interventions -->
+      <FilterBar
+        :show-statut="true"
+        :show-site="true"
+        :show-date-debut="true"
+        :show-date-fin="true"
+        :sites="sites"
+        @filter-change="handleFilterChange"
+      />
+
       <!-- Interventions en Cours -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Wrench :size="24" class="text-purple-600" />
-            Interventions en cours
+            Interventions en cours ({{ interventionsEnCours.length }})
           </h2>
         </div>
 
@@ -135,7 +145,8 @@
           <div
             v-for="intervention in interventionsEnCours"
             :key="intervention.id"
-            class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+            class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+            @click="router.push(`/interventions/${intervention.id}`)"
           >
             <div class="flex items-center justify-between">
               <div class="flex-1">
@@ -369,8 +380,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
+import FilterBar from '../components/common/FilterBar.vue'
 import { usePannes } from '@/composables/usePannes'
 import dashboardService from '@/services/dashboardService'
+import type { InterventionFilters } from '@/services/dashboardService'
 import { PrioritePanne, StatutPanne } from '@/types/api'
 import type { ApiAbonnement, ApiPanne, ApiIntervention, ApiSirene, ApiSite } from '@/types/api'
 import {
@@ -414,6 +427,8 @@ const stats = ref({
   interventionsTerminees: 0,
   tempsResolution: 0
 })
+
+const currentFilters = ref<InterventionFilters>({})
 
 // Computed
 const joursRestants = computed(() => {
@@ -491,6 +506,23 @@ const handleDeclarer = async () => {
   }
 }
 
+const handleFilterChange = async (filters: InterventionFilters) => {
+  currentFilters.value = filters
+  await loadInterventions()
+}
+
+const loadInterventions = async () => {
+  try {
+    // Charger les interventions en cours avec filtres
+    const interventionsResponse = await dashboardService.getInterventionsEnCours(currentFilters.value)
+    if (interventionsResponse.success && interventionsResponse.data) {
+      interventionsEnCours.value = interventionsResponse.data
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des interventions:', error)
+  }
+}
+
 const loadData = async () => {
   try {
     // Charger les pannes actives depuis l'API
@@ -500,10 +532,7 @@ const loadData = async () => {
     }
 
     // Charger les interventions en cours depuis l'API
-    const interventionsResponse = await dashboardService.getInterventionsEnCours()
-    if (interventionsResponse.success && interventionsResponse.data) {
-      interventionsEnCours.value = interventionsResponse.data
-    }
+    await loadInterventions()
 
     // Charger les statistiques depuis l'API
     const statsResponse = await dashboardService.getStatistiquesEcole()

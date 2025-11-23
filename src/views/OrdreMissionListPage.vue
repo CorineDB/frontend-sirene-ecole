@@ -23,19 +23,18 @@
       </div>
 
       <!-- Filters -->
+      <FilterBar
+        :show-ecole="showEcoleFilter"
+        :show-ville="true"
+        :show-priorite="true"
+        :ecoles="ecoles"
+        :villes="villes"
+        @filter-change="handleFilterChange"
+      />
+
+      <!-- Quick Actions -->
       <div class="bg-white rounded-xl border border-gray-200 p-4">
         <div class="flex gap-4 flex-wrap">
-          <select
-            v-model="filterStatut"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">Tous les statuts</option>
-            <option :value="StatutOrdreMission.EN_ATTENTE">En attente</option>
-            <option :value="StatutOrdreMission.EN_COURS">En cours</option>
-            <option :value="StatutOrdreMission.TERMINE">Terminé</option>
-            <option :value="StatutOrdreMission.CLOTURE">Clôturé</option>
-          </select>
-
           <button
             @click="showDisponibles"
             class="px-4 py-2 border border-green-300 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 font-semibold transition-colors"
@@ -45,10 +44,10 @@
           </button>
 
           <button
-            @click="resetFilters"
-            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-colors"
+            @click="showAllOrdres"
+            class="px-4 py-2 border border-blue-300 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 font-semibold transition-colors"
           >
-            Réinitialiser
+            Tous les ordres
           </button>
         </div>
       </div>
@@ -193,8 +192,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
+import FilterBar from '../components/common/FilterBar.vue'
 import { useOrdresMission } from '@/composables/useOrdresMission'
+import { useAuthStore } from '@/stores/authStore'
+import dashboardService from '@/services/dashboardService'
+import type { OrdreMissionFilters } from '@/services/dashboardService'
 import { StatutOrdreMission } from '@/types/api'
+import type { ApiVille, ApiEcole } from '@/types/api'
 import {
   Briefcase,
   FileText,
@@ -206,6 +210,7 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 // Composable
 const {
@@ -221,14 +226,19 @@ const {
 } = useOrdresMission()
 
 // Local state
-const filterStatut = ref<string>('all')
+const currentFilters = ref<OrdreMissionFilters>({})
+const villes = ref<ApiVille[]>([])
+const ecoles = ref<ApiEcole[]>([])
+const showingDisponibles = ref(false)
 
 // Computed
 const displayedOrdres = computed(() => {
-  if (filterStatut.value === 'all') {
-    return ordresMission.value
-  }
-  return ordresMission.value.filter(o => o.statut === filterStatut.value)
+  return ordresMission.value
+})
+
+// Show ecole filter only for Admin users
+const showEcoleFilter = computed(() => {
+  return authStore.user?.type === 'admin'
 })
 
 const statsCards = computed(() => [
@@ -263,14 +273,39 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const showDisponibles = async () => {
-  filterStatut.value = 'all'
-  await fetchDisponibles()
+const handleFilterChange = async (filters: OrdreMissionFilters) => {
+  currentFilters.value = filters
+  if (showingDisponibles.value) {
+    await loadDisponibles()
+  } else {
+    await loadAll()
+  }
 }
 
-const resetFilters = async () => {
-  filterStatut.value = 'all'
+const loadDisponibles = async () => {
+  try {
+    const response = await dashboardService.getOrdresMissionDisponibles(currentFilters.value)
+    if (response.success && response.data) {
+      ordresMission.value = response.data
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des ordres disponibles:', error)
+  }
+}
+
+const loadAll = async () => {
   await fetchAll()
+}
+
+const showDisponibles = async () => {
+  showingDisponibles.value = true
+  await loadDisponibles()
+}
+
+const showAllOrdres = async () => {
+  showingDisponibles.value = false
+  currentFilters.value = {}
+  await loadAll()
 }
 
 const handleCloturer = async (id: string) => {
@@ -279,7 +314,11 @@ const handleCloturer = async (id: string) => {
     const adminId = prompt('ID Admin:')
     if (adminId) {
       await cloturerCandidatures(id, adminId)
-      await fetchAll()
+      if (showingDisponibles.value) {
+        await loadDisponibles()
+      } else {
+        await loadAll()
+      }
     }
   }
 }
@@ -291,5 +330,7 @@ const handleViewDetails = (id: string) => {
 // Lifecycle
 onMounted(async () => {
   await fetchAll()
+  // TODO: Load villes and ecoles for filters
+  // These could come from dedicated endpoints or be loaded from stores
 })
 </script>
