@@ -475,12 +475,14 @@ import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, 
 import { Can } from '@/components/permissions'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
+import { useAuthStore } from '@/stores/auth'
 import programmationService from '@/services/programmationService'
 import sirenService from '@/services/sirenService'
 import type { ApiProgrammation, ApiSiren, HoraireSonnerie } from '@/types/api'
 
 const { loading, execute } = useAsyncAction()
 const notificationStore = useNotificationStore()
+const authStore = useAuthStore()
 
 const sirenes = ref<ApiSiren[]>([])
 const selectedSireneId = ref<string>('')
@@ -509,10 +511,20 @@ const joursMapping: Record<number, string> = {
 
 /**
  * Charger toutes les sirènes disponibles
+ * Pour les écoles: filtre automatiquement par ecole_id
  */
 const loadSirenes = async () => {
+  // Paramètres de base
+  const params: { per_page: number; ecole_id?: string } = { per_page: 1000 }
+
+  // Si utilisateur École, filtrer par son école
+  if (authStore.user?.user_account_type_type === 'App\\Models\\Ecole' && authStore.user?.user_account_type_id) {
+    params.ecole_id = authStore.user.user_account_type_id
+    console.log('Chargement sirènes programmables pour école:', params.ecole_id)
+  }
+
   const result = await execute(
-    () => sirenService.getSirensProgrammables({ per_page: 1000 }),
+    () => sirenService.getSirensProgrammables(params),
     { errorMessage: 'Impossible de charger les sirènes programmables' }
   )
 
@@ -520,6 +532,7 @@ const loadSirenes = async () => {
     // L'API retourne: { success: true, data: [...], pagination: {...} }
     if (Array.isArray(result.data)) {
       sirenes.value = result.data
+      console.log(`Sirènes programmables chargées: ${result.data.length}`)
     }
   }
 }
