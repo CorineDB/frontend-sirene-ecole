@@ -88,10 +88,12 @@ class SireneService {
 
   /**
    * Get sirenes installées (assigned to schools)
-   * Returns sirenes based on authenticated user (no params needed)
+   * Returns sirenes based on authenticated user
+   * Admin can filter by ecole_id (optional query parameter)
    */
-  async getSirenesInstallees(): Promise<ApiResponse<Sirene[]>> {
-    const response = await apiClient.get('/sirenes-installees')
+  async getSirenesInstallees(ecoleId?: string): Promise<ApiResponse<Sirene[]>> {
+    const params = ecoleId ? { ecole_id: ecoleId } : {}
+    const response = await apiClient.get('/sirenes-installees', { params })
     return response.data
   }
 
