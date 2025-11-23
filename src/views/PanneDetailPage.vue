@@ -360,7 +360,7 @@ const {
   isLoading: isLoadingPanne,
   hasError: hasErrorPanne,
   error: errorPanne,
-  fetchById,
+  fetchPanneById: fetchById,
   validerPanne,
   cloturerPanne
 } = usePannes()

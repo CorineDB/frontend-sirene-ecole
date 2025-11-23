@@ -103,7 +103,7 @@
       <template v-else>
         <!-- Bouton Modifier Calendrier -->
         <div class="flex justify-end mb-4">
-          <Can permission="manage_calendar">
+          <Can permission="modifier_calendrier_scolaire">
             <button
               @click="openEditCalendrierModal"
               class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -238,7 +238,7 @@
                   <div class="animate-spin w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full"></div>
                 </span>
               </h2>
-              <Can permission="manage_calendar">
+              <Can permission="creer_jour_ferie">
                 <button
                   @click="openAddJourFerieModal"
                   class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
@@ -266,7 +266,7 @@
                     >
                       {{ getJourFerieTypeLabel(jourFerie) }}
                     </span>
-                    <Can permission="manage_calendar">
+                    <Can permission="modifier_jour_ferie">
                       <button
                         @click="openEditJourFerieModal(jourFerie)"
                         class="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-100 rounded transition-all"
@@ -274,6 +274,8 @@
                       >
                         <Edit :size="14" class="text-blue-600" />
                       </button>
+                    </Can>
+                    <Can permission="supprimer_jour_ferie">
                       <button
                         @click="deleteJourFerie(jourFerie)"
                         class="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-all"
@@ -305,7 +307,7 @@
               <Palmtree :size="20" class="text-green-600" />
               Périodes de vacances
             </h2>
-            <Can permission="manage_calendar">
+            <Can permission="modifier_calendrier_scolaire">
               <button
                 @click="openEditPeriodesModal"
                 class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
