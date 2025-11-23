@@ -486,11 +486,19 @@ const workflowSteps = computed(() => [
 
 // Handle ordre_mission as array (from API) or single object (from composable)
 const currentOrdreMission = computed(() => {
+  // First check if panne has ordre_mission array (from API response)
+  if (panne.value?.ordre_mission && Array.isArray(panne.value.ordre_mission)) {
+    return panne.value.ordre_mission.length > 0 ? panne.value.ordre_mission[0] : null
+  }
+
+  // Otherwise check ordreMission from composable
   if (!ordreMission.value) return null
+
   // If it's an array, take the first element
   if (Array.isArray(ordreMission.value)) {
     return ordreMission.value.length > 0 ? ordreMission.value[0] : null
   }
+
   // If it's already an object, return it
   return ordreMission.value
 })
