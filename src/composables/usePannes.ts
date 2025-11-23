@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import panneService from '@/services/panneService'
+import type { PanneFilters } from '@/services/panneService'
 import ordreMissionService from '@/services/ordreMissionService'
 import type {
   ApiPanne,
@@ -53,13 +54,13 @@ export function usePannes() {
   // ==================== Pannes - CRUD ====================
 
   /**
-   * Charger toutes les pannes
+   * Charger toutes les pannes avec filtres optionnels
    */
-  const fetchAllPannes = async (perPage: number = 15) => {
+  const fetchAllPannes = async (filters?: PanneFilters) => {
     loading.value = true
     error.value = null
     try {
-      const response = await panneService.getAll(perPage)
+      const response = await panneService.getAll(filters)
       if (response.data?.data) {
         pannes.value = response.data.data
       }

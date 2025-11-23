@@ -30,34 +30,21 @@
       </div>
 
       <!-- Filters -->
+      <FilterBar
+        :show-statut="true"
+        :show-ecole="showEcoleFilter"
+        :show-site="true"
+        :show-priorite="true"
+        :show-date-debut="true"
+        :show-date-fin="true"
+        :ecoles="ecoles"
+        :sites="sites"
+        @filter-change="handleFilterChange"
+      />
+
+      <!-- Quick Actions -->
       <div class="bg-white rounded-xl border border-gray-200 p-4">
         <div class="flex gap-4 flex-wrap">
-          <select
-            v-model="filterStatus"
-            @change="handleFilterChange"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">Tous les statuts</option>
-            <option :value="StatutPanne.DECLAREE">Déclarée</option>
-            <option :value="StatutPanne.VALIDEE">Validée</option>
-            <option :value="StatutPanne.ASSIGNEE">Assignée</option>
-            <option :value="StatutPanne.EN_COURS">En cours</option>
-            <option :value="StatutPanne.RESOLUE">Résolue</option>
-            <option :value="StatutPanne.CLOTUREE">Clôturée</option>
-          </select>
-
-          <select
-            v-model="filterPriorite"
-            @change="handleFilterChange"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">Toutes les priorités</option>
-            <option :value="PrioritePanne.BASSE">Basse</option>
-            <option :value="PrioritePanne.MOYENNE">Moyenne</option>
-            <option :value="PrioritePanne.HAUTE">Haute</option>
-            <option :value="PrioritePanne.URGENTE">Urgente</option>
-          </select>
-
           <button
             @click="showUrgentOnly"
             class="px-4 py-2 border border-red-300 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 font-semibold transition-colors"
@@ -67,10 +54,10 @@
           </button>
 
           <button
-            @click="resetFilters"
-            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-colors"
+            @click="showNonCloturees"
+            class="px-4 py-2 border border-blue-300 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 font-semibold transition-colors"
           >
-            Réinitialiser
+            Pannes actives
           </button>
         </div>
       </div>
@@ -168,7 +155,7 @@
         <AlertCircle :size="64" class="text-gray-300 mx-auto mb-4" />
         <h3 class="text-lg font-semibold text-gray-900 mb-2">Aucune panne trouvée</h3>
         <p class="text-gray-600">
-          {{ filterStatus !== 'all' || filterPriorite !== 'all'
+          {{ Object.keys(currentFilters).length > 0
             ? 'Aucune panne ne correspond à vos critères'
             : 'Aucune panne n\'a été signalée' }}
         </p>
@@ -294,8 +281,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
+import FilterBar from '../components/common/FilterBar.vue'
 import { usePannes } from '@/composables/usePannes'
+import type { PanneFilters } from '@/services/panneService'
 import { StatutPanne, PrioritePanne } from '@/types/api'
+import type { ApiEcole, ApiSite } from '@/types/api'
 import sireneService from '@/services/sireneService'
 import type { Sirene } from '@/services/sireneService'
 import { useAuthStore } from '@/stores/auth'
@@ -328,10 +318,11 @@ const {
 } = usePannes()
 
 // Local state
-const filterStatus = ref<string>('all')
-const filterPriorite = ref<string>('all')
+const currentFilters = ref<PanneFilters>({})
 const showDeclarationModal = ref(false)
 const sirenes = ref<Sirene[]>([])
+const ecoles = ref<ApiEcole[]>([])
+const sites = ref<ApiSite[]>([])
 
 // Form state for declaration
 const declarationForm = ref({
@@ -342,18 +333,12 @@ const declarationForm = ref({
 })
 
 // Computed
+const showEcoleFilter = computed(() => {
+  return authStore.user?.type === 'admin'
+})
+
 const displayedPannes = computed(() => {
-  let result = pannes.value
-
-  if (filterStatus.value !== 'all') {
-    result = result.filter(p => p.statut === filterStatus.value)
-  }
-
-  if (filterPriorite.value !== 'all') {
-    result = result.filter(p => p.priorite === filterPriorite.value)
-  }
-
-  return result
+  return pannes.value
 })
 
 const statsCards = computed(() => [
@@ -413,27 +398,19 @@ const formatTime = (dateString: string) => {
   return new Date(dateString).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 
-const handleFilterChange = async () => {
-  if (filterStatus.value !== 'all' && filterPriorite.value === 'all') {
-    await fetchPannesByStatut(filterStatus.value)
-  } else if (filterPriorite.value !== 'all' && filterStatus.value === 'all') {
-    await fetchPannesByPriorite(filterPriorite.value)
-  } else if (filterStatus.value === 'all' && filterPriorite.value === 'all') {
-    await fetchAllPannes()
-  }
-  // Si les deux filtres sont actifs, on utilise le computed displayedPannes
+const handleFilterChange = async (filters: PanneFilters) => {
+  currentFilters.value = filters
+  await fetchAllPannes(filters)
 }
 
 const showUrgentOnly = async () => {
-  filterPriorite.value = PrioritePanne.URGENTE
-  filterStatus.value = 'all'
-  await fetchPannesByPriorite(PrioritePanne.URGENTE)
+  currentFilters.value = { priorite: PrioritePanne.URGENTE }
+  await fetchAllPannes(currentFilters.value)
 }
 
-const resetFilters = async () => {
-  filterStatus.value = 'all'
-  filterPriorite.value = 'all'
-  await fetchAllPannes()
+const showNonCloturees = async () => {
+  currentFilters.value = { est_cloture: false }
+  await fetchAllPannes(currentFilters.value)
 }
 
 const handleValider = async (panneId: string) => {

@@ -9,6 +9,38 @@ import type {
 } from '@/types/api'
 
 /**
+ * Filtres pour les pannes
+ */
+export interface PanneFilters {
+  ecole_id?: string
+  site_id?: string
+  sirene_id?: string
+  statut?: string // en_attente, validee, en_cours, resolue, rejetee, cloturee
+  priorite?: string // faible, moyenne, haute, urgente
+  date_debut?: string // Format: YYYY-MM-DD
+  date_fin?: string // Format: YYYY-MM-DD
+  est_cloture?: boolean
+  per_page?: number
+}
+
+/**
+ * Helper pour construire les query parameters
+ */
+function buildQueryString(filters: Record<string, any>): string {
+  const params = new URLSearchParams()
+
+  Object.keys(filters).forEach(key => {
+    const value = filters[key]
+    if (value !== undefined && value !== null && value !== '') {
+      params.append(key, String(value))
+    }
+  })
+
+  const queryString = params.toString()
+  return queryString ? `?${queryString}` : ''
+}
+
+/**
  * Service de gestion des pannes
  */
 class PanneService {
@@ -40,10 +72,11 @@ class PanneService {
   }
 
   /**
-   * Lister toutes les pannes
+   * Lister toutes les pannes avec filtres optionnels
    */
-  async getAll(perPage: number = 15): Promise<ApiPannesListResponse> {
-    const response = await apiClient.get(`/pannes?per_page=${perPage}`)
+  async getAll(filters?: PanneFilters): Promise<ApiPannesListResponse> {
+    const queryString = filters ? buildQueryString(filters) : '?per_page=15'
+    const response = await apiClient.get(`/pannes${queryString}`)
     return response.data
   }
 
@@ -82,8 +115,9 @@ class PanneService {
   /**
    * Obtenir les pannes par priorité
    */
-  async getByPriorite(priorite: string): Promise<ApiPannesListResponse> {
-    const response = await apiClient.get(`/pannes/priorite/${priorite}`)
+  async getByPriorite(priorite: string, perPage?: number): Promise<ApiPannesListResponse> {
+    const queryString = perPage ? `?per_page=${perPage}` : ''
+    const response = await apiClient.get(`/pannes/priorite/${priorite}${queryString}`)
     return response.data
   }
 }
