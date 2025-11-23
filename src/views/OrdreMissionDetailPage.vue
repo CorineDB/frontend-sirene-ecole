@@ -446,8 +446,11 @@ const hasIntervenants = computed(() => intervenants.value.length > 0)
 
 // Check if candidatures period is currently active
 const isCandidaturesEnCours = computed(() => {
-  console.log(ordreMission.value);
-  if (!ordreMission.value) return false
+  console.log('OrdreMission:', ordreMission.value)
+  if (!ordreMission.value) {
+    console.log('isCandidaturesEnCours: pas d\'ordre de mission')
+    return false
+  }
 
   const now = new Date()
   const dateDebut = ordreMission.value.date_debut_candidature
@@ -457,16 +460,32 @@ const isCandidaturesEnCours = computed(() => {
     ? new Date(ordreMission.value.date_fin_candidature)
     : null
 
-  if ((!dateDebut || !dateFin) && ordreMission.value.date_cloture_candidature != null) return false
+  console.log('Dates candidatures:', {
+    now: now.toISOString(),
+    dateDebut: dateDebut?.toISOString(),
+    dateFin: dateFin?.toISOString(),
+    dateCloture: ordreMission.value.date_cloture_candidature,
+    isInRange: dateDebut && dateFin ? (now >= dateDebut && now <= dateFin) : false
+  })
 
-  else if ((!dateDebut || !dateFin) && ordreMission.value.date_cloture_candidature == null) return true
+  if ((!dateDebut || !dateFin) && ordreMission.value.date_cloture_candidature != null) {
+    console.log('isCandidaturesEnCours: candidatures clôturées')
+    return false
+  }
+
+  else if ((!dateDebut || !dateFin) && ordreMission.value.date_cloture_candidature == null) {
+    console.log('isCandidaturesEnCours: pas de dates mais pas de clôture => ouvert')
+    return true
+  }
 
   return now >= dateDebut && now <= dateFin
 })
 
 // Check if user is a technicien
 const isTechnicien = computed(() => {
-  return authStore.user?.type === 'TECHNICIEN' && authStore.user?.user_account_type_type === "App\\Models\\Technicien"
+  const result = authStore.user?.type === 'TECHNICIEN' && authStore.user?.user_account_type_type === "App\\Models\\Technicien"
+  console.log('isTechnicien:', result, 'user type:', authStore.user?.type, 'user_account_type_type:', authStore.user?.user_account_type_type)
+  return result
 })
 
 // Check if user is a admin
@@ -516,20 +535,19 @@ const handleRetirerCandidature = async () => {
 
 // Check if technicien can apply (is technicien and candidatures are open)
 const canPostuler = computed(() => {
-  //return isTechnicien.value && isCandidaturesEnCours.value
-  return isTechnicien.value &&
+  const result = isTechnicien.value &&
     isCandidaturesEnCours.value &&
     !hasSubmittedOffer.value
+  console.log('canPostuler:', result, '(isTechnicien:', isTechnicien.value, ', isCandidaturesEnCours:', isCandidaturesEnCours.value, ', hasSubmittedOffer:', hasSubmittedOffer.value, ')')
+  return result
 })
 
-// Check if technicien can apply (is technicien and candidatures are open)
+// Check if admin can close candidatures
 const canClosed = computed(() => {
-  //return isTechnicien.value && isCandidaturesEnCours.value
   return isAdmin.value &&
     isCandidaturesEnCours.value &&
-    !ordreMission.value.candidature_cloturee &&
-    !(ordreMission.statut === StatutOrdreMission.EN_ATTENTE || ordreMission.statut === StatutOrdreMission.EN_COURS)
-
+    !ordreMission.value?.candidature_cloturee &&
+    !(ordreMission.value?.statut === StatutOrdreMission.EN_ATTENTE || ordreMission.value?.statut === StatutOrdreMission.EN_COURS)
 })
 
 // Methods
