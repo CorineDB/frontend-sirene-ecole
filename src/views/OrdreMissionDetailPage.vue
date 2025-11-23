@@ -375,6 +375,7 @@ import StatusBadge from '../components/common/StatusBadge.vue'
 import { useOrdresMission } from '@/composables/useOrdresMission'
 import { useInterventions } from '@/composables/useInterventions'
 import { useAuthStore } from '@/stores/auth'
+import interventionService from '@/services/interventionService'
 import { StatutOrdreMission } from '@/types/api'
 import {
   ArrowLeft,
@@ -524,23 +525,23 @@ const handleRefuserCandidature = async (missionTechnicienId: string) => {
 const handlePostuler = async () => {
   if (!ordreMission.value || !authStore.user) return
 
-  const message = prompt('Message pour votre candidature (optionnel):')
-  if (message === null) return // User cancelled
+  if (!confirm('Voulez-vous soumettre votre candidature pour cet ordre de mission ?')) {
+    return
+  }
 
   try {
-    // TODO: Implement API call to submit candidature
-    // await soumettreCondidature(ordreMission.value.id, {
-    //   technicien_id: authStore.user.id,
-    //   message: message || ''
-    // })
+    await interventionService.soumettreCandidature(ordreMission.value.id, {
+      technicien_id: authStore.user.id
+    })
 
     alert('Candidature soumise avec succès!')
     // Refresh data
     await fetchCandidatures(route.params.id as string)
     await fetchById(route.params.id as string)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la soumission de la candidature:', error)
-    alert('Erreur lors de la soumission de la candidature')
+    const errorMessage = error?.response?.data?.message || 'Erreur lors de la soumission de la candidature'
+    alert(errorMessage)
   }
 }
 
