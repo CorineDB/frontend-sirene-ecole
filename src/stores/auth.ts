@@ -302,11 +302,13 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('✓ /me request succeeded!')
       console.log('Raw response from /me:', userData)
 
-      // L'API me() peut retourner directement l'utilisateur ou dans data
-      const apiUser = userData.data || userData
+      // L'API me() retourne { success: true, data: { user: {...} } }
+      const apiUser = userData.data?.user || userData.data || userData
       console.log('apiUser extracted:', apiUser)
       console.log('apiUser.type:', apiUser?.type)
       console.log('apiUser.role:', apiUser?.role)
+      console.log('apiUser.user_account_type_type:', apiUser?.user_account_type_type)
+      console.log('apiUser.user_account_type_id:', apiUser?.user_account_type_id)
 
       const transformedUser = transformApiUser(apiUser)
       console.log('transformedUser:', transformedUser)
