@@ -88,10 +88,10 @@ class SireneService {
 
   /**
    * Get sirenes installées (assigned to schools)
+   * Returns sirenes based on authenticated user (no params needed)
    */
-  async getSirenesInstallees(ecoleId?: string): Promise<ApiResponse<Sirene[]>> {
-    const params = ecoleId ? { ecole_id: ecoleId } : {}
-    const response = await apiClient.get('/sirenes-installees', { params })
+  async getSirenesInstallees(): Promise<ApiResponse<Sirene[]>> {
+    const response = await apiClient.get('/sirenes-installees')
     return response.data
   }
 

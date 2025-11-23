@@ -491,16 +491,12 @@ onMounted(async () => {
   await fetchAllPannes()
 
   // Charger les sirènes installées pour le formulaire de déclaration
+  // L'endpoint retourne automatiquement les sirènes selon l'utilisateur authentifié
   try {
-    // Si utilisateur École, charger uniquement ses sirènes
-    const ecoleId = authStore.user?.user_account_type_type === 'App\\Models\\Ecole'
-      ? authStore.user.user_account_type_id
-      : undefined
-
-    const response = await sireneService.getSirenesInstallees(ecoleId)
+    const response = await sireneService.getSirenesInstallees()
     if (response.success && response.data) {
       sirenes.value = response.data
-      console.log(`Sirènes installées chargées: ${response.data.length}${ecoleId ? ` (école: ${ecoleId})` : ' (toutes)'}`)
+      console.log(`Sirènes installées chargées: ${response.data.length}`)
     }
   } catch (err) {
     console.error('Erreur lors du chargement des sirènes installées:', err)
