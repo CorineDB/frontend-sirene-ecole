@@ -298,6 +298,7 @@ import { usePannes } from '@/composables/usePannes'
 import { StatutPanne, PrioritePanne } from '@/types/api'
 import sireneService from '@/services/sireneService'
 import type { Sirene } from '@/services/sireneService'
+import { useAuthStore } from '@/stores/auth'
 import {
   AlertCircle,
   AlertTriangle,
@@ -308,6 +309,7 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 // Composable
 const {
@@ -488,14 +490,20 @@ const handleDeclarer = async () => {
 onMounted(async () => {
   await fetchAllPannes()
 
-  // Charger les sirènes pour le formulaire de déclaration
+  // Charger les sirènes installées pour le formulaire de déclaration
   try {
-    const response = await sireneService.getAllSirenes()
+    // Si utilisateur École, charger uniquement ses sirènes
+    const ecoleId = authStore.user?.user_account_type_type === 'App\\Models\\Ecole'
+      ? authStore.user.user_account_type_id
+      : undefined
+
+    const response = await sireneService.getSirenesInstallees(ecoleId)
     if (response.success && response.data) {
       sirenes.value = response.data
+      console.log(`Sirènes installées chargées: ${response.data.length}${ecoleId ? ` (école: ${ecoleId})` : ' (toutes)'}`)
     }
   } catch (err) {
-    console.error('Erreur lors du chargement des sirènes:', err)
+    console.error('Erreur lors du chargement des sirènes installées:', err)
   }
 })
 </script>
