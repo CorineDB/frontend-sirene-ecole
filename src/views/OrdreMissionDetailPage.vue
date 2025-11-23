@@ -152,7 +152,7 @@
         </div>
 
         <!-- Intervenants Section -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <div v-if="!isCandidaturesEnCours" class="bg-white rounded-xl border border-gray-200 p-6">
           <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Users :size="24" class="text-blue-600" />
             Intervenants ({{ intervenants.length }})
@@ -198,7 +198,7 @@
         </div>
 
         <!-- Interventions Section -->
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <div v-if="!isCandidaturesEnCours" class="bg-white rounded-xl border border-gray-200 p-6">
           <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Wrench :size="24" class="text-orange-600" />
             Interventions ({{ interventions.length }})
@@ -208,8 +208,7 @@
             <div
               v-for="intervention in interventions"
               :key="intervention.id"
-              class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-              @click="router.push(`/interventions/${intervention.id}`)"
+              class="border border-gray-200 rounded-lg p-4"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
@@ -246,14 +245,6 @@
                     {{ intervention.instructions }}
                   </p>
                 </div>
-
-                <button
-                  @click.stop="router.push(`/interventions/${intervention.id}`)"
-                  class="ml-4 px-3 py-1 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold transition-colors flex items-center gap-2"
-                >
-                  <ExternalLink :size="14" />
-                  Détails
-                </button>
               </div>
             </div>
           </div>
@@ -272,6 +263,17 @@
             </h2>
 
             <div class="flex gap-2">
+              <!-- Bouton Postuler pour techniciens -->
+              <button
+                v-if="canPostuler"
+                @click="handlePostuler"
+                class="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+              >
+                <User :size="16" />
+                Postuler
+              </button>
+
+              <!-- Boutons Admin -->
               <button
                 v-if="ordreMission.statut === StatutOrdreMission.EN_ATTENTE || ordreMission.statut === StatutOrdreMission.EN_COURS"
                 @click="handleCloturerCandidatures"
@@ -372,6 +374,7 @@ import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import { useOrdresMission } from '@/composables/useOrdresMission'
 import { useInterventions } from '@/composables/useInterventions'
+import { useAuthStore } from '@/stores/auth'
 import { StatutOrdreMission } from '@/types/api'
 import {
   ArrowLeft,
@@ -391,6 +394,7 @@ import {
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 
 // Composables
 const {
@@ -427,6 +431,33 @@ const intervenants = computed(() => {
 
 const hasInterventions = computed(() => interventions.value.length > 0)
 const hasIntervenants = computed(() => intervenants.value.length > 0)
+
+// Check if candidatures period is currently active
+const isCandidaturesEnCours = computed(() => {
+  if (!ordreMission.value) return false
+
+  const now = new Date()
+  const dateDebut = ordreMission.value.date_debut_candidature
+    ? new Date(ordreMission.value.date_debut_candidature)
+    : null
+  const dateFin = ordreMission.value.date_fin_candidature
+    ? new Date(ordreMission.value.date_fin_candidature)
+    : null
+
+  if (!dateDebut || !dateFin) return false
+
+  return now >= dateDebut && now <= dateFin
+})
+
+// Check if user is a technicien
+const isTechnicien = computed(() => {
+  return authStore.user?.type === 'technicien'
+})
+
+// Check if technicien can apply (is technicien and candidatures are open)
+const canPostuler = computed(() => {
+  return isTechnicien.value && isCandidaturesEnCours.value
+})
 
 // Methods
 const formatDate = (dateString: string) => {
@@ -487,6 +518,29 @@ const handleRefuserCandidature = async (missionTechnicienId: string) => {
     } catch (err) {
       console.error('Error refusing candidature:', err)
     }
+  }
+}
+
+const handlePostuler = async () => {
+  if (!ordreMission.value || !authStore.user) return
+
+  const message = prompt('Message pour votre candidature (optionnel):')
+  if (message === null) return // User cancelled
+
+  try {
+    // TODO: Implement API call to submit candidature
+    // await soumettreCondidature(ordreMission.value.id, {
+    //   technicien_id: authStore.user.id,
+    //   message: message || ''
+    // })
+
+    alert('Candidature soumise avec succès!')
+    // Refresh data
+    await fetchCandidatures(route.params.id as string)
+    await fetchById(route.params.id as string)
+  } catch (error) {
+    console.error('Erreur lors de la soumission de la candidature:', error)
+    alert('Erreur lors de la soumission de la candidature')
   }
 }
 
