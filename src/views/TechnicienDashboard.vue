@@ -196,7 +196,8 @@ import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import { useInterventions } from '@/composables/useInterventions'
-import type { ApiIntervention, ApiMissionTechnicien } from '@/types/api'
+import dashboardService from '@/services/dashboardService'
+import type { ApiIntervention, ApiMissionTechnicien, ApiOrdreMission } from '@/types/api'
 import {
   Calendar,
   Briefcase,
@@ -212,8 +213,6 @@ const router = useRouter()
 
 // Composable
 const {
-  fetchDuJour,
-  fetchAVenir,
   demarrer
 } = useInterventions()
 
@@ -286,16 +285,53 @@ const handleDemarrer = async (interventionId: string) => {
 }
 
 const loadInterventionsDuJour = async () => {
-  const response = await fetchDuJour()
-  if (response?.success && response.data?.data) {
-    interventionsDuJour.value = response.data.data
+  try {
+    const response = await dashboardService.getInterventionsDuJour()
+    if (response.success && response.data) {
+      interventionsDuJour.value = response.data
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des interventions du jour:', error)
   }
 }
 
 const loadInterventionsAVenir = async () => {
-  const response = await fetchAVenir()
-  if (response?.success && response.data?.data) {
-    interventionsAVenir.value = response.data.data
+  try {
+    const response = await dashboardService.getInterventionsAVenir()
+    if (response.success && response.data) {
+      interventionsAVenir.value = response.data
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des interventions à venir:', error)
+  }
+}
+
+const loadStatistiques = async () => {
+  try {
+    const response = await dashboardService.getStatistiquesTechnicien()
+    if (response.success && response.data) {
+      stats.value = {
+        interventionsTerminees: response.data.interventions_terminees || 0,
+        tauxReussite: response.data.taux_reussite || 0,
+        rapportsRediges: response.data.interventions_terminees || 0, // Approximation
+        notemoyenne: response.data.note_moyenne || 0
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des statistiques:', error)
+  }
+}
+
+const loadOrdresMissionDisponibles = async () => {
+  try {
+    const response = await dashboardService.getOrdresMissionDisponibles()
+    if (response.success && response.data) {
+      // Pour l'instant, on affiche les ordres de mission disponibles
+      // Les candidatures en attente devraient venir d'un autre endpoint
+      candidaturesEnAttente.value = []
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des ordres de mission:', error)
   }
 }
 
@@ -303,18 +339,9 @@ const loadInterventionsAVenir = async () => {
 onMounted(async () => {
   await Promise.all([
     loadInterventionsDuJour(),
-    loadInterventionsAVenir()
+    loadInterventionsAVenir(),
+    loadStatistiques(),
+    loadOrdresMissionDisponibles()
   ])
-
-  // Mock stats - in real app would fetch from API
-  stats.value = {
-    interventionsTerminees: 24,
-    tauxReussite: 92,
-    rapportsRediges: 24,
-    notemoyenne: 4.5
-  }
-
-  // Mock candidatures - in real app would fetch from API
-  candidaturesEnAttente.value = []
 })
 </script>

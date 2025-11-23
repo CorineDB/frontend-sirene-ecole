@@ -370,6 +370,7 @@ import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import { usePannes } from '@/composables/usePannes'
+import dashboardService from '@/services/dashboardService'
 import { PrioritePanne, StatutPanne } from '@/types/api'
 import type { ApiAbonnement, ApiPanne, ApiIntervention, ApiSirene, ApiSite } from '@/types/api'
 import {
@@ -491,19 +492,34 @@ const handleDeclarer = async () => {
 }
 
 const loadData = async () => {
-  // In real app: fetch data from API
-  // Mock data for now
-  abonnementActif.value = null
-  pannesActives.value = []
-  interventionsEnCours.value = []
-  sirenes.value = []
-  sites.value = []
+  try {
+    // Charger les pannes actives depuis l'API
+    const pannesResponse = await dashboardService.getPannesActives()
+    if (pannesResponse.success && pannesResponse.data) {
+      pannesActives.value = pannesResponse.data
+    }
 
-  stats.value = {
-    totalPannes: 12,
-    pannesResolues: 10,
-    interventionsTerminees: 10,
-    tempsResolution: 3
+    // Charger les interventions en cours depuis l'API
+    const interventionsResponse = await dashboardService.getInterventionsEnCours()
+    if (interventionsResponse.success && interventionsResponse.data) {
+      interventionsEnCours.value = interventionsResponse.data
+    }
+
+    // Charger les statistiques depuis l'API
+    const statsResponse = await dashboardService.getStatistiquesEcole()
+    if (statsResponse.success && statsResponse.data) {
+      stats.value = {
+        totalPannes: statsResponse.data.total_pannes || 0,
+        pannesResolues: statsResponse.data.pannes_resolues || 0,
+        interventionsTerminees: statsResponse.data.interventions_terminees || 0,
+        tempsResolution: statsResponse.data.temps_resolution_moyen || 0
+      }
+    }
+
+    // TODO: Charger les sirènes, sites et abonnement (utiliser les services existants)
+    // Ces endpoints existent déjà dans ecoleService
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error)
   }
 }
 
