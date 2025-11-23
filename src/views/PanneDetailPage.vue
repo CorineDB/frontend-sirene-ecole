@@ -484,11 +484,18 @@ const workflowSteps = computed(() => [
   { status: StatutPanne.CLOTUREE, label: 'Clôturée', icon: CheckCircle }
 ])
 
-// Handle ordre_mission as array (from API) or single object (from composable)
+// Handle ordre_mission as array or object (from API) or from composable
 const currentOrdreMission = computed(() => {
-  // First check if panne has ordre_mission array (from API response)
-  if (panne.value?.ordre_mission && Array.isArray(panne.value.ordre_mission)) {
-    return panne.value.ordre_mission.length > 0 ? panne.value.ordre_mission[0] : null
+  // First check if panne has ordre_mission (from API response)
+  if (panne.value?.ordre_mission) {
+    // If it's an array, take the first element
+    if (Array.isArray(panne.value.ordre_mission)) {
+      return panne.value.ordre_mission.length > 0 ? panne.value.ordre_mission[0] : null
+    }
+    // If it's an object, return it directly
+    if (typeof panne.value.ordre_mission === 'object' && panne.value.ordre_mission !== null) {
+      return panne.value.ordre_mission
+    }
   }
 
   // Otherwise check ordreMission from composable
