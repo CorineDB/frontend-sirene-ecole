@@ -103,13 +103,15 @@
       <template v-else>
         <!-- Bouton Modifier Calendrier -->
         <div class="flex justify-end mb-4">
-          <button
-            @click="openEditCalendrierModal"
-            class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Edit :size="16" />
-            Modifier le calendrier
-          </button>
+          <Can permission="manage_calendar">
+            <button
+              @click="openEditCalendrierModal"
+              class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Edit :size="16" />
+              Modifier le calendrier
+            </button>
+          </Can>
         </div>
 
         <!-- Statistiques -->
@@ -236,13 +238,15 @@
                   <div class="animate-spin w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full"></div>
                 </span>
               </h2>
-              <button
-                @click="openAddJourFerieModal"
-                class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
-              >
-                <Plus :size="14" />
-                Ajouter
-              </button>
+              <Can permission="manage_calendar">
+                <button
+                  @click="openAddJourFerieModal"
+                  class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                >
+                  <Plus :size="14" />
+                  Ajouter
+                </button>
+              </Can>
             </div>
             <div class="space-y-3 max-h-96 overflow-y-auto">
               <div
@@ -262,20 +266,22 @@
                     >
                       {{ getJourFerieTypeLabel(jourFerie) }}
                     </span>
-                    <button
-                      @click="openEditJourFerieModal(jourFerie)"
-                      class="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-100 rounded transition-all"
-                      title="Modifier"
-                    >
-                      <Edit :size="14" class="text-blue-600" />
-                    </button>
-                    <button
-                      @click="deleteJourFerie(jourFerie)"
-                      class="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-all"
-                      title="Supprimer"
-                    >
-                      <Trash2 :size="14" class="text-red-600" />
-                    </button>
+                    <Can permission="manage_calendar">
+                      <button
+                        @click="openEditJourFerieModal(jourFerie)"
+                        class="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-100 rounded transition-all"
+                        title="Modifier"
+                      >
+                        <Edit :size="14" class="text-blue-600" />
+                      </button>
+                      <button
+                        @click="deleteJourFerie(jourFerie)"
+                        class="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-all"
+                        title="Supprimer"
+                      >
+                        <Trash2 :size="14" class="text-red-600" />
+                      </button>
+                    </Can>
                   </div>
                 </div>
                 <div v-if="jourFerie.recurrent" class="mt-2">
@@ -299,13 +305,15 @@
               <Palmtree :size="20" class="text-green-600" />
               Périodes de vacances
             </h2>
-            <button
-              @click="openEditPeriodesModal"
-              class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
-            >
-              <Edit :size="14" />
-              Modifier
-            </button>
+            <Can permission="manage_calendar">
+              <button
+                @click="openEditPeriodesModal"
+                class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+              >
+                <Edit :size="14" />
+                Modifier
+              </button>
+            </Can>
           </div>
           <div class="space-y-3">
             <div
@@ -543,6 +551,7 @@ import paysService, { type Pays } from '../services/paysService'
 import jourFerieService from '../services/jourFerieService'
 import { useNotificationStore } from '../stores/notifications'
 import { useAuthStore } from '../stores/auth'
+import { Can } from '../components/permissions'
 
 const notificationStore = useNotificationStore()
 const authStore = useAuthStore()
