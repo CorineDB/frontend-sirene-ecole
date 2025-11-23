@@ -1,0 +1,304 @@
+<?php
+
+namespace App\Services;
+
+use App\Repositories\Contracts\CalendrierScolaireRepositoryInterface;
+use App\Repositories\Contracts\JourFerieRepositoryInterface;
+use App\Services\Contracts\CalendrierScolaireServiceInterface;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Exception;
+
+class CalendrierScolaireService extends BaseService implements CalendrierScolaireServiceInterface
+{
+    protected $jourFerieRepository;
+
+    public function __construct(CalendrierScolaireRepositoryInterface $repository, JourFerieRepositoryInterface $jourFerieRepository)
+    {
+        parent::__construct($repository);
+        $this->jourFerieRepository = $jourFerieRepository;
+    }
+
+    public function create(array $data): JsonResponse
+    {
+        try {
+            DB::beginTransaction();
+
+            // Extraire les jours fériés pour les créer dans la table jours_feries
+            $joursFeriesData = $data['jours_feries_defaut'] ?? [];
+
+            // Filtrer uniquement les jours fériés nationaux pour le champ JSON
+            $joursFeriesNationaux = [];
+            if (!empty($joursFeriesData)) {
+                foreach ($joursFeriesData as $jourFerie) {
+                    if (isset($jourFerie['est_national']) && $jourFerie['est_national']) {
+                        $joursFeriesNationaux[] = $jourFerie;
+                    }
+                }
+            }
+
+            // Mettre à jour le champ jours_feries_defaut avec uniquement les jours nationaux
+            $data['jours_feries_defaut'] = $joursFeriesNationaux;
+
+            // Créer le calendrier scolaire avec jours_feries_defaut
+            $calendrierScolaire = $this->repository->create($data);
+
+            // Créer tous les jours fériés (nationaux ET spécifiques) dans la table jours_feries
+            if (!empty($joursFeriesData)) {
+                foreach ($joursFeriesData as $jourFerieData) {
+                    $jourFerieData['calendrier_id'] = $calendrierScolaire->id;
+                    $jourFerieData['intitule_journee'] = $jourFerieData['nom'];
+                    unset($jourFerieData['nom']);
+                    $this->jourFerieRepository->create($jourFerieData);
+                }
+            }
+
+            DB::commit();
+            return $this->createdResponse($calendrierScolaire->load('joursFeries'));
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error("Error in " . get_class($this) . "::create - " . $e->getMessage());
+            return $this->errorResponse($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Store multiple public holidays for a specific school calendar.
+     *
+     * @param string $calendrierScolaireId
+     * @param array $joursFeriesData
+     * @return JsonResponse
+     */
+    public function storeMultipleJoursFeries(string $calendrierScolaireId, array $joursFeriesData): JsonResponse
+    {
+        try {
+            $processedJoursFeries = collect();
+
+            foreach ($joursFeriesData as $data) {
+                $data['calendrier_id'] = $calendrierScolaireId;
+                // Ensure 'est_national' is set if not provided
+                if (!isset($data['est_national'])) {
+                    $data['est_national'] = false;
+                }
+
+                if (isset($data['id'])) {
+                    // Attempt to update if ID is provided
+                    $jourFerie = $this->jourFerieRepository->update($data['id'], $data);
+                } else {
+                    // Create new if no ID
+                    $jourFerie = $this->jourFerieRepository->create($data);
+                }
+                $processedJoursFeries->push($jourFerie);
+            }
+
+            return $this->successResponse(null, $processedJoursFeries);
+        } catch (\Exception $e) {
+            Log::error("Error in " . get_class($this) . "::storeMultipleJoursFeries - " . $e->getMessage());
+            return $this->errorResponse($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Update multiple public holidays for a specific school calendar.
+     *
+     * @param string $calendrierScolaireId
+     * @param array $joursFeriesData
+     * @return JsonResponse
+     */
+    public function updateMultipleJoursFeries(string $calendrierScolaireId, array $joursFeriesData): JsonResponse
+    {
+        try {
+            $processedJoursFeries = collect();
+
+            foreach ($joursFeriesData as $data) {
+                if (!isset($data['id'])) {
+                    return $this->errorResponse('ID is required for updating public holidays.', 422);
+                }
+                $data['calendrier_id'] = $calendrierScolaireId;
+                // Ensure 'est_national' is set if not provided
+                if (!isset($data['est_national'])) {
+                    $data['est_national'] = false;
+                }
+
+                $jourFerie = $this->jourFerieRepository->update($data['id'], $data);
+                $processedJoursFeries->push($jourFerie);
+            }
+
+            return $this->successResponse(null, $processedJoursFeries);
+        } catch (\Exception $e) {
+            Log::error("Error in " . get_class($this) . "::updateMultipleJoursFeries - " . $e->getMessage());
+            return $this->errorResponse($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get all public holidays associated with a specific school calendar.
+     *
+     * @param string $calendrierScolaireId The ID of the school calendar.
+     * @return JsonResponse
+     */
+    public function getJoursFeries(string $calendrierScolaireId): JsonResponse
+    {
+        try {
+            $calendrierScolaire = $this->repository->find($calendrierScolaireId, relations: ['joursFeries']);
+
+            if (!$calendrierScolaire) {
+                return $this->notFoundResponse('School calendar not found.');
+            }
+
+            return $this->successResponse(null, $calendrierScolaire->joursFeries);
+        } catch (\Exception $e) {
+            Log::error("Error in " . get_class($this) . "::getJoursFeries - " . $e->getMessage());
+            return $this->errorResponse($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Calculate the number of school days for a given school calendar, excluding weekends, holidays, and vacation periods.
+     *
+     * @param string $calendrierScolaireId The ID of the school calendar.
+     * @param string|null $ecoleId The ID of the school (optional).
+     * @return JsonResponse
+     */
+    public function calculateSchoolDays(string $calendrierScolaireId, string $ecoleId = null): JsonResponse
+    {
+        try {
+            $calendrierScolaire = $this->repository->find($calendrierScolaireId, relations: ['joursFeries']);
+
+            if (!$calendrierScolaire) {
+                return $this->notFoundResponse('School calendar not found.');
+            }
+
+            $startDate = $calendrierScolaire->date_rentree;
+            $endDate = $calendrierScolaire->date_fin_annee;
+            $vacances = $calendrierScolaire->periodes_vacances;
+            $joursFeries = $calendrierScolaire->joursFeries->pluck('date_ferie')->map(fn ($date) => $date->format('Y-m-d'))->toArray();
+
+            if ($ecoleId) {
+                $ecole = \App\Models\Ecole::with('joursFeries')->find($ecoleId);
+                if ($ecole) {
+                    $ecoleJoursFeries = $ecole->joursFeries;
+                    foreach ($ecoleJoursFeries as $jourFerie) {
+                        $date = $jourFerie->date_ferie->format('Y-m-d');
+                        if ($jourFerie->actif) {
+                            // Add holiday if not already in the list
+                            if (!in_array($date, $joursFeries)) {
+                                $joursFeries[] = $date;
+                            }
+                        } else {
+                            // Remove holiday if it exists in the list
+                            if (($key = array_search($date, $joursFeries)) !== false) {
+                                unset($joursFeries[$key]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            $schoolDays = 0;
+            $currentDate = clone $startDate;
+
+            while ($currentDate->lte($endDate)) {
+                // Check if it's a weekend
+                if ($currentDate->isWeekday()) {
+                    $isHoliday = false;
+
+                    // Check if it's a public holiday
+                    if (in_array($currentDate->format('Y-m-d'), $joursFeries)) {
+                        $isHoliday = true;
+                    }
+
+                    // Check if it's a vacation period
+                    if (!$isHoliday) {
+                        foreach ($vacances as $vacance) {
+                            $vacanceStart = \Carbon\Carbon::parse($vacance['date_debut']);
+                            $vacanceEnd = \Carbon\Carbon::parse($vacance['date_fin']);
+                            if ($currentDate->between($vacanceStart, $vacanceEnd)) {
+                                $isHoliday = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!$isHoliday) {
+                        $schoolDays++;
+                    }
+                }
+                $currentDate->addDay();
+            }
+
+            return $this->successResponse(null, ['school_days' => $schoolDays]);
+        } catch (\Exception $e) {
+            Log::error("Error in " . get_class($this) . "::calculateSchoolDays - " . $e->getMessage());
+            return $this->errorResponse($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Load the school calendar for a specific school, including global and school-specific holidays.
+     *
+     * @param string $calendrierScolaireId The ID of the school calendar.
+     * @param string|null $ecoleId The ID of the school (optional).
+     * @return JsonResponse
+     */
+    public function getCalendrierScolaireWithJoursFeries(array $filtres = []): JsonResponse
+    {
+        try {
+            $anneeScolaire = $filtres['annee_scolaire'];
+            $ecoleId = $filtres['ecoleId'] ?? null;
+
+            $calendrierScolaire = $this->repository->findBy(['annee_scolaire' => $anneeScolaire], relations: ['joursFeries']);
+
+            if (!$calendrierScolaire) {
+                return $this->notFoundResponse('School calendar not found.');
+            }
+
+            $globalJoursFeries = collect();
+            if (isset($filtres['avec_jours_feries_nationaux']) && $filtres['avec_jours_feries_nationaux']) {
+                $globalJoursFeries = $calendrierScolaire->joursFeries->map(function ($jourFerie) {
+                    return [
+                        'id' => $jourFerie->id,
+                        'nom' => $jourFerie->nom,
+                        'date' => $jourFerie->date_ferie->format('Y-m-d'),
+                        'actif' => $jourFerie->actif,
+                        'type' => $jourFerie->type,
+                        'recurrent' => $jourFerie->recurrent,
+                    ];
+                })->keyBy('date'); // Key by date for easy merging
+            }
+
+            $mergedJoursFeries = $globalJoursFeries;
+
+            if ($ecoleId && isset($filtres['avec_jours_feries_ecole']) && $filtres['avec_jours_feries_ecole']) {
+                $ecole = \App\Models\Ecole::with('joursFeries')->find($ecoleId);
+                if ($ecole) {
+                    $ecoleJoursFeries = $ecole->joursFeries->map(function ($jourFerie) {
+                        return [
+                            'id' => $jourFerie->id,
+                            'nom' => $jourFerie->nom,
+                            'date' => $jourFerie->date_ferie->format('Y-m-d'),
+                            'actif' => $jourFerie->actif,
+                            'type' => $jourFerie->type,
+                            'recurrent' => $jourFerie->recurrent,
+                        ];
+                    })->keyBy('date');
+
+                    // Merge school-specific holidays, overriding global ones
+                    $mergedJoursFeries = $globalJoursFeries->merge($ecoleJoursFeries);
+                }
+            }
+
+            $calendrierScolaireArray = $calendrierScolaire->toArray();
+            $calendrierScolaireArray['jours_feries_merged'] = $mergedJoursFeries->values()->toArray(); // Convert back to indexed array
+
+            return $this->successResponse(null, $calendrierScolaireArray);
+        } catch (\Exception $e) {
+            Log::error("Error in " . get_class($this) . "::getCalendrierScolaireWithJoursFeries - " . $e->getMessage());
+            return $this->errorResponse($e->getMessage(), 500);
+        }
+    }
+
+    // Implement specific methods for CalendrierScolaireService here if needed
+}

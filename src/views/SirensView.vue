@@ -109,20 +109,9 @@
 
           <!-- Abonnement Section -->
           <div v-if="getAbonnementActif(siren)" class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-2">
-                <CheckCircle :size="16" class="text-green-600" />
-                <span class="text-xs font-semibold text-green-900">Abonnement actif</span>
-              </div>
-              <span class="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded font-medium">
-                {{ getAbonnementActif(siren).numero_abonnement }}
-              </span>
-            </div>
-            <div class="text-xs text-green-700">
-              Expire le {{ formatDate(getAbonnementActif(siren).date_fin) }}
-            </div>
+            
             <!-- Token crypté -->
-            <div v-if="getAbonnementActif(siren).token_actif" class="mt-2 pt-2 border-t border-green-200">
+            <div v-if="getAbonnementActif(siren).token_actif" class="mt-2 border-green-200">
               <div class="flex items-center gap-2 mb-1">
                 <Key :size="14" class="text-green-600" />
                 <span class="text-xs font-semibold text-green-900">Token crypté</span>
@@ -152,7 +141,7 @@
           </div>
 
           <div class="mt-4 pt-4 border-t border-gray-200 flex items-center justify-end gap-2">
-            <Can permission="manage_sirens">
+            <Can permission="modifier_sirene">
               <button
                 @click="openEditModal(siren)"
                 class="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1"

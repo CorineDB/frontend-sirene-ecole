@@ -25,7 +25,7 @@
               {{ sirene.ecole ? `(${sirene.ecole.nom})` : '' }}
             </option>
           </select>
-          <Can permission="manage_sirens">
+          <Can permission="creer_programmation">
             <button
               v-if="selectedSireneId"
               @click="openCreateModal"
@@ -283,17 +283,17 @@
           <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
             <!-- Actions buttons -->
             <div class="flex items-center justify-between gap-2">
-              <Can permission="manage_sirens">
-                <div class="flex items-center gap-2 flex-1 flex-wrap">
-                  <button
-                    v-if="prog.chaine_programmee"
-                    @click="previewChaineId = prog.id"
-                    class="px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-1 font-medium"
-                    title="Voir la chaîne programmée complète"
-                  >
-                    <Eye :size="14" />
-                    Voir
-                  </button>
+              <div class="flex items-center gap-2 flex-1 flex-wrap">
+                <button
+                  v-if="prog.chaine_programmee"
+                  @click="previewChaineId = prog.id"
+                  class="px-3 py-1.5 text-xs text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-1 font-medium"
+                  title="Voir la chaîne programmée complète"
+                >
+                  <Eye :size="14" />
+                  Voir
+                </button>
+                <Can permission="modifier_programmation">
                   <button
                     @click="openEditModal(prog)"
                     class="px-3 py-1.5 text-xs text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1 font-medium"
@@ -301,6 +301,8 @@
                     <Edit :size="14" />
                     Modifier
                   </button>
+                </Can>
+                <Can permission="modifier_programmation">
                   <button
                     @click="genererChaine(prog)"
                     class="px-3 py-1.5 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-1 font-medium"
@@ -309,6 +311,8 @@
                     <Key :size="14" />
                     Générer
                   </button>
+                </Can>
+                <Can permission="modifier_programmation">
                   <button
                     @click="envoyerSirene(prog)"
                     :disabled="!prog.chaine_cryptee"
@@ -318,23 +322,25 @@
                     <Send :size="14" />
                     Envoyer
                   </button>
-                </div>
+                </Can>
+              </div>
 
-                <!-- Dropdown menu (three vertical dots) -->
-                <div class="relative">
-                  <button
-                    @click="toggleDropdown(prog.id)"
-                    class="p-1.5 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
-                    title="Plus d'actions"
-                  >
-                    <MoreVertical :size="18" />
-                  </button>
+              <!-- Dropdown menu (three vertical dots) -->
+              <div class="relative">
+                <button
+                  @click="toggleDropdown(prog.id)"
+                  class="p-1.5 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                  title="Plus d'actions"
+                >
+                  <MoreVertical :size="18" />
+                </button>
 
-                  <!-- Dropdown content -->
-                  <div
-                    v-if="openDropdownId === prog.id"
-                    class="absolute right-0 bottom-full mb-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[160px]"
-                  >
+                <!-- Dropdown content -->
+                <div
+                  v-if="openDropdownId === prog.id"
+                  class="absolute right-0 bottom-full mb-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[160px]"
+                >
+                  <Can permission="creer_programmation">
                     <button
                       @click="duplicateProgrammation(prog); toggleDropdown(prog.id)"
                       class="w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2 transition-colors"
@@ -342,6 +348,8 @@
                       <CopyIcon :size="14" />
                       Dupliquer
                     </button>
+                  </Can>
+                  <Can :permission="prog.actif ? 'desactiver_programmation' : 'activer_programmation'">
                     <button
                       @click="toggleActif(prog); toggleDropdown(prog.id)"
                       class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 transition-colors"
@@ -350,6 +358,8 @@
                       <Power :size="14" />
                       {{ prog.actif ? 'Désactiver' : 'Activer' }}
                     </button>
+                  </Can>
+                  <Can permission="supprimer_programmation">
                     <button
                       @click="confirmDelete(prog); toggleDropdown(prog.id)"
                       class="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
@@ -357,9 +367,9 @@
                       <Trash :size="14" />
                       Supprimer
                     </button>
-                  </div>
+                  </Can>
                 </div>
-              </Can>
+              </div>
             </div>
           </div>
         </div>
@@ -383,7 +393,7 @@
         <Clock :size="64" class="text-gray-300 mx-auto mb-4" />
         <h3 class="text-lg font-semibold text-gray-900 mb-2">Aucune programmation</h3>
         <p class="text-gray-600 mb-4">Cette sirène n'a pas encore de programmation</p>
-        <Can permission="manage_sirens">
+        <Can permission="creer_programmation">
           <button
             @click="openCreateModal"
             class="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all inline-flex items-center gap-2"
@@ -475,12 +485,14 @@ import { Clock, Calendar, Plus, Edit, Trash, Power, Bell, Key, Star, Building2, 
 import { Can } from '@/components/permissions'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useNotificationStore } from '@/stores/notifications'
+import { useAuthStore } from '@/stores/auth'
 import programmationService from '@/services/programmationService'
 import sirenService from '@/services/sirenService'
 import type { ApiProgrammation, ApiSiren, HoraireSonnerie } from '@/types/api'
 
 const { loading, execute } = useAsyncAction()
 const notificationStore = useNotificationStore()
+const authStore = useAuthStore()
 
 const sirenes = ref<ApiSiren[]>([])
 const selectedSireneId = ref<string>('')
@@ -509,10 +521,20 @@ const joursMapping: Record<number, string> = {
 
 /**
  * Charger toutes les sirènes disponibles
+ * Pour les écoles: filtre automatiquement par ecole_id
  */
 const loadSirenes = async () => {
+  // Paramètres de base
+  const params: { per_page: number; ecole_id?: string } = { per_page: 1000 }
+
+  // Si utilisateur École, filtrer par son école
+  if (authStore.user?.user_account_type_type === 'App\\Models\\Ecole' && authStore.user?.user_account_type_id) {
+    params.ecole_id = authStore.user.user_account_type_id
+    console.log('Chargement sirènes programmables pour école:', params.ecole_id)
+  }
+
   const result = await execute(
-    () => sirenService.getSirensProgrammables({ per_page: 1000 }),
+    () => sirenService.getSirensProgrammables(params),
     { errorMessage: 'Impossible de charger les sirènes programmables' }
   )
 
@@ -520,6 +542,7 @@ const loadSirenes = async () => {
     // L'API retourne: { success: true, data: [...], pagination: {...} }
     if (Array.isArray(result.data)) {
       sirenes.value = result.data
+      console.log(`Sirènes programmables chargées: ${result.data.length}`)
     }
   }
 }

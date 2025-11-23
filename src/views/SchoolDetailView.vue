@@ -499,7 +499,7 @@
 
                   <!-- Abonnement en attente -->
                   <div
-                    v-if="site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente"
+                    v-if="(!site.sirene.abonnementEnAttente && !site.sirene.abonnementActif) || ((site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente))"
                     class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-4 border-2 border-amber-300"
                   >
                     <div class="flex items-start justify-between mb-3">
@@ -524,7 +524,7 @@
                     </div>
                     <div class="mt-3 flex gap-2">
                       <button
-                        @click="goToCheckout(ecole.id, (site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id)"
+                        @click="goToCheckout(ecole.id, (site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)?.id)"
                         class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold transition-colors text-sm"
                       >
                         <CreditCard :size="16" />
@@ -538,14 +538,14 @@
                         <Share2 :size="16" />
                       </button>
                       <button
-                        @click="regenererQrCode((site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id)"
-                        :disabled="regeneratingQrCode[(site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id]"
+                        @click="regenererQrCode((site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)?.id)"
+                        :disabled="regeneratingQrCode[(site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)?.id]"
                         class="px-3 py-2 bg-white border-2 border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Régénérer le QR code"
                       >
                         <RefreshCw
                           :size="16"
-                          :class="{ 'animate-spin': regeneratingQrCode[(site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id] }"
+                          :class="{ 'animate-spin': regeneratingQrCode[(site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)?.id] }"
                         />
                       </button>
                     </div>
