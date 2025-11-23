@@ -199,12 +199,22 @@
               <FileText :size="24" class="text-purple-600" />
               Ordre de mission
             </h2>
-            <button
-              v-if="!currentOrdreMission && panne.statut === StatutPanne.VALIDEE"
-              class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold transition-colors"
-            >
-              Créer ordre de mission
-            </button>
+            <div class="flex gap-2">
+              <button
+                v-if="currentOrdreMission"
+                @click="router.push(`/ordres-mission/${currentOrdreMission.id}`)"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors flex items-center gap-2"
+              >
+                <ExternalLink :size="16" />
+                Voir détails
+              </button>
+              <button
+                v-if="!currentOrdreMission && panne.statut === StatutPanne.VALIDEE"
+                class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold transition-colors"
+              >
+                Créer ordre de mission
+              </button>
+            </div>
           </div>
 
           <div v-if="currentOrdreMission" class="space-y-4">
@@ -300,7 +310,16 @@
               <Wrench :size="24" class="text-orange-600" />
               Intervention
             </h2>
-            <StatusBadge type="intervention" :status="currentIntervention.statut" />
+            <div class="flex items-center gap-2">
+              <StatusBadge type="intervention" :status="currentIntervention.statut" />
+              <button
+                @click="router.push(`/interventions/${currentIntervention.id}`)"
+                class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold transition-colors flex items-center gap-2"
+              >
+                <ExternalLink :size="16" />
+                Voir détails
+              </button>
+            </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -445,7 +464,8 @@ import {
   MapPin,
   Bell,
   Building2,
-  Calendar
+  Calendar,
+  ExternalLink
 } from 'lucide-vue-next'
 
 const router = useRouter()

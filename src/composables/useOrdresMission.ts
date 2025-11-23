@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import ordreMissionService from '@/services/ordreMissionService'
+import dashboardService from '@/services/dashboardService'
 import type {
   ApiOrdreMission,
   ApiMissionTechnicien,
@@ -224,13 +225,14 @@ export function useOrdresMission() {
   /**
    * Récupérer les ordres de mission disponibles
    */
-  const fetchDisponibles = async (villeId?: string) => {
+  const fetchDisponibles = async () => {
     try {
       isLoading.value = true
       error.value = null
-      const response = await ordreMissionService.getDisponibles(villeId)
+      const response = await dashboardService.getOrdresMissionDisponibles()
       if (response.success && response.data) {
-        ordresMission.value = response.data.data || []
+        // L'endpoint /api/ordres-mission-disponibles retourne directement le tableau
+        ordresMission.value = response.data
       }
     } catch (err) {
       handleError(err)
