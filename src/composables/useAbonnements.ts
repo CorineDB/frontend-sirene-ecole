@@ -357,6 +357,10 @@ export function useAbonnements() {
     error.value = null
     try {
       const response = await abonnementService.regenererQrCode(id)
+      // Recharger l'abonnement pour obtenir le nouveau QR code
+      if (abonnement.value?.id === id) {
+        await fetchById(id)
+      }
       return response
     } catch (err) {
       handleError(err)
@@ -386,6 +390,29 @@ export function useAbonnements() {
       window.URL.revokeObjectURL(url)
 
       return blob
+    } catch (err) {
+      handleError(err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ==================== Token ====================
+
+  /**
+   * Régénérer le token ESP8266
+   */
+  const regenererToken = async (id: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await abonnementService.regenererToken(id)
+      // Recharger l'abonnement pour obtenir le nouveau token
+      if (abonnement.value?.id === id) {
+        await fetchById(id)
+      }
+      return response
     } catch (err) {
       handleError(err)
       throw err
@@ -453,6 +480,7 @@ export function useAbonnements() {
     fetchStatistiques,
     regenererQrCode,
     telechargerQrCode,
+    regenererToken,
 
     // Helpers
     getStatutLabel,
