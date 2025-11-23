@@ -26,12 +26,18 @@
         </div>
       </div>
 
+      <!-- Filtres Interventions du Jour -->
+      <FilterBar
+        :show-statut="true"
+        @filter-change="handleFilterChangeDuJour"
+      />
+
       <!-- Mes Interventions du Jour -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Calendar :size="24" class="text-blue-600" />
-            Interventions du jour
+            Interventions du jour ({{ interventionsDuJour.length }})
           </h2>
           <router-link
             to="/interventions"
@@ -124,12 +130,20 @@
         </div>
       </div>
 
+      <!-- Filtres Interventions à Venir -->
+      <FilterBar
+        :show-statut="true"
+        :show-date-debut="true"
+        :show-date-fin="true"
+        @filter-change="handleFilterChangeAVenir"
+      />
+
       <!-- Interventions à Venir -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Clock :size="24" class="text-orange-600" />
-            Interventions à venir
+            Interventions à venir ({{ interventionsAVenir.length }})
           </h2>
         </div>
 
@@ -195,8 +209,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
+import FilterBar from '../components/common/FilterBar.vue'
 import { useInterventions } from '@/composables/useInterventions'
 import dashboardService from '@/services/dashboardService'
+import type { InterventionFilters } from '@/services/dashboardService'
 import type { ApiIntervention, ApiMissionTechnicien, ApiOrdreMission } from '@/types/api'
 import {
   Calendar,
@@ -226,6 +242,9 @@ const stats = ref({
   rapportsRediges: 0,
   notemoyenne: 0
 })
+
+const filtersDuJour = ref<InterventionFilters>({})
+const filtersAVenir = ref<InterventionFilters>({})
 
 // Computed
 const quickStats = computed(() => [
@@ -284,9 +303,19 @@ const handleDemarrer = async (interventionId: string) => {
   }
 }
 
+const handleFilterChangeDuJour = async (filters: InterventionFilters) => {
+  filtersDuJour.value = filters
+  await loadInterventionsDuJour()
+}
+
+const handleFilterChangeAVenir = async (filters: InterventionFilters) => {
+  filtersAVenir.value = filters
+  await loadInterventionsAVenir()
+}
+
 const loadInterventionsDuJour = async () => {
   try {
-    const response = await dashboardService.getInterventionsDuJour()
+    const response = await dashboardService.getInterventionsDuJour(filtersDuJour.value)
     if (response.success && response.data) {
       interventionsDuJour.value = response.data
     }
@@ -297,7 +326,7 @@ const loadInterventionsDuJour = async () => {
 
 const loadInterventionsAVenir = async () => {
   try {
-    const response = await dashboardService.getInterventionsAVenir()
+    const response = await dashboardService.getInterventionsAVenir(filtersAVenir.value)
     if (response.success && response.data) {
       interventionsAVenir.value = response.data
     }
