@@ -462,11 +462,11 @@ class OrdreMissionController extends Controller
     public function cloturerCandidatures(Request $request, string $id): JsonResponse
     {
         Gate::authorize('modifier_ordre_mission');
-        $validated = $request->validate([
+        /*$validated = $request->validate([
             'admin_id' => 'required|string|exists:users,id',
-        ]);
+        ]);*/
 
-        return $this->ordreMissionService->cloturerCandidatures($id, $validated['admin_id']);
+        return $this->ordreMissionService->cloturerCandidatures($id);
     }
 
     /**

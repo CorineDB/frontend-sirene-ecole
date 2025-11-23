@@ -103,7 +103,7 @@ class OrdreMissionService extends BaseService implements OrdreMissionServiceInte
         }
     }
 
-    public function cloturerCandidatures(string $ordreMissionId, string $adminId): JsonResponse
+    public function cloturerCandidatures(string $ordreMissionId): JsonResponse
     {
         try {
             $ordreMission = $this->repository->find($ordreMissionId);
@@ -118,7 +118,7 @@ class OrdreMissionService extends BaseService implements OrdreMissionServiceInte
             $ordreMission = $this->repository->update($ordreMissionId, [
                 'candidature_cloturee' => true,
                 'date_cloture_candidature' => now(),
-                'cloture_par' => $adminId,
+                'cloture_par' => auth()->id(),
             ]);
 
             return $this->successResponse('Candidatures clôturées avec succès.', $ordreMission);

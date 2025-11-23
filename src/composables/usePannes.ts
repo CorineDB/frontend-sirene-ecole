@@ -287,11 +287,11 @@ export function usePannes() {
   /**
    * Clôturer les candidatures
    */
-  const cloturerCandidatures = async (ordreMissionId: string, adminId: string) => {
+  const cloturerCandidatures = async (ordreMissionId: string) => {
     loading.value = true
     error.value = null
     try {
-      const response = await ordreMissionService.cloturerCandidatures(ordreMissionId, adminId)
+      const response = await ordreMissionService.cloturerCandidatures(ordreMissionId)
       if (response.data) {
         const index = ordresMission.value.findIndex(o => o.id === ordreMissionId)
         if (index !== -1) {

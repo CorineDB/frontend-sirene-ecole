@@ -129,11 +129,11 @@ export function useInterventions() {
   /**
    * Accepter une candidature
    */
-  const accepterCandidature = async (missionTechnicienId: string, adminId: string) => {
+  const accepterCandidature = async (missionTechnicienId: string) => {
     loading.value = true
     error.value = null
     try {
-      const response = await interventionService.accepterCandidature(missionTechnicienId, { admin_id: adminId })
+      const response = await interventionService.accepterCandidature(missionTechnicienId, { })
       return response
     } catch (err) {
       handleError(err)
@@ -146,11 +146,11 @@ export function useInterventions() {
   /**
    * Refuser une candidature
    */
-  const refuserCandidature = async (missionTechnicienId: string, adminId: string) => {
+  const refuserCandidature = async (missionTechnicienId: string) => {
     loading.value = true
     error.value = null
     try {
-      const response = await interventionService.refuserCandidature(missionTechnicienId, { admin_id: adminId })
+      const response = await interventionService.refuserCandidature(missionTechnicienId, { })
       return response
     } catch (err) {
       handleError(err)

@@ -275,7 +275,7 @@
 
               <!-- Boutons Admin -->
               <button
-                v-if="ordreMission.statut === StatutOrdreMission.EN_ATTENTE || ordreMission.statut === StatutOrdreMission.EN_COURS"
+                v-if="canClosed"
                 @click="handleCloturerCandidatures"
                 class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold transition-colors"
               >
@@ -284,7 +284,7 @@
               </button>
 
               <button
-                v-if="ordreMission.statut === StatutOrdreMission.CLOTURE"
+                v-if="isAdmin && ordreMission.statut === StatutOrdreMission.CLOTURE"
                 @click="handleRouvrirCandidatures"
                 class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors"
               >
@@ -310,7 +310,7 @@
                   <div class="flex-1">
                     <div class="flex items-center gap-2 mb-1">
                       <h4 class="font-semibold text-gray-900">
-                        {{ candidature.technicien?.nom || 'Technicien inconnu' }}
+                        {{ candidature.technicien?.user.user_info.nom_complet || 'Technicien inconnu' }}
                       </h4>
                       <StatusBadge type="candidature" :status="candidature.statut_candidature" />
                     </div>
@@ -336,8 +336,18 @@
                 </div>
 
                 <!-- Actions -->
-                <div v-if="candidature.statut_candidature === 'en_attente'" class="flex gap-2 ml-4">
+                <div v-if="candidature.statut === 'en_attente' && candidature.statut_candidature === 'soumise'" class="flex gap-2 ml-4">
                   <button
+                    v-if="isTechnicien"
+                    @click="handleAccepterCandidature(candidature.id)"
+                    class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-semibold"
+                  >
+                    <X :size="16" class="inline" />
+                    Annuler
+                  </button>
+
+                  <button
+                    v-if="isAdmin"
                     @click="handleAccepterCandidature(candidature.id)"
                     class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold"
                   >
@@ -345,6 +355,7 @@
                     Accepter
                   </button>
                   <button
+                    v-if="isAdmin"
                     @click="handleRefuserCandidature(candidature.id)"
                     class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-semibold"
                   >
@@ -435,6 +446,7 @@ const hasIntervenants = computed(() => intervenants.value.length > 0)
 
 // Check if candidatures period is currently active
 const isCandidaturesEnCours = computed(() => {
+  console.log(ordreMission.value);
   if (!ordreMission.value) return false
 
   const now = new Date()
@@ -445,19 +457,79 @@ const isCandidaturesEnCours = computed(() => {
     ? new Date(ordreMission.value.date_fin_candidature)
     : null
 
-  if (!dateDebut || !dateFin) return false
+  if ((!dateDebut || !dateFin) && ordreMission.value.date_cloture_candidature != null) return false
+
+  else if ((!dateDebut || !dateFin) && ordreMission.value.date_cloture_candidature == null) return true
 
   return now >= dateDebut && now <= dateFin
 })
 
 // Check if user is a technicien
 const isTechnicien = computed(() => {
-  return authStore.user?.type === 'technicien'
+  return authStore.user?.type === 'TECHNICIEN' && authStore.user?.user_account_type_type === "App\\Models\\Technicien"
 })
+
+// Check if user is a admin
+const isAdmin = computed(() => {
+  return authStore.user?.type === 'ADMIN' && authStore.user?.user_account_type_type === null
+})
+
+const hasSubmittedOffer = computed(() => {
+  //const candidatures = candidatures
+  const userAccountId = authStore.user?.user_account_type_id
+
+  if (!candidatures || !userAccountId) return false
+
+  return candidatures.value.some(c => c.technicien_id === userAccountId)
+})
+
+const canRetirer = computed(() => {
+  return isTechnicien.value &&
+    hasSubmittedOffer.value &&          // Il a postulé
+    isCandidaturesEnCours.value         // Période encore ouverte
+})
+
+const handleRetirerCandidature = async () => {
+  const userId = authStore.user?.user_account_type_id
+  if (!userId) return
+
+  const candidature = candidatures.value.find(c => c.technicien_id === userId)
+  if (!candidature) return
+
+  const motif = prompt("Motif du retrait :")
+  if (!motif) return
+
+  try {
+    await interventionService.retirerCandidature(candidature.id, {
+      motif_retrait: motif
+    })
+
+    alert("Votre candidature a été retirée.")
+    await fetchCandidatures(route.params.id)
+    await fetchById(route.params.id)
+
+  } catch (e) {
+    console.error("Erreur retrait candidature:", e)
+    alert("Erreur lors du retrait de la candidature.")
+  }
+}
 
 // Check if technicien can apply (is technicien and candidatures are open)
 const canPostuler = computed(() => {
-  return isTechnicien.value && isCandidaturesEnCours.value
+  //return isTechnicien.value && isCandidaturesEnCours.value
+  return isTechnicien.value &&
+    isCandidaturesEnCours.value &&
+    !hasSubmittedOffer.value
+})
+
+// Check if technicien can apply (is technicien and candidatures are open)
+const canClosed = computed(() => {
+  //return isTechnicien.value && isCandidaturesEnCours.value
+  return isAdmin.value &&
+    isCandidaturesEnCours.value &&
+    !ordreMission.value.candidature_cloturee &&
+    !(ordreMission.statut === StatutOrdreMission.EN_ATTENTE || ordreMission.statut === StatutOrdreMission.EN_COURS)
+
 })
 
 // Methods
@@ -473,11 +545,9 @@ const formatDate = (dateString: string) => {
 
 const handleCloturerCandidatures = async () => {
   if (confirm('Êtes-vous sûr de vouloir clôturer les candidatures pour cet ordre de mission ?')) {
-    const adminId = prompt('ID Admin:')
-    if (adminId) {
-      await cloturerCandidatures(route.params.id as string, adminId)
+
+      await cloturerCandidatures(route.params.id as string)
       await fetchById(route.params.id as string)
-    }
   }
 }
 
@@ -485,34 +555,30 @@ const handleRouvrirCandidatures = async () => {
   if (confirm('Êtes-vous sûr de vouloir rouvrir les candidatures pour cet ordre de mission ?')) {
     const adminId = prompt('ID Admin:')
     if (adminId) {
-      await rouvrirCandidatures(route.params.id as string, adminId)
+      await rouvrirCandidatures(route.params.id as string)
       await fetchById(route.params.id as string)
     }
   }
 }
 
 const handleAccepterCandidature = async (missionTechnicienId: string) => {
-  const adminId = prompt('ID Admin:')
-  if (adminId) {
+
     try {
-      await accepterCandidature(missionTechnicienId, { admin_id: adminId })
+      await accepterCandidature(missionTechnicienId, { })
       await fetchCandidatures(route.params.id as string)
       await fetchById(route.params.id as string)
     } catch (err) {
       console.error('Error accepting candidature:', err)
     }
-  }
 }
 
 const handleRefuserCandidature = async (missionTechnicienId: string) => {
   const motifRefus = prompt('Motif du refus:')
-  const adminId = prompt('ID Admin:')
 
-  if (motifRefus && adminId) {
+  if (motifRefus) {
     try {
       await refuserCandidature(missionTechnicienId, {
-        motif_refus: motifRefus,
-        admin_id: adminId
+        motif_refus: motifRefus
       })
       await fetchCandidatures(route.params.id as string)
       await fetchById(route.params.id as string)
@@ -531,7 +597,7 @@ const handlePostuler = async () => {
 
   try {
     await interventionService.soumettreCandidature(ordreMission.value.id, {
-      technicien_id: authStore.user.id
+      technicien_id: authStore.user.user_account_type_id
     })
 
     alert('Candidature soumise avec succès!')

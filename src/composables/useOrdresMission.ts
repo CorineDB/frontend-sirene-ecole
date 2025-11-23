@@ -147,11 +147,11 @@ export function useOrdresMission() {
   /**
    * Clôturer les candidatures
    */
-  const cloturerCandidatures = async (id: string, adminId: string) => {
+  const cloturerCandidatures = async (id: string) => {
     try {
       isLoading.value = true
       error.value = null
-      const response = await ordreMissionService.cloturerCandidatures(id, adminId)
+      const response = await ordreMissionService.cloturerCandidatures(id)
       if (response.success) {
         await fetchById(id)
       }
@@ -167,11 +167,11 @@ export function useOrdresMission() {
   /**
    * Rouvrir les candidatures
    */
-  const rouvrirCandidatures = async (id: string, adminId: string) => {
+  const rouvrirCandidatures = async (id: string) => {
     try {
       isLoading.value = true
       error.value = null
-      const response = await ordreMissionService.rouvrirCandidatures(id, adminId)
+      const response = await ordreMissionService.rouvrirCandidatures(id)
       if (response.success) {
         await fetchById(id)
       }

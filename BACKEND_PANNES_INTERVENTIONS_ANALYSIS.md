@@ -890,8 +890,8 @@ class OrdreMissionService {
   delete(id: string)
   getCandidatures(id: string)
   getByVille(villeId: string)
-  cloturerCandidatures(id: string, adminId: string)
-  rouvrirCandidatures(id: string, adminId: string)
+  cloturerCandidatures(id: string)
+  rouvrirCandidatures(id: string)
 }
 
 // services/api/intervention.service.ts
@@ -901,8 +901,8 @@ class InterventionService {
 
   // Candidatures
   soumettreCandidature(ordreMissionId: string, technicienId: string)
-  accepterCandidature(missionTechnicienId: string, adminId: string)
-  refuserCandidature(missionTechnicienId: string, adminId: string)
+  accepterCandidature(missionTechnicienId: string)
+  refuserCandidature(missionTechnicienId: string)
   retirerCandidature(missionTechnicienId: string, motif: string)
 
   // Création & Gestion
