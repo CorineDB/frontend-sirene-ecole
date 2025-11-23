@@ -9,34 +9,92 @@
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Profile Card -->
         <div class="lg:col-span-1 bg-white rounded-xl border border-gray-200 p-6">
-          <div class="text-center">
-            <div class="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span class="text-white font-bold text-3xl">
-                {{ getUserInitials() }}
-              </span>
-            </div>
-            <h2 class="text-xl font-bold text-gray-900 mb-1">{{ authUser?.nom_utilisateur }}</h2>
-            <p class="text-sm text-gray-600 mb-4">{{ authUser?.email || 'Pas d\'email' }}</p>
-            <span v-if="authUser?.role" class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
-              {{ authUser.role.nom }}
-            </span>
-            <span v-else class="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-semibold">
-              {{ typeLabel }}
-            </span>
+          <!-- Loading state -->
+          <div v-if="loadingTypeData" class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
 
-          <div class="mt-6 pt-6 border-t border-gray-200 space-y-3">
-            <div class="flex items-center gap-3 text-sm">
-              <Phone :size="16" class="text-gray-400" />
-              <span class="text-gray-700">{{ authUser?.telephone || 'Pas de téléphone' }}</span>
+          <!-- Profile content -->
+          <div v-else>
+            <div class="text-center">
+              <div class="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-white font-bold text-3xl">
+                  {{ getUserInitials() }}
+                </span>
+              </div>
+              <h2 class="text-xl font-bold text-gray-900 mb-1">{{ authUser?.nom_utilisateur }}</h2>
+              <p v-if="isEcole && ecoleData" class="text-sm text-gray-600 mb-2">{{ ecoleData.nom_complet }}</p>
+              <p v-else class="text-sm text-gray-600 mb-4">{{ authUser?.email || 'Pas d\'email' }}</p>
+              <span v-if="authUser?.role" class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                {{ authUser.role.nom }}
+              </span>
+              <span v-else class="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-semibold">
+                {{ typeLabel }}
+              </span>
             </div>
-            <div class="flex items-center gap-3 text-sm">
-              <Calendar :size="16" class="text-gray-400" />
-              <span class="text-gray-700">Membre depuis {{ formatMemberSince(authUser?.created_at) }}</span>
-            </div>
-            <div class="flex items-center gap-3 text-sm">
-              <Shield :size="16" class="text-gray-400" />
-              <span class="text-green-700 font-semibold">Compte actif</span>
+
+            <div class="mt-6 pt-6 border-t border-gray-200 space-y-3">
+              <!-- École-specific information -->
+              <template v-if="isEcole && ecoleData">
+                <div class="flex items-center gap-3 text-sm">
+                  <Building2 :size="16" class="text-gray-400" />
+                  <span class="text-gray-700">{{ ecoleData.nom }}</span>
+                </div>
+                <div class="flex items-center gap-3 text-sm">
+                  <Phone :size="16" class="text-gray-400" />
+                  <span class="text-gray-700">{{ ecoleData.telephone_contact || 'Pas de téléphone' }}</span>
+                </div>
+                <div v-if="ecoleData.email_contact" class="flex items-center gap-3 text-sm">
+                  <Calendar :size="16" class="text-gray-400" />
+                  <span class="text-gray-700">{{ ecoleData.email_contact }}</span>
+                </div>
+                <div class="flex items-center gap-3 text-sm">
+                  <Shield :size="16" class="text-gray-400" />
+                  <span :class="`font-semibold ${ecoleData.statut === 'actif' ? 'text-green-700' : 'text-gray-700'}`">
+                    {{ ecoleData.statut === 'actif' ? 'Compte actif' : ecoleData.statut }}
+                  </span>
+                </div>
+              </template>
+
+              <!-- Technicien-specific information -->
+              <template v-else-if="isTechnicien && technicienData">
+                <div v-if="technicienData.user?.user_info" class="flex items-center gap-3 text-sm">
+                  <MapPin :size="16" class="text-gray-400" />
+                  <span class="text-gray-700">{{ technicienData.user.user_info.ville?.nom || 'Ville non renseignée' }}</span>
+                </div>
+                <div v-if="technicienData.specialite" class="flex items-center gap-3 text-sm">
+                  <Award :size="16" class="text-gray-400" />
+                  <span class="text-gray-700">{{ technicienData.specialite }}</span>
+                </div>
+                <div class="flex items-center gap-3 text-sm">
+                  <Briefcase :size="16" class="text-gray-400" />
+                  <span :class="`font-semibold ${technicienData.disponibilite ? 'text-green-700' : 'text-orange-700'}`">
+                    {{ technicienData.disponibilite ? 'Disponible' : 'Non disponible' }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-3 text-sm">
+                  <Shield :size="16" class="text-gray-400" />
+                  <span :class="`font-semibold ${technicienData.statut === 'actif' ? 'text-green-700' : 'text-gray-700'}`">
+                    {{ technicienData.statut === 'actif' ? 'Compte actif' : technicienData.statut }}
+                  </span>
+                </div>
+              </template>
+
+              <!-- Default user information -->
+              <template v-else>
+                <div class="flex items-center gap-3 text-sm">
+                  <Phone :size="16" class="text-gray-400" />
+                  <span class="text-gray-700">{{ authUser?.telephone || 'Pas de téléphone' }}</span>
+                </div>
+                <div class="flex items-center gap-3 text-sm">
+                  <Calendar :size="16" class="text-gray-400" />
+                  <span class="text-gray-700">Membre depuis {{ formatMemberSince(authUser?.created_at) }}</span>
+                </div>
+                <div class="flex items-center gap-3 text-sm">
+                  <Shield :size="16" class="text-gray-400" />
+                  <span class="text-green-700 font-semibold">Compte actif</span>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -158,9 +216,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
-import { Phone, Calendar, Shield } from 'lucide-vue-next'
+import { Phone, Calendar, Shield, Building2, MapPin, Award, Briefcase } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import userService from '@/services/userService'
+import ecoleService, { type Ecole } from '@/services/ecoleService'
+import technicienService, { type Technicien } from '@/services/technicienService'
 import { useNotificationStore } from '@/stores/notifications'
 import type { UpdateProfileRequest, ChangePasswordRequest } from '@/types/api'
 
@@ -168,6 +228,11 @@ const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 
 const authUser = computed(() => authStore.user)
+
+// Type-specific data
+const ecoleData = ref<Ecole | null>(null)
+const technicienData = ref<Technicien | null>(null)
+const loadingTypeData = ref(false)
 
 const profileFormData = ref<UpdateProfileRequest>({
   nom_utilisateur: '',
@@ -193,6 +258,9 @@ const typeLabel = computed(() => {
   }
   return typeLabels[authUser.value?.type || ''] || authUser.value?.type || 'Utilisateur'
 })
+
+const isEcole = computed(() => authUser.value?.type === 'ECOLE')
+const isTechnicien = computed(() => authUser.value?.type === 'TECHNICIEN')
 
 const isPasswordFormValid = computed(() => {
   return (
@@ -227,6 +295,29 @@ const loadProfileData = () => {
       email: authUser.value.email || '',
       telephone: authUser.value.telephone || '',
     }
+  }
+}
+
+const loadTypeSpecificData = async () => {
+  if (!authUser.value) return
+
+  loadingTypeData.value = true
+  try {
+    if (isEcole.value) {
+      const response = await ecoleService.getMe()
+      if (response.success && response.data) {
+        ecoleData.value = response.data
+      }
+    } else if (isTechnicien.value) {
+      const response = await technicienService.getMe()
+      if (response.success && response.data) {
+        technicienData.value = response.data
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load type-specific data:', error)
+  } finally {
+    loadingTypeData.value = false
   }
 }
 
@@ -316,5 +407,6 @@ const handleChangePassword = async () => {
 
 onMounted(() => {
   loadProfileData()
+  loadTypeSpecificData()
 })
 </script>
