@@ -14,11 +14,13 @@
         <div
           v-for="stat in statsCards"
           :key="stat.label"
-          class="bg-white rounded-xl p-6 border border-gray-200"
+          :class="`bg-gradient-to-br ${stat.color} rounded-xl p-6 text-white shadow-lg`"
         >
-          <p class="text-sm text-gray-600 mb-2">{{ stat.label }}</p>
-          <p class="text-3xl font-bold text-gray-900">{{ stat.count }}</p>
-          <div :class="`mt-3 h-1 rounded-full bg-gradient-to-r ${stat.color}`"></div>
+          <div class="flex items-center justify-between mb-4">
+            <component :is="stat.icon" :size="32" class="opacity-80" />
+          </div>
+          <p class="text-sm opacity-90 mb-1">{{ stat.label }}</p>
+          <p class="text-4xl font-bold">{{ stat.count }}</p>
         </div>
       </div>
 
@@ -69,110 +71,90 @@
       </div>
 
       <!-- Ordres de Mission List -->
-      <div v-if="!isLoading && !hasError" class="space-y-4">
-        <div
+      <div v-if="!isLoading && !hasError" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <router-link
           v-for="ordre in displayedOrdres"
           :key="ordre.id"
-          class="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
-          @click="handleViewDetails(ordre.id)"
+          :to="`/ordres-mission/${ordre.id}`"
+          class="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-xl transition-all cursor-pointer block"
         >
           <!-- Header -->
           <div class="flex items-start justify-between mb-4">
-            <div class="flex items-start gap-3 flex-1">
-              <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <FileText :size="24" class="text-blue-600" />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-2">
+                <h3 class="text-lg font-bold text-gray-900">{{ ordre.numero_ordre }}</h3>
+                <span v-if="ordre.panne" :class="`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityBadgeClass(ordre.panne.priorite)}`">
+                  {{ getPriorityLabel(ordre.panne.priorite) }}
+                </span>
               </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                  <h3 class="font-bold text-gray-900">{{ ordre.numero_ordre }}</h3>
-                  <StatusBadge type="ordre-mission" :status="ordre.statut" />
-                </div>
-                <p v-if="ordre.panne" class="text-sm text-gray-600">
-                  Panne: {{ ordre.panne.titre || 'N/A' }}
-                </p>
-                <p v-if="ordre.panne?.ecole" class="text-sm text-gray-500">
-                  {{ ordre.panne.ecole.nom }}
-                </p>
+              <div class="flex items-center gap-2 mb-3">
+                <StatusBadge type="ordre-mission" :status="ordre.statut" />
               </div>
-            </div>
-
-            <div class="text-right" @click.stop>
-              <p class="text-sm font-semibold text-gray-900">
-                {{ ordre.nombre_techniciens_requis }} technicien{{ ordre.nombre_techniciens_requis > 1 ? 's' : '' }} requis
+              <p v-if="ordre.panne" class="text-sm text-gray-600 font-medium mb-1">
+                {{ ordre.panne.titre || 'N/A' }}
               </p>
             </div>
-          </div>
 
-          <!-- Candidatures Period -->
-          <div v-if="ordre.date_debut_candidature && ordre.date_fin_candidature" class="mb-4">
-            <div class="flex items-center gap-4 text-sm">
-              <div class="flex items-center gap-2 text-gray-600">
-                <Calendar :size="16" class="text-gray-400" />
-                <span>Candidatures: {{ formatDate(ordre.date_debut_candidature) }} - {{ formatDate(ordre.date_fin_candidature) }}</span>
-              </div>
+            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+              <FileText :size="24" class="text-white" />
             </div>
           </div>
 
-          <!-- Commentaire -->
-          <p v-if="ordre.commentaire" class="text-sm text-gray-700 mb-4 line-clamp-2">
-            {{ ordre.commentaire }}
-          </p>
+          <!-- École Info -->
+          <div v-if="ordre.panne?.ecole" class="mb-4 bg-gray-50 rounded-lg p-3">
+            <div class="flex items-center gap-2 text-sm text-gray-700">
+              <MapPin :size="16" class="text-blue-600" />
+              <span class="font-medium">{{ ordre.panne.ecole.nom }}</span>
+            </div>
+          </div>
 
           <!-- Details Grid -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div v-if="ordre.panne">
-              <p class="text-xs text-gray-600 mb-1">Priorité</p>
-              <StatusBadge type="priorite" :status="ordre.panne.priorite" />
-            </div>
-
-            <div v-if="ordre.ville">
-              <p class="text-xs text-gray-600 mb-1">Ville</p>
-              <div class="flex items-center gap-2">
-                <MapPin :size="16" class="text-gray-400" />
-                <p class="text-sm font-semibold text-gray-900 truncate">{{ ordre.ville.nom }}</p>
+          <div class="space-y-3 mb-4">
+            <div v-if="ordre.ville" class="flex items-center gap-3">
+              <MapPin :size="18" class="text-gray-400 flex-shrink-0" />
+              <div>
+                <p class="text-xs text-gray-600">Ville</p>
+                <p class="text-sm font-semibold text-gray-900">{{ ordre.ville.nom }}</p>
               </div>
             </div>
 
-            <div v-if="ordre.valide_par_user">
-              <p class="text-xs text-gray-600 mb-1">Validé par</p>
-              <div class="flex items-center gap-2">
-                <User :size="16" class="text-gray-400" />
-                <p class="text-sm font-semibold text-gray-900 truncate">{{ ordre.valide_par_user.nom_utilisateur }}</p>
+            <div v-if="ordre.nombre_techniciens_requis" class="flex items-center gap-3">
+              <Users :size="18" class="text-gray-400 flex-shrink-0" />
+              <div>
+                <p class="text-xs text-gray-600">Techniciens requis</p>
+                <p class="text-sm font-semibold text-gray-900">{{ ordre.nombre_techniciens_requis }} technicien{{ ordre.nombre_techniciens_requis > 1 ? 's' : '' }}</p>
               </div>
             </div>
 
-            <div>
-              <p class="text-xs text-gray-600 mb-1">Créé le</p>
-              <p class="text-sm font-semibold text-gray-900">{{ formatDate(ordre.created_at) }}</p>
+            <div v-if="ordre.date_debut_candidature && ordre.date_fin_candidature" class="flex items-center gap-3">
+              <Calendar :size="18" class="text-gray-400 flex-shrink-0" />
+              <div>
+                <p class="text-xs text-gray-600">Période candidatures</p>
+                <p class="text-sm font-semibold text-gray-900">{{ formatDate(ordre.date_debut_candidature) }} - {{ formatDate(ordre.date_fin_candidature) }}</p>
+              </div>
+            </div>
+
+            <div v-if="ordre.valide_par_user" class="flex items-center gap-3">
+              <User :size="18" class="text-gray-400 flex-shrink-0" />
+              <div>
+                <p class="text-xs text-gray-600">Validé par</p>
+                <p class="text-sm font-semibold text-gray-900">{{ ordre.valide_par_user.nom_utilisateur }}</p>
+              </div>
             </div>
           </div>
 
-          <!-- Footer Actions -->
-          <div class="flex items-center justify-between pt-4 border-t border-gray-100" @click.stop>
-            <div class="flex items-center gap-4">
-              <span v-if="ordre.missions_techniciens && ordre.missions_techniciens.length > 0" class="text-sm text-gray-600">
-                <Users :size="16" class="inline mr-1" />
+          <!-- Footer -->
+          <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <Briefcase :size="16" />
+              <span v-if="ordre.missions_techniciens && ordre.missions_techniciens.length > 0">
                 {{ ordre.missions_techniciens.length }} candidature{{ ordre.missions_techniciens.length > 1 ? 's' : '' }}
               </span>
+              <span v-else>Aucune candidature</span>
             </div>
-
-            <div class="flex gap-2">
-              <button
-                v-if="ordre.statut === StatutOrdreMission.EN_ATTENTE || ordre.statut === StatutOrdreMission.EN_COURS"
-                @click="handleCloturer(ordre.id)"
-                class="text-sm text-orange-600 hover:text-orange-700 font-semibold px-3 py-1 rounded hover:bg-orange-50"
-              >
-                Clôturer candidatures
-              </button>
-              <button
-                @click="handleViewDetails(ordre.id)"
-                class="text-sm text-gray-600 hover:text-gray-700 font-semibold px-3 py-1 rounded hover:bg-gray-50"
-              >
-                Détails
-              </button>
-            </div>
+            <p class="text-xs text-gray-500">{{ formatDate(ordre.created_at) }}</p>
           </div>
-        </div>
+        </router-link>
       </div>
 
       <!-- Empty State -->
@@ -206,8 +188,11 @@ import {
   MapPin,
   User,
   Users,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  CheckCircle
 } from 'lucide-vue-next'
+import { PrioritePanne } from '@/types/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -245,22 +230,26 @@ const statsCards = computed(() => [
   {
     label: 'Total',
     count: ordresMission.value.length,
-    color: 'from-blue-500 to-blue-600'
+    color: 'from-blue-500 to-blue-600',
+    icon: Briefcase
   },
   {
     label: 'En attente',
     count: ordresMission.value.filter(o => o.statut === StatutOrdreMission.EN_ATTENTE).length,
-    color: 'from-yellow-500 to-yellow-600'
+    color: 'from-yellow-500 to-yellow-600',
+    icon: Clock
   },
   {
     label: 'En cours',
     count: ordresMission.value.filter(o => o.statut === StatutOrdreMission.EN_COURS).length,
-    color: 'from-cyan-500 to-cyan-600'
+    color: 'from-cyan-500 to-cyan-600',
+    icon: FileText
   },
   {
     label: 'Terminés',
     count: ordresMission.value.filter(o => o.statut === StatutOrdreMission.TERMINE).length,
-    color: 'from-green-500 to-green-600'
+    color: 'from-green-500 to-green-600',
+    icon: CheckCircle
   }
 ])
 
@@ -271,6 +260,34 @@ const formatDate = (dateString: string) => {
     month: 'short',
     year: 'numeric'
   })
+}
+
+const getPriorityLabel = (priorite: string): string => {
+  const labels: Record<string, string> = {
+    [PrioritePanne.BASSE]: 'Basse',
+    [PrioritePanne.MOYENNE]: 'Moyenne',
+    [PrioritePanne.HAUTE]: 'Haute',
+    [PrioritePanne.URGENTE]: 'Urgente',
+    'faible': 'Basse',
+    'moyenne': 'Moyenne',
+    'haute': 'Haute',
+    'urgente': 'Urgente'
+  }
+  return labels[priorite] || priorite
+}
+
+const getPriorityBadgeClass = (priorite: string): string => {
+  const classes: Record<string, string> = {
+    [PrioritePanne.BASSE]: 'bg-gray-100 text-gray-800',
+    [PrioritePanne.MOYENNE]: 'bg-yellow-100 text-yellow-800',
+    [PrioritePanne.HAUTE]: 'bg-orange-100 text-orange-800',
+    [PrioritePanne.URGENTE]: 'bg-red-100 text-red-800',
+    'faible': 'bg-gray-100 text-gray-800',
+    'moyenne': 'bg-yellow-100 text-yellow-800',
+    'haute': 'bg-orange-100 text-orange-800',
+    'urgente': 'bg-red-100 text-red-800'
+  }
+  return classes[priorite] || 'bg-gray-100 text-gray-800'
 }
 
 const handleFilterChange = async (filters: OrdreMissionFilters) => {
@@ -306,25 +323,6 @@ const showAllOrdres = async () => {
   showingDisponibles.value = false
   currentFilters.value = {}
   await loadAll()
-}
-
-const handleCloturer = async (id: string) => {
-  if (confirm('Êtes-vous sûr de vouloir clôturer les candidatures pour cet ordre de mission ?')) {
-    // In production, would get admin ID from auth context
-    const adminId = prompt('ID Admin:')
-    if (adminId) {
-      await cloturerCandidatures(id, adminId)
-      if (showingDisponibles.value) {
-        await loadDisponibles()
-      } else {
-        await loadAll()
-      }
-    }
-  }
-}
-
-const handleViewDetails = (id: string) => {
-  router.push(`/ordres-mission/${id}`)
 }
 
 // Lifecycle
