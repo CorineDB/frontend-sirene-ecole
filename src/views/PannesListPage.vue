@@ -288,7 +288,7 @@ import { StatutPanne, PrioritePanne } from '@/types/api'
 import type { ApiEcole, ApiSite } from '@/types/api'
 import sireneService from '@/services/sireneService'
 import type { Sirene } from '@/services/sireneService'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/auth'
 import {
   AlertCircle,
   AlertTriangle,
