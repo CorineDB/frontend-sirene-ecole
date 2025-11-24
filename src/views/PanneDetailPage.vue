@@ -660,7 +660,6 @@ const handleAccepterCandidature = async (candidatureId: string) => {
   if (!currentOrdreMission.value) return
   const data = {
     ordre_mission_id: currentOrdreMission.value.id,
-    admin_id: 'admin-id', // Would come from auth context
     message: 'Candidature acceptée'
   }
   await accepterCandidature(candidatureId, data)

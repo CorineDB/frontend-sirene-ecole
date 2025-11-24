@@ -930,15 +930,15 @@ export interface SoumettreCandidatureRequest {
 }
 
 export interface AccepterCandidatureRequest {
-  admin_id: string
+  //admin_id: string
 }
 
 export interface RefuserCandidatureRequest {
-  admin_id: string
+  //admin_id: string
 }
 
 export interface RetirerCandidatureRequest {
-  motif_retrait: string
+  //motif_retrait: string
 }
 
 export interface CreateInterventionRequest {

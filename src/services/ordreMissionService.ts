@@ -67,16 +67,16 @@ class OrdreMissionService {
   /**
    * Clôturer les candidatures
    */
-  async cloturerCandidatures(id: string, adminId: string): Promise<ApiOrdreMissionResponse> {
-    const response = await apiClient.put(`/ordres-mission/${id}/cloturer-candidatures`, { admin_id: adminId })
+  async cloturerCandidatures(id: string): Promise<ApiOrdreMissionResponse> {
+    const response = await apiClient.put(`/ordres-mission/${id}/cloturer-candidatures`, { })
     return response.data
   }
 
   /**
    * Rouvrir les candidatures
    */
-  async rouvrirCandidatures(id: string, adminId: string): Promise<ApiOrdreMissionResponse> {
-    const response = await apiClient.put(`/ordres-mission/${id}/rouvrir-candidatures`, { admin_id: adminId })
+  async rouvrirCandidatures(id: string): Promise<ApiOrdreMissionResponse> {
+    const response = await apiClient.put(`/ordres-mission/${id}/rouvrir-candidatures`, { })
     return response.data
   }
 
