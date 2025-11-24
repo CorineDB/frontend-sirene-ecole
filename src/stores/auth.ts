@@ -31,6 +31,9 @@ export interface User {
   roleSlug?: string // Le slug du rôle pour compatibilité
   doit_changer_mot_de_passe: boolean
   mot_de_passe_change: boolean
+  // Polymorphic relationship fields
+  user_account_type_id?: string | null
+  user_account_type_type?: string | null // Ex: "App\Models\Ecole", "App\Models\Technicien"
   created_at?: string
 }
 
@@ -70,6 +73,8 @@ const transformApiUser = (apiUser: ApiUser): User => {
     roleSlug: apiUser.role?.slug || mapUserTypeToRole(apiUser.type),
     doit_changer_mot_de_passe: apiUser.doit_changer_mot_de_passe || false,
     mot_de_passe_change: apiUser.mot_de_passe_change || false,
+    user_account_type_id: apiUser.user_account_type_id || null,
+    user_account_type_type: apiUser.user_account_type_type || null,
   }
 }
 
@@ -297,11 +302,13 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('✓ /me request succeeded!')
       console.log('Raw response from /me:', userData)
 
-      // L'API me() peut retourner directement l'utilisateur ou dans data
-      const apiUser = userData.data || userData
+      // L'API me() retourne { success: true, data: { user: {...} } }
+      const apiUser = userData.data?.user || userData.data || userData
       console.log('apiUser extracted:', apiUser)
       console.log('apiUser.type:', apiUser?.type)
       console.log('apiUser.role:', apiUser?.role)
+      console.log('apiUser.user_account_type_type:', apiUser?.user_account_type_type)
+      console.log('apiUser.user_account_type_id:', apiUser?.user_account_type_id)
 
       const transformedUser = transformApiUser(apiUser)
       console.log('transformedUser:', transformedUser)

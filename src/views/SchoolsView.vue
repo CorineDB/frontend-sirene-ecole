@@ -190,39 +190,33 @@ const fetchSchools = async () => {
     const response = await ecoleService.getAll(100)
     if (response.success && response.data?.data) {
       // Map Ecole to School format
-      schools.value = response.data.data.map((ecole: Ecole) => ({
-        id: ecole.id,
-        name: ecole.nom,
-        type: ecole.types_etablissement[0] || 'primaire',
-        phone: ecole.telephone_contact,
-        email: ecole.email_contact || null,
-        address: ecole.site_principal?.adresse || 'N/A',
-        city: ecole.site_principal?.ville?.nom || 'N/A',
-        region: ecole.site_principal?.ville?.pays?.nom || 'N/A',
-        status: ecole.statut,
-        created_at: ecole.created_at || new Date().toISOString(),
-      }))
+      schools.value = response.data.data.map((ecole: Ecole) => {
+        // Safely get type from types_etablissement array
+        let type = 'primaire'
+        if (Array.isArray(ecole.types_etablissement) && ecole.types_etablissement.length > 0) {
+          type = ecole.types_etablissement[0]
+        }
+
+        return {
+          id: ecole.id,
+          name: ecole.nom_complet || ecole.nom || 'École sans nom',
+          type: type,
+          phone: ecole.telephone_contact || 'N/A',
+          email: ecole.email_contact || null,
+          address: ecole.site_principal?.adresse || 'N/A',
+          city: ecole.site_principal?.ville?.nom || 'N/A',
+          region: ecole.site_principal?.ville?.pays?.nom || 'N/A',
+          status: ecole.statut || 'actif',
+          created_at: ecole.created_at || new Date().toISOString(),
+        }
+      })
     } else {
-      // Use mock data if API fails
-      schools.value = [
-        {
-          id: '1',
-          name: 'École Primaire Wemtenga',
-          type: 'primaire',
-          phone: '+22670123456',
-          email: 'contact@wemtenga.bf',
-          address: '123 Avenue Kwame Nkrumah',
-          city: 'Ouagadougou',
-          region: 'Centre',
-          status: 'actif',
-          created_at: '2024-01-15T10:00:00Z',
-        },
-      ]
+      // Empty if no data
+      schools.value = []
     }
   } catch (error: any) {
     console.error('Failed to load schools:', error)
     notificationStore.error('Erreur', 'Impossible de charger les écoles')
-    // Use mock data on error
     schools.value = []
   } finally {
     loading.value = false

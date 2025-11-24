@@ -13,6 +13,43 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/DashboardView.vue'),
     meta: { requiresAuth: true }
   },
+  // New Dashboards Routes
+  {
+    path: '/dashboard/technicien',
+    name: 'TechnicienDashboard',
+    component: () => import('../views/TechnicienDashboard.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard/pannes',
+    name: 'AdminPannesDashboard',
+    component: () => import('../views/AdminPannesDashboard.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard/ecole',
+    name: 'EcoleDashboard',
+    component: () => import('../views/EcoleDashboard.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/my-school',
+    name: 'MySchool',
+    component: () => import('../views/MySchoolView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/my-missions',
+    name: 'MyMissions',
+    component: () => import('../views/MyMissionsView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/rapports',
+    name: 'RapportsList',
+    component: () => import('../views/RapportsListPage.vue'),
+    meta: { requiresAuth: true }
+  },
   {
     path: '/login',
     name: 'Login',
@@ -56,9 +93,54 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/programmations',
+    name: 'Programmations',
+    component: () => import('../views/ProgrammationsView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/breakdowns',
     name: 'Breakdowns',
     component: () => import('../views/BreakdownsView.vue'),
+    meta: { requiresAuth: true }
+  },
+  // New Pannes Routes (with composables)
+  {
+    path: '/pannes',
+    name: 'PannesList',
+    component: () => import('../views/PannesListPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/pannes/:id',
+    name: 'PanneDetail',
+    component: () => import('../views/PanneDetailPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  // New Interventions Routes (with composables)
+  {
+    path: '/interventions',
+    name: 'InterventionsList',
+    component: () => import('../views/InterventionsListPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/interventions/:interventionId/rapport',
+    name: 'RapportForm',
+    component: () => import('../views/RapportFormPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  // New Ordres de Mission Routes (with composables)
+  {
+    path: '/ordres-mission',
+    name: 'OrdresMissionList',
+    component: () => import('../views/OrdreMissionListPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/ordres-mission/:id',
+    name: 'OrdreMissionDetail',
+    component: () => import('../views/OrdreMissionDetailPage.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -77,6 +159,25 @@ const routes: RouteRecordRaw[] = [
     path: '/subscriptions',
     name: 'Subscriptions',
     component: () => import('../views/SubscriptionsView.vue'),
+    meta: { requiresAuth: true }
+  },
+  // New Abonnements Routes (with composables)
+  {
+    path: '/abonnements',
+    name: 'AbonnementsList',
+    component: () => import('../views/AbonnementsListPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/abonnements/nouveau',
+    name: 'AbonnementNew',
+    component: () => import('../views/AbonnementFormPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/abonnements/:id',
+    name: 'AbonnementDetail',
+    component: () => import('../views/AbonnementDetailPage.vue'),
     meta: { requiresAuth: true }
   },
   {

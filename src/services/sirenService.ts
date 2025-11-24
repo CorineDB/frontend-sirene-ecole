@@ -145,6 +145,22 @@ class SirenService {
   }
 
   /**
+   * Récupérer la liste des sirènes programmables (avec abonnement actif)
+   * @param params - Paramètres de pagination et de filtrage optionnels
+   */
+  async getSirensProgrammables(params?: {
+    page?: number
+    per_page?: number
+    ecole_id?: string
+  }): Promise<ApiSirensListResponse> {
+    const response = await apiClient.get<ApiSirensListResponse>(
+      `${this.basePath}-programmable`,
+      { params }
+    )
+    return response.data
+  }
+
+  /**
    * Récupérer une sirène par son numéro de série
    * @param numeroSerie - Numéro de série de la sirène
    */
