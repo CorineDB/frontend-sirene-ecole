@@ -636,16 +636,21 @@ const getTypeLabel = (type: TypeIntervention | string) => {
 const handleValider = async () => {
   if (!panne.value) return
 
-  // Simple validation - in production, would open a modal
-  const priorite = prompt('Priorité (basse/moyenne/haute/urgente):', 'moyenne') as any
-  const ville_id = prompt('ID de la ville:')
+  // Simple validation - in real app, would open a modal for more details
+  const nombreTechniciens = prompt('Nombre de techniciens requis:', '1')
+  const dateDebut = prompt('Date début candidature (YYYY-MM-DD):')
+  const dateFin = prompt('Date fin candidature (YYYY-MM-DD):')
+  const commentaire = prompt('Commentaire (optionnel):')
 
-  if (priorite && ville_id) {
+  if (nombreTechniciens) {
     await validerPanne(panne.value.id, {
-      priorite,
-      description_validation: 'Validée par admin',
-      ville_id
+      nombre_techniciens_requis: parseInt(nombreTechniciens),
+      date_debut_candidature: dateDebut || undefined,
+      date_fin_candidature: dateFin || undefined,
+      commentaire: commentaire || undefined
     })
+    // Refresh the panne data to show the newly created ordre de mission
+    await fetchById(route.params.id as string)
   }
 }
 
