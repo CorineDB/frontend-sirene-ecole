@@ -343,7 +343,7 @@
                   <div class="flex-1">
                     <div class="flex items-center gap-2 mb-1">
                       <h4 class="font-semibold text-gray-900">
-                        {{ candidature.technicien?.user.user_info.nom_complet || 'Technicien inconnu' }}
+                        {{ candidature.technicien?.user?.user_info?.nom_complet || 'Technicien inconnu' }}
                       </h4>
                       <StatusBadge type="candidature" :status="candidature.statut_candidature" />
                     </div>
