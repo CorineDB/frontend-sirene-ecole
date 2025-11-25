@@ -132,7 +132,7 @@
               <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <MapPin :size="20" class="text-blue-600" />
               </div>
-              <p class="text-sm text-gray-600">Sites Annexes</p>
+              <p class="text-sm text-gray-600">Sites Annexes fdf</p>
             </div>
             <p class="text-3xl font-bold text-gray-900">{{ ecole.sites_annexe?.length || 0 }}</p>
           </div>

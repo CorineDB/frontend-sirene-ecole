@@ -144,7 +144,23 @@
                 <td class="px-6 py-4" @click.stop>
                   <div class="flex gap-2">
                     <button
-                      v-if="abo.statut === StatutAbonnement.ACTIF"
+                      v-if="canBeActivated(abo)"
+                      @click="handleActiver(abo.id)"
+                      class="text-sm text-green-600 hover:text-green-700 font-semibold"
+                      title="Activer"
+                    >
+                      <Play :size="16" />
+                    </button>
+                    <button
+                      v-if="abo.statut === 'en_attente'"
+                      @click="handlePayer(abo)"
+                      class="text-sm text-green-600 hover:text-green-700 font-semibold"
+                      title="Payer"
+                    >
+                      <CreditCard :size="16" />
+                    </button>
+                    <button
+                      v-if="canBeRenewed(abo)"
                       @click="handleRenouveler(abo.id)"
                       class="text-sm text-green-600 hover:text-green-700 font-semibold"
                       title="Renouveler"
@@ -152,12 +168,60 @@
                       <RefreshCw :size="16" />
                     </button>
                     <button
-                      v-if="abo.qr_code_url"
+                      v-if="canBeSuspended(abo)"
+                      @click="handleSuspendre(abo.id)"
+                      class="text-sm text-yellow-600 hover:text-yellow-700 font-semibold"
+                      title="Suspendre"
+                    >
+                      <Pause :size="16" />
+                    </button>
+                    <button
+                      v-if="canBeReactivated(abo)"
+                      @click="handleReactiver(abo.id)"
+                      class="text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                      title="Réactiver"
+                    >
+                      <Play :size="16" />
+                    </button>
+                    <button
+                      v-if="canBeCancelled(abo)"
+                      @click="handleAnnuler(abo.id)"
+                      class="text-sm text-red-600 hover:text-red-700 font-semibold"
+                      title="Annuler"
+                    >
+                      <X :size="16" />
+                    </button>
+                    <button
+                      v-if="abo.qr_code_url && abo.statut !== 'actif'"
+                      @click="handlePartagerQr(abo)"
+                      class="text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                      title="Partager QR Code"
+                    >
+                      <Share2 :size="16" />
+                    </button>
+                    <button
+                      v-if="abo.statut === 'en_attente'"
+                      @click="handleRegenererQr(abo.id)"
+                      class="text-sm text-gray-600 hover:text-gray-700 font-semibold"
+                      title="Regénérer QR Code"
+                    >
+                      <RefreshCw :size="16" />
+                    </button>
+                    <button
+                      v-if="abo.qr_code_url && abo.statut !== 'actif'"
                       @click="handleTelechargerQr(abo.id)"
                       class="text-sm text-blue-600 hover:text-blue-700 font-semibold"
                       title="Télécharger QR Code"
                     >
                       <Download :size="16" />
+                    </button>
+                    <button
+                      v-if="abo.statut === 'actif'"
+                      @click="handleVoirPaiement(abo)"
+                      class="text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                      title="Voir paiement"
+                    >
+                      <CreditCard :size="16" />
                     </button>
                     <button
                       @click="router.push(`/abonnements/${abo.id}`)"
@@ -198,6 +262,7 @@ import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import { useAbonnements } from '@/composables/useAbonnements'
+import { useAbonnementRules } from '@/composables/useAbonnementRules'
 import { StatutAbonnement } from '@/types/api'
 import {
   CreditCard,
@@ -205,7 +270,11 @@ import {
   Plus,
   RefreshCw,
   Download,
-  AlertCircle
+  AlertCircle,
+  Pause,
+  Play,
+  X,
+  Share2
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -219,9 +288,17 @@ const {
   hasAbonnements,
   fetchAll,
   renouveler,
+  suspendre,
+  reactiver,
+  annuler,
   telechargerQrCode,
+  partagerQrCode,
+  regenererQrCode,
+  activer,
   fetchExpirantBientot
 } = useAbonnements()
+
+const { canBeRenewed, canBeCancelled, canBeSuspended, canBeReactivated, canBeActivated } = useAbonnementRules()
 
 // Local state for filters
 const filterStatus = ref<string>('all')
@@ -277,6 +354,50 @@ const handleRenouveler = async (id: string) => {
 
 const handleTelechargerQr = async (id: string) => {
   await telechargerQrCode(id)
+}
+
+const handleSuspendre = async (id: string) => {
+  const raison = prompt('Raison de la suspension (optionnel):')
+  if (raison !== null) {
+    await suspendre(id, raison || undefined)
+  }
+}
+
+const handleReactiver = async (id: string) => {
+  if (confirm('Êtes-vous sûr de vouloir réactiver cet abonnement ?')) {
+    await reactiver(id)
+  }
+}
+
+const handleAnnuler = async (id: string) => {
+  const raison = prompt("Raison de l'annulation (optionnel):")
+  if (raison !== null && confirm('Êtes-vous sûr de vouloir annuler cet abonnement ? Cette action est irréversible.')) {
+    await annuler(id, raison || undefined)
+  }
+}
+
+const handleActiver = async (id: string) => {
+  if (confirm('Êtes-vous sûr de vouloir activer cet abonnement ?')) {
+    await activer(id)
+  }
+}
+
+const handlePayer = (abonnement: any) => {
+  router.push(`/checkout/${abonnement.ecole_id}/${abonnement.id}`)
+}
+
+const handleVoirPaiement = (abonnement: any) => {
+  handlePayer(abonnement)
+}
+
+const handlePartagerQr = async (abonnement: any) => {
+  await partagerQrCode(abonnement)
+}
+
+const handleRegenererQr = async (id: string) => {
+  if (confirm('Êtes-vous sûr de vouloir regénérer le QR code ?')) {
+    await regenererQrCode(id)
+  }
 }
 
 const fetchAbonnementsExpirantBientot = async (jours: number) => {

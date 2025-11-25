@@ -156,7 +156,7 @@
               </div>
 
               <!-- Payment Methods -->
-              <div v-if="abonnement.statut === 'en_attente'" class="bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
                 <div class="p-6 border-b border-gray-200">
                   <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
                     <CreditCard :size="24" class="text-blue-600" />
@@ -176,131 +176,75 @@
                   </div>
                 </div>
               </div>
+            </div>
 
-              <!-- Paiements -->
-              <div v-if="abonnement.paiements && abonnement.paiements.length > 0" class="bg-white rounded-xl border border-gray-200 shadow-sm">
-                <div class="p-6 border-b border-gray-200">
-                  <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <CreditCard :size="24" class="text-green-600" />
-                    Paiements ({{ abonnement.paiements.length }})
-                  </h3>
+            <!-- Payment Summary -->
+            <div class="lg:col-span-1">
+              <div class="bg-white rounded-xl border border-gray-200 shadow-sm sticky top-6">
+                <div class="p-6 border-b border-gray-200 bg-gradient-to-br from-green-50 to-emerald-50">
+                  <h3 class="text-xl font-bold text-gray-900">Récapitulatif</h3>
                 </div>
-                <div class="p-6 space-y-3">
-                  <div
-                    v-for="paiement in abonnement.paiements"
-                    :key="paiement.id"
-                    class="border border-gray-200 rounded-lg p-4"
-                  >
-                    <div class="flex items-center justify-between">
-                      <div>
-                        <p class="font-semibold text-gray-900">{{ formatMontant(paiement.montant) }} XOF</p>
-                        <p class="text-sm text-gray-600">{{ formatDate(paiement.date_paiement) }}</p>
-                      </div>
-                      <StatusBadge v-if="paiement.statut" type="paiement" :status="paiement.statut" />
+                <div class="p-6 space-y-4">
+                  <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Montant de l'abonnement</span>
+                    <span class="font-semibold text-gray-900">{{ formatMontant(abonnement.montant) }} FCFA</span>
+                  </div>
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-600">Frais de traitement</span>
+                    <span class="font-medium text-gray-900">0 FCFA</span>
+                  </div>
+                  <div class="pt-4 border-t-2 border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-lg font-bold text-gray-900">Total à payer</span>
+                      <span class="text-2xl font-bold text-green-600">{{ formatMontant(abonnement.montant) }} FCFA</span>
+                    </div>
+                  </div>
+
+                  <!-- Payment Buttons -->
+                  <div class="space-y-3 mt-6">
+                    <!-- Real Payment Button -->
+                    <button
+                      @click="proceedToPayment"
+                      class="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg"
+                    >
+                      <Lock :size="20" />
+                      Payer maintenant
+                    </button>
+
+                    <!-- Simulate Payment Button (DEV ONLY) -->
+                    <button
+                      @click="simulateSuccessfulPayment"
+                      class="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold text-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg border-2 border-green-300"
+                    >
+                      🎭
+                      <span>Simuler paiement réussi (DEV)</span>
+                    </button>
+                  </div>
+
+                  <!-- QR Code -->
+                  <div v-if="abonnement.qr_code_path" class="mt-6 pt-6 border-t border-gray-200">
+                    <p class="text-sm text-gray-600 text-center mb-3">Ou scannez le QR code</p>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <img
+                        v-if="qrCodeUrl"
+                        :src="qrCodeUrl"
+                        alt="QR Code"
+                        class="w-full h-auto object-contain"
+                      />
+                      <div v-else class="animate-pulse bg-gray-200 h-48 rounded"></div>
+                    </div>
+                  </div>
+
+                  <!-- Security Info -->
+                  <div class="mt-6 pt-6 border-t border-gray-200">
+                    <div class="flex items-start gap-2 text-sm text-gray-600">
+                      <Shield :size="18" class="text-green-600 mt-0.5 flex-shrink-0" />
+                      <p>Paiement 100% sécurisé avec CinetPay. Vos données bancaires sont protégées.</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-
-            <!-- Payment Summary -->
-            <template v-if="abonnement.statut === 'en_attente'">
-              <div class="lg:col-span-1">
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm sticky top-6">
-                  <div class="p-6 border-b border-gray-200 bg-gradient-to-br from-green-50 to-emerald-50">
-                    <h3 class="text-xl font-bold text-gray-900">Récapitulatif</h3>
-                  </div>
-                  <div class="p-6 space-y-4">
-                    <div class="flex items-center justify-between">
-                      <span class="text-gray-600">Montant de l'abonnement</span>
-                      <span class="font-semibold text-gray-900">{{ formatMontant(abonnement.montant) }} FCFA</span>
-                    </div>
-                    <div class="flex items-center justify-between text-sm">
-                      <span class="text-gray-600">Frais de traitement</span>
-                      <span class="font-medium text-gray-900">0 FCFA</span>
-                    </div>
-                    <div class="pt-4 border-t-2 border-gray-200">
-                      <div class="flex items-center justify-between mb-2">
-                        <span class="text-lg font-bold text-gray-900">Total à payer</span>
-                        <span class="text-2xl font-bold text-green-600">{{ formatMontant(abonnement.montant) }} FCFA</span>
-                      </div>
-                    </div>
-
-                    <!-- Payment Buttons -->
-                    <div class="space-y-3 mt-6">
-                      <!-- Real Payment Button -->
-                      <button
-                        @click="proceedToPayment"
-                        class="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg"
-                      >
-                        <Lock :size="20" />
-                        Payer maintenant
-                      </button>
-
-                      <!-- Simulate Payment Button (DEV ONLY) -->
-                      <button
-                        @click="simulateSuccessfulPayment"
-                        class="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold text-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg border-2 border-green-300"
-                      >
-                        🎭
-                        <span>Simuler paiement réussi (DEV)</span>
-                      </button>
-                    </div>
-
-                    <!-- QR Code -->
-                    <div v-if="abonnement.qr_code_path" class="mt-6 pt-6 border-t border-gray-200">
-                      <p class="text-sm text-gray-600 text-center mb-3">Ou scannez le QR code</p>
-                      <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <img
-                          v-if="qrCodeUrl"
-                          :src="qrCodeUrl"
-                          alt="QR Code"
-                          class="w-full h-auto object-contain"
-                        />
-                        <div v-else class="animate-pulse bg-gray-200 h-48 rounded"></div>
-                      </div>
-                    </div>
-
-                    <!-- Security Info -->
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                      <div class="flex items-start gap-2 text-sm text-gray-600">
-                        <Shield :size="18" class="text-green-600 mt-0.5 flex-shrink-0" />
-                        <p>Paiement 100% sécurisé avec CinetPay. Vos données bancaires sont protégées.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </template>
-
-            <!-- Payment Details (for active subscriptions) -->
-            <template v-if="abonnement.statut === 'actif'">
-              <div class="lg:col-span-1">
-                <div class="bg-white rounded-xl border-2 border-green-300 shadow-sm sticky top-6">
-                  <div class="p-6 border-b-2 border-green-300 bg-gradient-to-br from-green-50 to-emerald-50">
-                    <div class="flex items-center gap-3">
-                      <CheckCircle :size="24" class="text-green-600" />
-                      <h3 class="text-xl font-bold text-gray-900">Paiement confirmé</h3>
-                    </div>
-                  </div>
-                  <div class="p-6 space-y-4">
-                    <div class="flex items-center justify-between">
-                      <span class="text-gray-600">Montant de l'abonnement</span>
-                      <span class="font-semibold text-gray-900">{{ formatMontant(abonnement.montant) }} FCFA</span>
-                    </div>
-                    <div class="pt-4 border-t-2 border-gray-200">
-                      <div class="flex items-center justify-between mb-2">
-                        <span class="text-lg font-bold text-gray-900">Total payé</span>
-                        <span class="text-2xl font-bold text-green-600">{{ formatMontant(abonnement.montant) }} FCFA</span>
-                      </div>
-                    </div>
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                      <p class="text-sm text-gray-600 text-center mb-3">Cet abonnement est actif.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </template>
           </div>
 
           <!-- Additional Info -->
@@ -328,7 +272,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import PublicLayout from '../components/layout/PublicLayout.vue'
-import StatusBadge from '../components/common/StatusBadge.vue'
 import {
   Building2, Phone, Mail, MapPin, FileText, Calendar, CreditCard,
   Smartphone, CheckCircle, Lock, Shield, Info, AlertCircle, Bell
@@ -400,43 +343,106 @@ const loadData = async () => {
   error.value = null
 
   try {
+    const ecoleId = route.params.ecoleId as string
     const abonnementId = route.params.abonnementId as string
 
-    if (!abonnementId) {
-      error.value = 'ID d\'abonnement manquant'
+    if (!ecoleId || !abonnementId) {
+      error.value = 'Paramètres manquants'
       return
     }
 
-    // Fetch abonnement details directly
-    const abonnementResponse = await abonnementService.getById(abonnementId)
-    if (!abonnementResponse.data) {
-      error.value = 'Abonnement introuvable'
-      return
-    }
-    abonnement.value = abonnementResponse.data
+    // Check if we have encoded data from QR code
+    const encodedData = (route.query.d || route.query.data) as string
+    if (encodedData) {
+      try {
+        const decodedData = JSON.parse(atob(encodedData))
+        console.log('Données QR code décodées:', decodedData)
 
-    // Fetch ecole details using ecole_id from abonnement
-    const ecoleResponse = await ecoleService.getById(abonnement.value.ecole_id)
+        // Support pour nouveau format avec clés courtes
+        const qrAbonnementId = decodedData.a || decodedData.abonnement_id
+        const qrEcoleId = decodedData.e || decodedData.ecole_id
+
+        // Afficher les infos du QR code pour debug
+        if (qrAbonnementId === abonnementId && qrEcoleId === ecoleId) {
+          console.log('✓ QR code data matches:', {
+            numero: decodedData.n,
+            montant: decodedData.m,
+            statut: decodedData.s,
+            ecole: decodedData.ec,
+            site: decodedData.si,
+            sirene: decodedData.sr
+          })
+        }
+      } catch (e) {
+        console.warn('Failed to decode QR code data:', e)
+      }
+    }
+
+    // Load school data from API
+    const ecoleResponse = await ecoleService.getById(ecoleId)
     if (!ecoleResponse.success || !ecoleResponse.data) {
       error.value = 'École introuvable'
       return
     }
+
     ecole.value = ecoleResponse.data
 
-    // Find the site corresponding to the abonnement
-    if (ecole.value.site_principal?.id === abonnement.value.site_id) {
-      site.value = ecole.value.site_principal
-    } else if (ecole.value.sites_annexe) {
-      site.value = ecole.value.sites_annexe.find(s => s.id === abonnement.value.site_id)
+    // Find the abonnement from all sites' sirens
+    let foundAbonnement = null
+    let foundSite = null
+
+    // Check principal site first
+    if (ecole.value.site_principal?.sirene) {
+      const sireneAbonnement = ecole.value.site_principal.sirene.abonnementEnAttente ||
+                              ecole.value.site_principal.sirene.abonnement_en_attente
+      console.log(sireneAbonnement);
+      if (sireneAbonnement?.id === abonnementId) {
+        foundAbonnement = sireneAbonnement
+        foundSite = ecole.value.site_principal
+      }
+
+      if (!foundAbonnement) {
+        const sireneAbonnementActif = ecole.value.site_principal.sirene.abonnementActif ||
+                                     ecole.value.site_principal.sirene.abonnement_actif
+        if (sireneAbonnementActif?.id === abonnementId) {
+          foundAbonnement = sireneAbonnementActif
+          foundSite = ecole.value.site_principal
+        }
+      }
     }
 
-    if (!site.value) {
-      error.value = 'Site introuvable pour cet abonnement'
+    // Then check annexes sites
+    if (!foundAbonnement && ecole.value.sites_annexe) {
+      for (const siteAnnexe of ecole.value.sites_annexe) {
+        if (!siteAnnexe.sirene) continue
+
+        const sireneAbonnement = siteAnnexe.sirene.abonnementEnAttente || siteAnnexe.sirene.abonnement_en_attente
+        if (sireneAbonnement?.id === abonnementId) {
+          foundAbonnement = sireneAbonnement
+          foundSite = siteAnnexe
+          break
+        }
+
+        const sireneAbonnementActif = siteAnnexe.sirene.abonnementActif || siteAnnexe.sirene.abonnement_actif
+        if (sireneAbonnementActif?.id === abonnementId) {
+          foundAbonnement = sireneAbonnementActif
+          foundSite = siteAnnexe
+          break
+        }
+      }
+    }
+
+    if (!foundAbonnement) {
+      error.value = 'Abonnement introuvable'
       return
     }
 
+    abonnement.value = foundAbonnement
+    site.value = foundSite
+    paymentUrl.value = getPaymentUrl(foundAbonnement.notes)
+
     // Load QR code signed URL if available
-    if (abonnement.value.qr_code_path) {
+    if (foundAbonnement.qr_code_path) {
       const urlResponse = await abonnementService.getQrCodeUrl(abonnementId)
       if (urlResponse.success && urlResponse.data) {
         qrCodeUrl.value = urlResponse.data.qr_code_url

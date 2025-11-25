@@ -7,6 +7,7 @@
           <p class="text-gray-600 mt-1">Gérer les comptes utilisateurs</p>
         </div>
         <button
+          v-if="hasPermission('creer_utilisateur')"
           @click="openCreateModal"
           class="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all"
         >
@@ -202,9 +203,12 @@ import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import { Users, Plus, Search } from 'lucide-vue-next'
 import { useUsers } from '@/composables/useUsers'
+import { usePermissions } from '@/composables/usePermissions'
 import UserFormModal from '@/components/users/UserFormModal.vue'
 import UserRolesModal from '@/components/users/UserRolesModal.vue'
 import type { ApiUserData } from '@/types/api'
+
+const { hasPermission } = usePermissions()
 
 const {
   users,
