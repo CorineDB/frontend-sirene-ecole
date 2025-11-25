@@ -90,6 +90,14 @@ class AbonnementService {
   }
 
   /**
+   * Activer un abonnement en attente
+   */
+  async activer(abonnementId: string): Promise<ApiAbonnementResponse> {
+    const response = await apiClient.post(`/abonnements/${abonnementId}/activer`)
+    return response.data
+  }
+
+  /**
    * Régénérer le QR code d'un abonnement en attente
    */
   async regenererQrCode(abonnementId: string): Promise<ApiResponse<{

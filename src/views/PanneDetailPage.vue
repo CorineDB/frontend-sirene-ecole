@@ -82,6 +82,14 @@
             Valider la panne
           </button>
           <button
+            v-if="panne.statut === StatutPanne.RESOLUE || panne.statut === StatutPanne.DECLAREE"
+            @click="handleCloturer"
+            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors flex items-center gap-2"
+          >
+            <XCircle :size="18" />
+            Clôturer la panne (déclarée)
+          </button>
+          <button
             v-if="panne.statut === StatutPanne.RESOLUE"
             @click="handleCloturer"
             class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors flex items-center gap-2"
@@ -476,7 +484,8 @@ import {
   Bell,
   Building2,
   Calendar,
-  ExternalLink
+  ExternalLink,
+  XCircle
 } from 'lucide-vue-next'
 
 const router = useRouter()

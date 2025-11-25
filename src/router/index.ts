@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { AUTH_CONFIG } from '../config/api'
+import { useAuthStore } from '../stores/auth'
+import { usePermissions } from '../composables/usePermissions'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -196,7 +197,7 @@ const routes: RouteRecordRaw[] = [
     path: '/users',
     name: 'Users',
     component: () => import('../views/UsersView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresPermission: 'voir_les_utilisateurs' }
   },
   {
     path: '/roles',
@@ -249,32 +250,43 @@ const router = createRouter({
 
 // Navigation Guard
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem(AUTH_CONFIG.tokenKey)
-  const isAuthenticated = !!token
+  const authStore = useAuthStore()
+  const isAuthenticated = authStore.isAuthenticated
 
-  console.log('Navigation Guard:', {
-    to: to.path,
-    from: from.path,
-    hasToken: !!token,
-    requiresAuth: to.meta.requiresAuth,
-    isGuest: to.meta.guest
-  })
+  // Initialize permissions composable
+  const { hasPermission, hasRole } = usePermissions()
 
   // If route requires authentication and user is not authenticated
   if (to.meta.requiresAuth && !isAuthenticated) {
-    console.log('Redirecting to login: no token and route requires auth')
-    next('/login')
-    return
+    return next({ name: 'Login', query: { redirect: to.fullPath } })
   }
 
   // If route is for guests only and user is authenticated
   if (to.meta.guest && isAuthenticated) {
-    console.log('Redirecting to dashboard: has token and route is for guests only')
-    next('/dashboard')
-    return
+    return next('/dashboard')
   }
 
-  console.log('Navigation allowed')
+  // Check for required permissions
+  if (to.meta.requiresPermission) {
+    const permission = to.meta.requiresPermission as string
+    if (!hasPermission(permission)) {
+      // Redirect to a 'Not Authorized' page or dashboard
+      // For now, redirecting to dashboard
+      console.warn(`Access denied: user lacks permission '${permission}' for route '${to.path}'`)
+      return next('/dashboard')
+    }
+  }
+
+  // Check for required roles
+  if (to.meta.requiresRole) {
+    const role = to.meta.requiresRole as string
+    if (!hasRole(role)) {
+      // Redirect to a 'Not Authorized' page or dashboard
+      console.warn(`Access denied: user lacks role '${role}' for route '${to.path}'`)
+      return next('/dashboard')
+    }
+  }
+
   next()
 })
 

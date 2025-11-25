@@ -243,6 +243,29 @@ export function useAbonnements() {
     }
   }
 
+  /**
+   * Activer un abonnement
+   */
+  const activer = async (id: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await abonnementService.activer(id)
+      if (response.data) {
+        const index = abonnements.value.findIndex(a => a.id === id)
+        if (index !== -1) {
+          abonnements.value[index] = response.data
+        }
+      }
+      return response
+    } catch (err) {
+      handleError(err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   // ==================== Recherche ====================
 
   /**
@@ -398,6 +421,39 @@ export function useAbonnements() {
     }
   }
 
+  const partagerQrCode = async (abonnement: ApiAbonnement) => {
+    try {
+      if (!abonnement.qr_code_path) {
+        throw new Error('Aucun QR code disponible')
+      }
+
+      const checkoutUrl = `${window.location.origin}/checkout/${abonnement.ecole_id}/${abonnement.id}`
+      const blob = await abonnementService.telechargerQrCode(abonnement.id)
+      const file = new File([blob], `qr-code-${abonnement.numero_abonnement}.png`, { type: 'image/png' })
+
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `QR Code - ${abonnement.numero_abonnement}`,
+          text: `QR Code de paiement pour l'abonnement ${abonnement.numero_abonnement}\nMontant: ${abonnement.montant} XOF\nLien de paiement: ${checkoutUrl}`,
+          files: [file],
+        })
+      } else {
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `qr-code-${abonnement.numero_abonnement}.png`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(link.href)
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        handleError(err)
+        throw err
+      }
+    }
+  }
+
   // ==================== Token ====================
 
   /**
@@ -473,6 +529,7 @@ export function useAbonnements() {
     suspendre,
     reactiver,
     annuler,
+    activer,
     fetchByEcole,
     fetchExpirantBientot,
     fetchActifs,
@@ -480,6 +537,7 @@ export function useAbonnements() {
     fetchStatistiques,
     regenererQrCode,
     telechargerQrCode,
+    partagerQrCode,
     regenererToken,
 
     // Helpers
