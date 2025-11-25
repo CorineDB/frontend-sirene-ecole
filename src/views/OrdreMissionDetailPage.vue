@@ -183,6 +183,83 @@
             </div>
           </div>
         </div>
+
+        <!-- Actions Section for Vue d'ensemble -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 class="text-xl font-bold text-gray-900 mb-4">Actions sur la mission</h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <!-- Modifier (Admin) -->
+            <button
+              v-if="isAdmin"
+              @click="handleModifierMission"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              <Edit :size="16" />
+              Modifier
+            </button>
+
+            <!-- Démarrer (Admin) -->
+            <button
+              v-if="isAdmin && ordreMission.statut === StatutOrdreMission.EN_ATTENTE"
+              @click="handleDemarrerMission"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              <Play :size="16" />
+              Démarrer la mission
+            </button>
+
+            <!-- Terminer la mission (Admin/Technicien) -->
+            <button
+              v-if="(isAdmin || isTechnicien) && ordreMission.statut === StatutOrdreMission.EN_COURS"
+              @click="handleTerminerMission"
+              class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              <CheckCircle2 :size="16" />
+              Terminer la mission
+            </button>
+
+            <!-- Clôturer la mission (Admin) -->
+            <button
+              v-if="isAdmin && ordreMission.statut === StatutOrdreMission.TERMINE"
+              @click="handleCloturerMission"
+              class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              <Lock :size="16" />
+              Clôturer la mission
+            </button>
+
+            <!-- Avis sur l'exécution (École) -->
+            <button
+              v-if="isEcole && ordreMission.statut === StatutOrdreMission.TERMINE"
+              @click="handleDonnerAvisMission"
+              class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              <Star :size="16" />
+              Donner un avis
+            </button>
+
+            <!-- Stipuler panne résolue (Admin/École) -->
+            <button
+              v-if="(isAdmin || isEcole) && ordreMission.panne?.statut !== 'resolue'"
+              @click="handleStipulerPanneResolue"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              <CheckCircle2 :size="16" />
+              Panne résolue
+            </button>
+
+            <!-- Supprimer (Admin) -->
+            <button
+              v-if="isAdmin"
+              @click="handleSupprimerMission"
+              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              <Trash2 :size="16" />
+              Supprimer
+            </button>
+          </div>
+        </div>
         </div>
         <!-- End Tab Content: Vue d'ensemble -->
 
@@ -313,10 +390,34 @@
         <div v-show="activeTab === 'intervenants'" class="space-y-6">
         <!-- Intervenants Section -->
         <div class="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Users :size="24" class="text-blue-600" />
-            Intervenants ({{ intervenants.length }})
-          </h2>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Users :size="24" class="text-blue-600" />
+              Intervenants ({{ intervenants.length }})
+            </h2>
+
+            <div class="flex gap-2">
+              <!-- Ajouter un technicien -->
+              <button
+                v-if="isAdmin"
+                @click="handleAjouterTechnicien"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center gap-2"
+              >
+                <UserPlus :size="16" />
+                Ajouter un technicien
+              </button>
+
+              <!-- Rouvrir les candidatures -->
+              <button
+                v-if="isAdmin && ordreMission.statut === StatutOrdreMission.CLOTURE"
+                @click="handleRouvrirCandidatures"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors flex items-center gap-2"
+              >
+                <Unlock :size="16" />
+                Rouvrir candidatures
+              </button>
+            </div>
+          </div>
 
           <div v-if="hasIntervenants" class="space-y-3">
             <div
@@ -346,7 +447,29 @@
                   </div>
                 </div>
 
-                <StatusBadge type="candidature" :status="intervenant.statut_candidature" />
+                <div class="flex flex-col gap-2">
+                  <StatusBadge type="candidature" :status="intervenant.statut_candidature" />
+
+                  <!-- Actions sur intervenant -->
+                  <div v-if="isAdmin" class="flex gap-2 mt-2">
+                    <button
+                      @click="handleSuspendreIntervenant(intervenant.id)"
+                      class="px-3 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 font-semibold flex items-center gap-1"
+                      title="Suspendre l'intervenant"
+                    >
+                      <Ban :size="14" />
+                      Suspendre
+                    </button>
+                    <button
+                      @click="handleRetirerIntervenant(intervenant.id)"
+                      class="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 font-semibold flex items-center gap-1"
+                      title="Retirer l'intervenant"
+                    >
+                      <UserMinus :size="14" />
+                      Retirer
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -363,10 +486,22 @@
         <div v-show="activeTab === 'interventions'" class="space-y-6">
         <!-- Interventions Section -->
         <div class="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Wrench :size="24" class="text-orange-600" />
-            Interventions ({{ interventions.length }})
-          </h2>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Wrench :size="24" class="text-orange-600" />
+              Interventions ({{ interventions.length }})
+            </h2>
+
+            <!-- Bouton Ajouter une intervention -->
+            <button
+              v-if="isAdmin"
+              @click="handleAjouterIntervention"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center gap-2"
+            >
+              <Plus :size="16" />
+              Ajouter une intervention
+            </button>
+          </div>
 
           <div v-if="hasInterventions" class="space-y-3">
             <div
@@ -410,37 +545,119 @@
                   </p>
                 </div>
 
-                <!-- Action buttons for assigned techniciens -->
-                <div v-if="isTechnicienAssigne(intervention)" class="flex flex-col gap-2 flex-shrink-0">
-                  <!-- Démarrer button - shown for 'planifiee' status -->
-                  <button
-                    v-if="intervention.statut === 'planifiee'"
-                    @click="handleDemarrerIntervention(intervention.id)"
-                    class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap"
-                  >
-                    <Wrench :size="16" />
-                    Démarrer
-                  </button>
+                <!-- Action buttons grid pour chaque intervention -->
+                <div class="flex-shrink-0">
+                  <div class="grid grid-cols-2 gap-2">
+                    <!-- Modifier (Admin) -->
+                    <button
+                      v-if="isAdmin"
+                      @click="handleModifierIntervention(intervention.id)"
+                      class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 font-semibold flex items-center gap-1 justify-center"
+                    >
+                      <Edit :size="12" />
+                      Modifier
+                    </button>
 
-                  <!-- Terminer button - shown for 'en_cours' status -->
-                  <button
-                    v-if="intervention.statut === 'en_cours'"
-                    @click="handleTerminerIntervention(intervention.id)"
-                    class="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap"
-                  >
-                    <Check :size="16" />
-                    Terminer
-                  </button>
+                    <!-- Planifier (Admin/Technicien) -->
+                    <button
+                      v-if="(isAdmin || isTechnicien) && intervention.statut === 'non_planifiee'"
+                      @click="handlePlanifierIntervention(intervention.id)"
+                      class="px-3 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-semibold flex items-center gap-1 justify-center"
+                    >
+                      <CalendarClock :size="12" />
+                      Planifier
+                    </button>
 
-                  <!-- Rédiger rapport button - shown for 'termine' status -->
-                  <button
-                    v-if="intervention.statut === 'termine'"
-                    @click="handleRedigerRapport(intervention.id)"
-                    class="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2 whitespace-nowrap"
-                  >
-                    <ExternalLink :size="16" />
-                    Rédiger rapport
-                  </button>
+                    <!-- Démarrer (Admin/Technicien) -->
+                    <button
+                      v-if="(isAdmin || isTechnicienAssigne(intervention)) && intervention.statut === 'planifiee'"
+                      @click="handleDemarrerIntervention(intervention.id)"
+                      class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 font-semibold flex items-center gap-1 justify-center"
+                    >
+                      <Play :size="12" />
+                      Démarrer
+                    </button>
+
+                    <!-- Reporter -->
+                    <button
+                      v-if="isAdmin && intervention.statut === 'planifiee'"
+                      @click="handleReporterIntervention(intervention.id)"
+                      class="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 font-semibold flex items-center gap-1 justify-center"
+                    >
+                      <Clock :size="12" />
+                      Reporter
+                    </button>
+
+                    <!-- Confirmer programme (École) -->
+                    <button
+                      v-if="isEcole && intervention.statut === 'planifiee'"
+                      @click="handleConfirmerProgramme(intervention.id)"
+                      class="px-3 py-1 bg-teal-600 text-white text-xs rounded hover:bg-teal-700 font-semibold flex items-center gap-1 justify-center"
+                    >
+                      <CheckCircle2 :size="12" />
+                      Confirmer
+                    </button>
+
+                    <!-- Terminer (Admin/Technicien) -->
+                    <button
+                      v-if="(isAdmin || isTechnicienAssigne(intervention)) && intervention.statut === 'en_cours'"
+                      @click="handleTerminerIntervention(intervention.id)"
+                      class="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 font-semibold flex items-center gap-1 justify-center"
+                    >
+                      <CheckCircle2 :size="12" />
+                      Terminer
+                    </button>
+
+                    <!-- Rédiger rapport (Technicien) -->
+                    <button
+                      v-if="isTechnicienAssigne(intervention) && intervention.statut === 'termine'"
+                      @click="handleRedigerRapport(intervention.id)"
+                      class="px-3 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-semibold flex items-center gap-1 justify-center"
+                    >
+                      <FileText :size="12" />
+                      Rapport
+                    </button>
+
+                    <!-- Avis (École) -->
+                    <button
+                      v-if="isEcole && intervention.statut === 'termine'"
+                      @click="handleDonnerAvisIntervention(intervention.id)"
+                      class="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 font-semibold flex items-center gap-1 justify-center"
+                    >
+                      <Star :size="12" />
+                      Avis
+                    </button>
+
+                    <!-- Ajouter intervenant (Admin) -->
+                    <button
+                      v-if="isAdmin"
+                      @click="handleAjouterIntervenantIntervention(intervention.id)"
+                      class="px-3 py-1 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700 font-semibold flex items-center gap-1 justify-center"
+                    >
+                      <UserPlus :size="12" />
+                      + Interv
+                    </button>
+
+                    <!-- Retirer intervenant (Admin) -->
+                    <button
+                      v-if="isAdmin"
+                      @click="handleRetirerIntervenantIntervention(intervention.id)"
+                      class="px-3 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 font-semibold flex items-center gap-1 justify-center"
+                    >
+                      <UserMinus :size="12" />
+                      - Interv
+                    </button>
+
+                    <!-- Supprimer (Admin) -->
+                    <button
+                      v-if="isAdmin"
+                      @click="handleSupprimerIntervention(intervention.id)"
+                      class="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 font-semibold flex items-center gap-1 justify-center"
+                    >
+                      <Trash2 :size="12" />
+                      Supprimer
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -483,7 +700,19 @@ import {
   Wrench,
   ExternalLink,
   Info,
-  ClipboardList
+  ClipboardList,
+  Edit,
+  Play,
+  CheckCircle2,
+  Star,
+  Trash2,
+  UserPlus,
+  UserMinus,
+  Ban,
+  Plus,
+  CalendarClock,
+  Clock,
+  FileText
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -620,6 +849,11 @@ const isTechnicien = computed(() => {
 // Check if user is a admin
 const isAdmin = computed(() => {
   return authStore.user?.type === 'ADMIN' && authStore.user?.user_account_type_type === null
+})
+
+// Check if user is an ecole
+const isEcole = computed(() => {
+  return authStore.user?.type === 'ECOLE' && authStore.user?.user_account_type_type === "App\\Models\\Ecole"
 })
 
 const hasSubmittedOffer = computed(() => {
@@ -802,6 +1036,127 @@ const handleTerminerIntervention = async (interventionId: string) => {
 
 const handleRedigerRapport = (interventionId: string) => {
   router.push(`/interventions/${interventionId}/rapport`)
+}
+
+// ==================== Nouvelles fonctions handlers ====================
+
+// Vue d'ensemble - Actions Mission
+const handleModifierMission = () => {
+  alert('Fonctionnalité "Modifier la mission" à implémenter')
+  // TODO: Implémenter la modification de la mission
+}
+
+const handleDemarrerMission = async () => {
+  if (!confirm('Voulez-vous démarrer cette mission ?')) return
+  alert('Fonctionnalité "Démarrer la mission" à implémenter')
+  // TODO: Appeler l'API pour démarrer la mission
+}
+
+const handleTerminerMission = async () => {
+  if (!confirm('Voulez-vous terminer cette mission ?')) return
+  alert('Fonctionnalité "Terminer la mission" à implémenter')
+  // TODO: Appeler l'API pour terminer la mission
+}
+
+const handleCloturerMission = async () => {
+  if (!confirm('Voulez-vous clôturer cette mission ?')) return
+  alert('Fonctionnalité "Clôturer la mission" à implémenter')
+  // TODO: Appeler l'API pour clôturer la mission
+}
+
+const handleDonnerAvisMission = () => {
+  const avis = prompt('Votre avis sur l\'exécution de la mission:')
+  if (avis) {
+    alert('Fonctionnalité "Donner un avis sur la mission" à implémenter')
+    // TODO: Envoyer l'avis à l'API
+  }
+}
+
+const handleStipulerPanneResolue = async () => {
+  if (!confirm('Voulez-vous marquer cette panne comme résolue ?')) return
+  alert('Fonctionnalité "Stipuler panne résolue" à implémenter')
+  // TODO: Appeler l'API pour marquer la panne comme résolue
+}
+
+const handleSupprimerMission = async () => {
+  if (!confirm('ATTENTION: Voulez-vous vraiment supprimer cette mission ? Cette action est irréversible.')) return
+  alert('Fonctionnalité "Supprimer la mission" à implémenter')
+  // TODO: Appeler l'API pour supprimer la mission puis rediriger
+}
+
+// Intervenants - Actions
+const handleAjouterTechnicien = () => {
+  alert('Fonctionnalité "Ajouter un technicien" à implémenter')
+  // TODO: Ouvrir un modal pour sélectionner et ajouter un technicien
+}
+
+const handleSuspendreIntervenant = async (intervenantId: string) => {
+  const motif = prompt('Motif de la suspension:')
+  if (motif) {
+    alert(`Fonctionnalité "Suspendre l'intervenant ${intervenantId}" à implémenter`)
+    // TODO: Appeler l'API pour suspendre l'intervenant
+  }
+}
+
+const handleRetirerIntervenant = async (intervenantId: string) => {
+  if (!confirm('Voulez-vous retirer cet intervenant de la mission ?')) return
+  alert(`Fonctionnalité "Retirer l'intervenant ${intervenantId}" à implémenter`)
+  // TODO: Appeler l'API pour retirer l'intervenant
+}
+
+// Interventions - Actions
+const handleAjouterIntervention = () => {
+  alert('Fonctionnalité "Ajouter une intervention" à implémenter')
+  // TODO: Ouvrir un modal pour créer une nouvelle intervention
+}
+
+const handleModifierIntervention = (interventionId: string) => {
+  alert(`Fonctionnalité "Modifier l'intervention ${interventionId}" à implémenter`)
+  // TODO: Ouvrir un modal de modification
+}
+
+const handlePlanifierIntervention = (interventionId: string) => {
+  alert(`Fonctionnalité "Planifier l'intervention ${interventionId}" à implémenter`)
+  // TODO: Ouvrir un modal pour planifier la date/heure
+}
+
+const handleReporterIntervention = (interventionId: string) => {
+  const nouvelleDate = prompt('Nouvelle date (YYYY-MM-DD):')
+  if (nouvelleDate) {
+    alert(`Fonctionnalité "Reporter l'intervention ${interventionId}" à implémenter`)
+    // TODO: Appeler l'API pour reporter l'intervention
+  }
+}
+
+const handleConfirmerProgramme = async (interventionId: string) => {
+  if (!confirm('Voulez-vous confirmer ce programme d\'intervention ?')) return
+  alert(`Fonctionnalité "Confirmer le programme ${interventionId}" à implémenter`)
+  // TODO: Appeler l'API pour confirmer
+}
+
+const handleDonnerAvisIntervention = (interventionId: string) => {
+  const avis = prompt('Votre avis sur cette intervention:')
+  const note = prompt('Note sur 5:')
+  if (avis && note) {
+    alert(`Fonctionnalité "Donner un avis sur l'intervention ${interventionId}" à implémenter`)
+    // TODO: Envoyer l'avis à l'API
+  }
+}
+
+const handleAjouterIntervenantIntervention = (interventionId: string) => {
+  alert(`Fonctionnalité "Ajouter un intervenant à l'intervention ${interventionId}" à implémenter`)
+  // TODO: Ouvrir un modal pour sélectionner un technicien
+}
+
+const handleRetirerIntervenantIntervention = (interventionId: string) => {
+  alert(`Fonctionnalité "Retirer un intervenant de l'intervention ${interventionId}" à implémenter`)
+  // TODO: Ouvrir un modal pour sélectionner quel intervenant retirer
+}
+
+const handleSupprimerIntervention = async (interventionId: string) => {
+  if (!confirm('ATTENTION: Voulez-vous vraiment supprimer cette intervention ?')) return
+  alert(`Fonctionnalité "Supprimer l'intervention ${interventionId}" à implémenter`)
+  // TODO: Appeler l'API pour supprimer l'intervention
 }
 
 // Lifecycle
