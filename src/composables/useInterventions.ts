@@ -225,27 +225,123 @@ export function useInterventions() {
   /**
    * Confirmer le programme d'une intervention
    */
-  const confirmerProgramme = async (interventionId: string) => {
-    loading.value = true;
-    error.value = null;
+  const confirmer = async (interventionId: string) => {
+    loading.value = true
+    error.value = null
     try {
-      const response = await interventionService.confirmerProgramme(interventionId);
-      // Assuming confirmerProgramme might return the updated intervention or just a success message
-      // If it returns the intervention, update the local state
-      // if (response.data) {
-      //   const index = interventions.value.findIndex(i => i.id === interventionId);
-      //   if (index !== -1) {
-      //     interventions.value[index] = response.data;
-      //   }
-      // }
-      return response;
+      const response = await interventionService.confirmer(interventionId)
+      return response
     } catch (err) {
-      handleError(err);
-      throw err;
+      handleError(err)
+      throw err
     } finally {
-      loading.value = false;
+      loading.value = false
     }
-  };
+  }
+
+  /**
+   * Modifier une intervention
+   */
+  const modifier = async (
+    interventionId: string,
+    data: {
+      type_intervention?: string
+      date_intervention?: string
+      instructions?: string
+    }
+  ) => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await interventionService.modifier(interventionId, data)
+      if (response.data) {
+        const index = interventions.value.findIndex(i => i.id === interventionId)
+        if (index !== -1) {
+          interventions.value[index] = response.data
+        }
+      }
+      return response
+    } catch (err) {
+      handleError(err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Reporter une intervention
+   */
+  const reporter = async (
+    interventionId: string,
+    data: {
+      nouvelle_date: string
+      motif?: string
+    }
+  ) => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await interventionService.reporter(interventionId, data)
+      if (response.data) {
+        const index = interventions.value.findIndex(i => i.id === interventionId)
+        if (index !== -1) {
+          interventions.value[index] = response.data
+        }
+      }
+      return response
+    } catch (err) {
+      handleError(err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Supprimer une intervention
+   */
+  const supprimer = async (interventionId: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      await interventionService.supprimer(interventionId)
+      // Retirer de la liste locale
+      interventions.value = interventions.value.filter(i => i.id !== interventionId)
+    } catch (err) {
+      handleError(err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Ajouter un avis sur une intervention
+   */
+  const ajouterAvis = async (
+    interventionId: string,
+    data: {
+      note: number
+      commentaire: string
+      recommande?: boolean
+      ecole_id: string
+      auteur_id?: string
+      type_avis?: string
+    }
+  ) => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await interventionService.ajouterAvisIntervention(interventionId, data)
+      return response
+    } catch (err) {
+      handleError(err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
 
   /**
    * Assigner un technicien
@@ -626,9 +722,13 @@ export function useInterventions() {
     // Méthodes - Création & Gestion
     creer,
     planifier,
-    confirmerProgramme,
+    confirmer,
+    modifier,
+    reporter,
+    supprimer,
     assignerTechnicien,
     retirerTechnicien,
+    ajouterAvis,
 
     // Méthodes - Cycle de vie
     demarrer,

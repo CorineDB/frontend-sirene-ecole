@@ -39,36 +39,51 @@ class OrdreMissionService {
   }
 
   /**
-   * Démarrer un ordre de mission (placeholder)
+   * Démarrer un ordre de mission
    */
   async demarrer(id: string): Promise<ApiOrdreMissionResponse> {
-    console.warn("OrdreMissionService.demarrer is a placeholder and does not call a real API endpoint yet.");
-    // Simulate API call
-    // const response = await apiClient.put(`/ordres-mission/${id}/demarrer`);
-    // return response.data;
-
-    // For now, let's just return a mock success response
-    return Promise.resolve({
-      success: true,
-      data: { id: id, statut: 'en_cours' } as ApiOrdreMission, // Mock updated status
-      message: `Ordre de mission ${id} started successfully (mocked).`,
-    });
+    const response = await apiClient.post(`/ordres-mission/${id}/demarrer`)
+    return response.data
   }
 
   /**
-   * Assigner un technicien à un ordre de mission (placeholder)
+   * Terminer un ordre de mission
    */
-  async assignerTechnicien(ordreMissionId: string, technicienId: string, role?: string): Promise<ApiResponse> {
-    console.warn("OrdreMissionService.assignerTechnicien is a placeholder and does not call a real API endpoint yet.");
-    // Simulate API call
-    // const response = await apiClient.post(`/ordres-mission/${ordreMissionId}/assigner-technicien`, { technicien_id: technicienId, role });
-    // return response.data;
+  async terminer(id: string): Promise<ApiOrdreMissionResponse> {
+    const response = await apiClient.post(`/ordres-mission/${id}/terminer`)
+    return response.data
+  }
 
-    // For now, let's just return a mock success response
-    return Promise.resolve({
-      success: true,
-      message: `Technicien ${technicienId} assigned to mission ${ordreMissionId} (mocked).`,
-    });
+  /**
+   * Clôturer un ordre de mission
+   */
+  async cloturer(id: string): Promise<ApiOrdreMissionResponse> {
+    const response = await apiClient.post(`/ordres-mission/${id}/cloturer`)
+    return response.data
+  }
+
+  /**
+   * Donner un avis sur un ordre de mission
+   */
+  async donnerAvis(
+    id: string,
+    data: {
+      avis: string
+      note?: number
+    }
+  ): Promise<ApiResponse> {
+    const response = await apiClient.post(`/ordres-mission/${id}/avis`, data)
+    return response.data
+  }
+
+  /**
+   * Ajouter un technicien à un ordre de mission
+   */
+  async ajouterTechnicien(ordreMissionId: string, technicienId: string): Promise<ApiResponse> {
+    const response = await apiClient.post(`/ordres-mission/${ordreMissionId}/techniciens`, {
+      technicien_id: technicienId
+    })
+    return response.data
   }
 
   /**
