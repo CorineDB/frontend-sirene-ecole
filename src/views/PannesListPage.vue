@@ -365,10 +365,10 @@ const declarationForm = ref({
 
 // Computed
 const showEcoleFilter = computed(() => {
-  return authStore.user?.type === 'admin'
+  return authStore.user?.type === 'ADMIN'
 })
 
-const isAdmin = computed(() => authStore.isAdmin)
+const isAdmin = computed(() => authStore.user?.type === 'ADMIN')
 
 const displayedPannes = computed(() => {
   return pannes.value

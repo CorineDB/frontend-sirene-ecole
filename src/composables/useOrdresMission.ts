@@ -88,6 +88,31 @@ export function useOrdresMission() {
   }
 
   /**
+   * Démarrer un ordre de mission
+   */
+  const demarrerMission = async (id: string) => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+      const response = await ordreMissionService.demarrer(id);
+      if (response.success && ordreMission.value && ordreMission.value.id === id) {
+        // Update the local state of the specific ordreMission
+        ordreMission.value = response.data;
+      }
+      return response;
+    } catch (err) {
+      handleError(err);
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  /**
+   * Assigner un technicien à un ordre de mission
+   */
+
+  /**
    * Assigner un technicien à un ordre de mission
    */
   const assignerTechnicien = async (ordreMissionId: string, technicienId: string, role?: string) => {
@@ -277,6 +302,7 @@ export function useOrdresMission() {
     fetchAll,
     fetchById,
     create,
+    demarrerMission,
     assignerTechnicien,
     update,
     deleteOrdreMission,

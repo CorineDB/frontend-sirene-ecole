@@ -39,6 +39,23 @@ class OrdreMissionService {
   }
 
   /**
+   * Démarrer un ordre de mission (placeholder)
+   */
+  async demarrer(id: string): Promise<ApiOrdreMissionResponse> {
+    console.warn("OrdreMissionService.demarrer is a placeholder and does not call a real API endpoint yet.");
+    // Simulate API call
+    // const response = await apiClient.put(`/ordres-mission/${id}/demarrer`);
+    // return response.data;
+
+    // For now, let's just return a mock success response
+    return Promise.resolve({
+      success: true,
+      data: { id: id, statut: 'en_cours' } as ApiOrdreMission, // Mock updated status
+      message: `Ordre de mission ${id} started successfully (mocked).`,
+    });
+  }
+
+  /**
    * Assigner un technicien à un ordre de mission (placeholder)
    */
   async assignerTechnicien(ordreMissionId: string, technicienId: string, role?: string): Promise<ApiResponse> {

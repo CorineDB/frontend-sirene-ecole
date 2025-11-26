@@ -674,17 +674,6 @@
       @success="handleAjouterTechnicienSuccess"
     />
 
-    <!-- Ajouter Intervenant Modal -->
-    <AjouterIntervenantModal
-      :show="showAjouterIntervenantModal"
-      :intervention-id="interventionToAjouterIntervenantId"
-      :mission-id="ordreMission?.id"
-      :mission-technicians="missionAssignedTechnicians"
-      :current-assigned-technicians="currentInterventionForModal ? getCurrentInterventionAssignedTechnicians(currentInterventionForModal) : []"
-      @close="showAjouterIntervenantModal = false"
-      @success="handleAjouterIntervenantSuccess"
-    />
-
     <Modal
       :show="showRefusModal"
       title="Refuser la candidature"
@@ -706,3 +695,608 @@
     />
   </DashboardLayout>
 </template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import DashboardLayout from '../components/layout/DashboardLayout.vue'
+import StatusBadge from '../components/common/StatusBadge.vue'
+import Tabs from '../components/common/Tabs.vue'
+import Modal from '../components/common/Modal.vue'
+import ConfirmModal from '../components/common/ConfirmModal.vue'
+import { useOrdresMission } from '@/composables/useOrdresMission'
+import { useInterventions } from '@/composables/useInterventions'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notifications'
+import interventionService from '@/services/interventionService'
+import { StatutOrdreMission } from '@/types/api'
+import {
+  ArrowLeft,
+  AlertCircle,
+  AlertTriangle,
+  MapPin,
+  User,
+  Users,
+  Calendar,
+  Lock,
+  Unlock,
+  Check,
+  X,
+  Wrench,
+  ExternalLink,
+  Edit,
+  Play,
+  CheckCircle2,
+  Star,
+  Trash2,
+  UserPlus,
+  UserMinus,
+  Ban,
+  Plus,
+  CalendarClock,
+  Clock,
+  FileText
+} from 'lucide-vue-next'
+import ReporterInterventionModal from '@/components/interventions/ReporterInterventionModal.vue';
+import ConfirmerProgrammeModal from '@/components/interventions/ConfirmerProgrammeModal.vue';
+import AvisInterventionModal from '@/components/interventions/AvisInterventionModal.vue';
+import AjouterTechnicienModal from '@/components/missions/AjouterTechnicienModal.vue'; // New import
+import PlanifierInterventionModal from '@/components/interventions/PlanifierInterventionModal.vue'; // New import
+
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
+
+const tabs = ref([
+  { name: 'Détails' },
+  { name: 'Intervenants' },
+  { name: 'Interventions' },
+  { name: 'Candidatures' },
+])
+
+const showRefusModal = ref(false)
+const motifRefus = ref('')
+const selectedCandidatureId = ref<string | null>(null)
+
+const showConfirmModal = ref(false)
+const confirmTitle = ref('')
+const confirmMessage = ref('')
+const confirmAction = ref<() => void>(() => {})
+
+const showReporterInterventionModal = ref(false);
+const interventionToReportId = ref<string | null>(null);
+
+const showConfirmerProgrammeModal = ref(false);
+const interventionToConfirmId = ref<string | null>(null);
+
+const showAvisInterventionModal = ref(false);
+const interventionToAvisId = ref<string | null>(null);
+
+const showAjouterTechnicienModal = ref(false); // New state
+const missionToAjouterTechnicienId = ref<string | null>(null); // New state
+
+const showPlanifierInterventionModal = ref(false); // New state
+const interventionToPlanifierId = ref<string | null>(null); // New state
+
+
+
+// Composables
+const {
+  ordreMission,
+  candidatures,
+  isLoading,
+  hasError,
+  error,
+  hasCandidatures,
+  fetchById,
+  fetchCandidatures,
+  cloturerCandidatures,
+  rouvrirCandidatures
+} = useOrdresMission()
+
+const {
+  accepterCandidature,
+  refuserCandidature
+} = useInterventions()
+
+// Computed
+const interventions = computed(() => {
+  return ordreMission.value?.interventions || []
+})
+
+const allInterventionsTerminees = computed(() => {
+  return interventions.value.length > 0 && interventions.value.every(i => i.statut === 'termine')
+})
+
+const isMissionNotCloturee = computed(() => {
+  return ordreMission.value?.statut !== StatutOrdreMission.CLOTURE
+})
+
+const isMissionActive = computed(() => {
+  return ordreMission.value?.statut !== StatutOrdreMission.TERMINE && ordreMission.value?.statut !== StatutOrdreMission.CLOTURE
+})
+
+const intervenants = computed(() => {
+  // Get accepted candidatures (missions_techniciens with statut_candidature === 'acceptee')
+  if (!ordreMission.value?.missions_techniciens) return []
+
+  return ordreMission.value.missions_techniciens.filter(
+    (mt: any) => mt.statut_candidature === 'acceptee'
+  )
+})
+
+// ADDED: Computed for technicians assigned to the mission
+const missionAssignedTechnicians = computed(() => {
+  return intervenants.value.map(mt => mt.technicien!).filter(Boolean) as ApiTechnicien[];
+});
+
+// ADDED: Helper to extract assigned technicians from an intervention object
+const getCurrentInterventionAssignedTechnicians = (intervention: ApiIntervention) => {
+  let techs: ApiTechnicien[] = [];
+  if (intervention.technicien) {
+    techs.push(intervention.technicien);
+  }
+  if (intervention.techniciens && Array.isArray(intervention.techniciens)) {
+    techs = techs.concat(intervention.techniciens);
+  }
+  return techs;
+}
+
+const hasInterventions = computed(() => interventions.value.length > 0)
+const hasIntervenants = computed(() => intervenants.value.length > 0)
+
+// Check if current user (technicien) is assigned to a specific intervention
+const isTechnicienAssigne = (intervention: any) => {
+  if (!isTechnicien.value || !authStore.user) return false
+
+  const technicienId = authStore.user.user_account_type_id
+
+  // Check if technicien is directly assigned to this intervention
+  if (intervention.technicien_id === technicienId) return true
+
+  // Check in techniciens array if present
+  if (intervention.techniciens && Array.isArray(intervention.techniciens)) {
+    return intervention.techniciens.some((t: any) => t.id === technicienId)
+  }
+
+  return false
+}
+
+// Check if candidatures period is currently active
+const isCandidaturesEnCours = computed(() => {
+  if (!ordreMission.value) {
+    return false
+  }
+
+  const now = new Date()
+  const dateDebut = ordreMission.value.date_debut_candidature
+    ? new Date(ordreMission.value.date_debut_candidature)
+    : null
+  const dateFin = ordreMission.value.date_fin_candidature
+    ? new Date(ordreMission.value.date_fin_candidature)
+    : null
+
+  if ((!dateDebut || !dateFin) && ordreMission.value.date_cloture_candidature != null) {
+    return false
+  }
+
+  else if ((!dateDebut || !dateFin) && ordreMission.value.date_cloture_candidature == null) {
+    return true
+  }
+
+  return now >= dateDebut && now <= dateFin
+})
+
+// Check if user is a technicien
+const isTechnicien = computed(() => {
+  const result = authStore.user?.type === 'TECHNICIEN' && authStore.user?.user_account_type_type === "App\\Models\\Technicien"
+  return result
+})
+
+// Check if user is a admin
+const isAdmin = computed(() => {
+  return authStore.user?.type === 'ADMIN' && authStore.user?.user_account_type_type === null
+})
+
+// Check if user is an ecole
+const isEcole = computed(() => {
+  return authStore.user?.type === 'ECOLE' && authStore.user?.user_account_type_type === "App\\Models\\Ecole"
+})
+
+const hasSubmittedOffer = computed(() => {
+  //const candidatures = candidatures
+  const userAccountId = authStore.user?.user_account_type_id
+
+  if (!candidatures || !userAccountId) return false
+
+  return candidatures.value.some(c => c.technicien_id === userAccountId)
+})
+
+const canRetirer = computed(() => {
+  return isTechnicien.value &&
+    hasSubmittedOffer.value &&          // Il a postulé
+    isCandidaturesEnCours.value         // Période encore ouverte
+})
+
+const handleRetirerCandidature = async () => {
+  const userId = authStore.user?.user_account_type_id
+  if (!userId) return
+
+  const candidature = candidatures.value.find(c => c.technicien_id === userId)
+  if (!candidature) return
+
+  const motif = prompt("Motif du retrait :")
+  if (!motif) return
+
+  try {
+    await interventionService.retirerCandidature(candidature.id, {
+      motif_retrait: motif
+    })
+
+    notificationStore.success("Votre candidature a été retirée.")
+    await fetchCandidatures(route.params.id)
+    await fetchById(route.params.id)
+
+  } catch (e) {
+    console.error("Erreur retrait candidature:", e)
+    notificationStore.error("Erreur lors du retrait de la candidature.")
+  }
+}
+
+// Check if technicien can apply (is technicien and candidatures are open)
+const canPostuler = computed(() => {
+  const result = isTechnicien.value &&
+    isCandidaturesEnCours.value &&
+    !hasSubmittedOffer.value
+  return result
+})
+
+// Check if admin can close candidatures
+const canClosed = computed(() => {
+  return isAdmin.value &&
+    isCandidaturesEnCours.value &&
+    !ordreMission.value?.candidature_cloturee &&
+    !(ordreMission.value?.statut === StatutOrdreMission.EN_ATTENTE || ordreMission.value?.statut === StatutOrdreMission.EN_COURS)
+})
+
+// Methods
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const showConfirmation = (title: string, message: string, action: () => void) => {
+  confirmTitle.value = title
+  confirmMessage.value = message
+  confirmAction.value = action
+  showConfirmModal.value = true
+}
+
+const handleCloturerCandidatures = () => {
+  showConfirmation(
+    'Clôturer les candidatures',
+    'Êtes-vous sûr de vouloir clôturer les candidatures pour cet ordre de mission ?',
+    async () => {
+      await cloturerCandidatures(route.params.id as string)
+      await fetchById(route.params.id as string)
+      showConfirmModal.value = false
+    }
+  )
+}
+
+const handleRouvrirCandidatures = () => {
+  showConfirmation(
+    'Rouvrir les candidatures',
+    'Êtes-vous sûr de vouloir rouvrir les candidatures pour cet ordre de mission ?',
+    async () => {
+      await rouvrirCandidatures(route.params.id as string)
+      await fetchById(route.params.id as string)
+      showConfirmModal.value = false
+    }
+  )
+}
+
+const handleAccepterCandidature = async (missionTechnicienId: string) => {
+
+    try {
+      await accepterCandidature(missionTechnicienId, { })
+      await fetchCandidatures(route.params.id as string)
+      await fetchById(route.params.id as string)
+    } catch (err) {
+      console.error('Error accepting candidature:', err)
+    }
+}
+
+const handleRefuserCandidature = (missionTechnicienId: string) => {
+  selectedCandidatureId.value = missionTechnicienId
+  showRefusModal.value = true
+}
+
+const confirmRefusCandidature = async () => {
+  if (selectedCandidatureId.value && motifRefus.value) {
+    try {
+      await refuserCandidature(selectedCandidatureId.value, {
+        motif_refus: motifRefus.value
+      })
+      await fetchCandidatures(route.params.id as string)
+      await fetchById(route.params.id as string)
+    } catch (err) {
+      console.error('Error refusing candidature:', err)
+    } finally {
+      showRefusModal.value = false
+      motifRefus.value = ''
+      selectedCandidatureId.value = null
+    }
+  }
+}
+
+const handlePostuler = () => {
+  if (!ordreMission.value || !authStore.user) return
+
+  showConfirmation(
+    'Soumettre la candidature',
+    'Voulez-vous soumettre votre candidature pour cet ordre de mission ?',
+    async () => {
+      try {
+        await interventionService.soumettreCandidature(ordreMission.value.id, {
+          technicien_id: authStore.user.user_account_type_id
+        })
+
+        notificationStore.success('Candidature soumise avec succès!')
+        // Refresh data
+        await fetchCandidatures(route.params.id as string)
+        await fetchById(route.params.id as string)
+      } catch (error: any) {
+        console.error('Erreur lors de la soumission de la candidature:', error)
+        const errorMessage = error?.response?.data?.message || 'Erreur lors de la soumission de la candidature'
+        notificationStore.error(errorMessage)
+      } finally {
+        showConfirmModal.value = false
+      }
+    }
+  )
+}
+
+const handleDemarrerIntervention = (interventionId: string) => {
+  if (!authStore.user) return
+
+  showConfirmation(
+    'Démarrer l\'intervention',
+    'Voulez-vous démarrer cette intervention ?',
+    async () => {
+      try {
+        await interventionService.demarrer(interventionId, {
+          technicien_id: authStore.user.user_account_type_id
+        })
+
+        notificationStore.success('Intervention démarrée avec succès!')
+        await fetchById(route.params.id as string)
+      } catch (error: any) {
+        console.error('Erreur lors du démarrage de l\'intervention:', error)
+        const errorMessage = error?.response?.data?.message || 'Erreur lors du démarrage de l\'intervention'
+        notificationStore.error(errorMessage)
+      } finally {
+        showConfirmModal.value = false
+      }
+    }
+  )
+}
+
+const handleTerminerIntervention = (interventionId: string) => {
+  if (!authStore.user) return
+
+  showConfirmation(
+    'Terminer l\'intervention',
+    'Voulez-vous terminer cette intervention ?',
+    async () => {
+      try {
+        await interventionService.terminer(interventionId, {
+          technicien_id: authStore.user.user_account_type_id
+        })
+
+        notificationStore.success('Intervention terminée avec succès!')
+        await fetchById(route.params.id as string)
+      } catch (error: any) {
+        console.error('Erreur lors de la fin de l\'intervention:', error)
+        const errorMessage = error?.response?.data?.message || 'Erreur lors de la fin de l\'intervention'
+        notificationStore.error(errorMessage)
+      } finally {
+        showConfirmModal.value = false
+      }
+    }
+  )
+}
+
+const handleRedigerRapport = (interventionId: string) => {
+  router.push(`/interventions/${interventionId}/rapport`)
+}
+
+// ==================== Nouvelles fonctions handlers ====================
+
+// Vue d'ensemble - Actions Mission
+const handleModifierMission = () => {
+  if (ordreMission.value) {
+    router.push(`/ordres-mission/${ordreMission.value.id}/modifier`)
+  }
+}
+
+const handleDemarrerMission = () => {
+  showConfirmation(
+    'Démarrer la mission',
+    'Voulez-vous démarrer cette mission ?',
+    async () => {
+      // TODO: Appeler l'API pour démarrer la mission
+      notificationStore.info('Fonctionnalité "Démarrer la mission" à implémenter')
+      showConfirmModal.value = false
+    }
+  )
+}
+
+const handleTerminerMission = () => {
+  showConfirmation(
+    'Terminer la mission',
+    'Voulez-vous terminer cette mission ?',
+    async () => {
+      // TODO: Appeler l'API pour terminer la mission
+      notificationStore.info('Fonctionnalité "Terminer la mission" à implémenter')
+      showConfirmModal.value = false
+    }
+  )
+}
+
+const handleCloturerMission = () => {
+  showConfirmation(
+    'Clôturer la mission',
+    'Voulez-vous clôturer cette mission ?',
+    async () => {
+      // TODO: Appeler l'API pour clôturer la mission
+      notificationStore.info('Fonctionnalité "Clôturer la mission" à implémenter')
+      showConfirmModal.value = false
+    }
+  )
+}
+
+const handleDonnerAvisMission = () => {
+  // TODO: Ouvrir un modal pour saisir l'avis
+  notificationStore.info('Fonctionnalité "Donner un avis sur la mission" à implémenter')
+}
+
+const handleStipulerPanneResolue = () => {
+  showConfirmation(
+    'Marquer la panne comme résolue',
+    'Voulez-vous marquer cette panne comme résolue ?',
+    async () => {
+      // TODO: Appeler l'API pour marquer la panne comme résolue
+      notificationStore.info('Fonctionnalité "Stipuler panne résolue" à implémenter')
+      showConfirmModal.value = false
+    }
+  )
+}
+
+const handleSupprimerMission = () => {
+  showConfirmation(
+    'Supprimer la mission',
+    'ATTENTION: Voulez-vous vraiment supprimer cette mission ? Cette action est irréversible.',
+    async () => {
+      // TODO: Appeler l'API pour supprimer la mission puis rediriger
+      notificationStore.info('Fonctionnalité "Supprimer la mission" à implémenter')
+      showConfirmModal.value = false
+    }
+  )
+}
+
+// Intervenants - Actions
+const handleAjouterTechnicien = () => {
+  if (ordreMission.value) {
+    missionToAjouterTechnicienId.value = ordreMission.value.id;
+    showAjouterTechnicienModal.value = true;
+  }
+}
+
+const handleAjouterTechnicienSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
+}
+
+const handleSuspendreIntervenant = (intervenantId: string) => {
+  // TODO: Ouvrir un modal pour saisir le motif, puis appeler l'API
+  notificationStore.info(`Fonctionnalité "Suspendre l'intervenant ${intervenantId}" à implémenter`)
+}
+
+const handleRetirerIntervenant = (intervenantId: string) => {
+  showConfirmation(
+    'Retirer l\'intervenant',
+    'Voulez-vous retirer cet intervenant de la mission ?',
+    async () => {
+      // TODO: Appeler l'API pour retirer l'intervenant
+      notificationStore.info(`Fonctionnalité "Retirer l'intervenant ${intervenantId}" à implémenter`)
+      showConfirmModal.value = false
+    }
+  )
+}
+
+// Interventions - Actions
+const handleAjouterIntervention = () => {
+  if (ordreMission.value) {
+    router.push(`/ordres-mission/${ordreMission.value.id}/interventions/nouvelle`);
+  }
+}
+
+const handleModifierIntervention = (interventionId: string) => {
+  router.push(`/interventions/${interventionId}/modifier`);
+}
+
+const handlePlanifierIntervention = (interventionId: string) => {
+  interventionToPlanifierId.value = interventionId;
+  showPlanifierInterventionModal.value = true;
+}
+
+const handlePlanifierSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
+}
+
+const handleReporterIntervention = (interventionId: string) => {
+  interventionToReportId.value = interventionId;
+  showReporterInterventionModal.value = true;
+}
+
+const handleReporterSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
+}
+
+const handleConfirmerProgramme = (interventionId: string) => {
+  interventionToConfirmId.value = interventionId;
+  showConfirmerProgrammeModal.value = true;
+}
+
+const handleConfirmationSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
+}
+
+const handleDonnerAvisIntervention = (interventionId: string) => {
+  interventionToAvisId.value = interventionId;
+  showAvisInterventionModal.value = true;
+}
+
+const handleAvisSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
+}
+
+const handleAjouterIntervenantIntervention = (interventionId: string) => {
+  interventionToAjouterIntervenantId.value = interventionId;
+  showAjouterIntervenantModal.value = true;
+}
+
+const handleAjouterIntervenantSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
+}
+
+const handleRetirerIntervenantIntervention = (interventionId: string) => {
+  // TODO: Ouvrir un modal pour sélectionner quel intervenant retirer
+  notificationStore.info(`Fonctionnalité "Retirer un intervenant de l'intervention ${interventionId}" à implémenter`)
+}
+
+const handleSupprimerIntervention = (interventionId: string) => {
+  showConfirmation(
+    'Supprimer l\'intervention',
+    'ATTENTION: Voulez-vous vraiment supprimer cette intervention ?',
+    async () => {
+      // TODO: Appeler l'API pour supprimer l'intervention
+      notificationStore.info(`Fonctionnalité "Supprimer l'intervention ${interventionId}" à implémenter`)
+      showConfirmModal.value = false
+    }
+  )
+}
+
+// Lifecycle
+onMounted(async () => {
+  const id = route.params.id as string
+  await fetchById(id)
+  await fetchCandidatures(id)
+})
+</script>

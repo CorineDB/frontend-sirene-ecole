@@ -74,6 +74,8 @@ import { X } from 'lucide-vue-next';
 const props = defineProps<{
   show: boolean;
   interventionId: string | null;
+  missionIntervenants: ApiMissionTechnicien[]; // New prop
+  currentInterventionTechnicians: ApiTechnicien[]; // New prop
 }>();
 
 const emit = defineEmits(['close', 'success']);
@@ -83,7 +85,7 @@ const { assignerTechnicien } = useInterventions();
 
 const loading = ref(false);
 const submitting = ref(false);
-const availableTechniciens = ref<ApiTechnicien[]>([]);
+const availableTechniciens = ref<ApiTechnicien[]>([]); // These are mission technicians not yet on this intervention
 
 const form = ref({
   technicien_id: '',
@@ -99,8 +101,12 @@ const initialize = async () => {
   loading.value = true;
   form.value = { technicien_id: '', role: '' }; // Reset form
   try {
-    const response = await technicienService.getAll(); // Assuming a method to get all technicians
-    availableTechniciens.value = response.data;
+    // Filter missionIntervenants to get technicians not yet assigned to this specific intervention
+    const assignedToInterventionIds = new Set(props.currentInterventionTechnicians.map(t => t.id));
+    availableTechniciens.value = props.missionIntervenants
+      .filter(mt => mt.technicien && !assignedToInterventionIds.has(mt.technicien.id))
+      .map(mt => mt.technicien as ApiTechnicien); // Technicien should always be present
+
   } catch (err) {
     notificationStore.error("Erreur lors du chargement des techniciens disponibles.");
     console.error(err);
