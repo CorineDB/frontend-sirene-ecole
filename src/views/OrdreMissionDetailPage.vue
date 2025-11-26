@@ -639,6 +639,13 @@
         </Tabs>
       </div>
     </div>
+    <PlanifierInterventionModal
+      :show="showPlanifierInterventionModal"
+      :intervention-id="interventionToPlanifierId"
+      @close="showPlanifierInterventionModal = false"
+      @success="handlePlanifierSuccess"
+    />
+
     <ReporterInterventionModal
       :show="showReporterInterventionModal"
       :intervention-id="interventionToReportId"
@@ -734,6 +741,7 @@ import ReporterInterventionModal from '@/components/interventions/ReporterInterv
 import ConfirmerProgrammeModal from '@/components/interventions/ConfirmerProgrammeModal.vue';
 import AvisInterventionModal from '@/components/interventions/AvisInterventionModal.vue';
 import AjouterTechnicienModal from '@/components/missions/AjouterTechnicienModal.vue'; // New import
+import PlanifierInterventionModal from '@/components/interventions/PlanifierInterventionModal.vue'; // New import
 
 const router = useRouter()
 const route = useRoute()
@@ -767,6 +775,10 @@ const interventionToAvisId = ref<string | null>(null);
 
 const showAjouterTechnicienModal = ref(false); // New state
 const missionToAjouterTechnicienId = ref<string | null>(null); // New state
+
+const showPlanifierInterventionModal = ref(false); // New state
+const interventionToPlanifierId = ref<string | null>(null); // New state
+
 
 
 // Composables
@@ -1203,8 +1215,12 @@ const handleModifierIntervention = (interventionId: string) => {
 }
 
 const handlePlanifierIntervention = (interventionId: string) => {
-  // TODO: Ouvrir un modal pour planifier la date/heure
-  notificationStore.info(`Fonctionnalité "Planifier l'intervention ${interventionId}" à implémenter`)
+  interventionToPlanifierId.value = interventionId;
+  showPlanifierInterventionModal.value = true;
+}
+
+const handlePlanifierSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
 }
 
 const handleReporterIntervention = (interventionId: string) => {
