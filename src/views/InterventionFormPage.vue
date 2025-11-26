@@ -184,11 +184,13 @@ onMounted(async () => {
   error.value = null;
   try {
     // Fetch technicians
-    const techniciensResponse = await technicienService.getAll(); // Assuming getAll exists and returns { data: ApiTechnicien[] }
-    techniciens.value = techniciensResponse.data;
+    const techniciensResponse = await technicienService.getAll();
+    // Handle both paginated and direct array responses
+    techniciens.value = techniciensResponse.data?.data || techniciensResponse.data || [];
 
     if (isEditing.value && interventionId.value) {
-      const intervention = await interventionService.getById(interventionId.value);
+      const response = await interventionService.getById(interventionId.value);
+      const intervention = response.data;
       form.value = {
         type_intervention: intervention.type_intervention || '',
         technicien_id: intervention.technicien?.id || '',
@@ -199,7 +201,7 @@ onMounted(async () => {
         heure_rdv: intervention.heure_rdv || '',
       };
       // For editing, ensure ordreMissionId is set if not already from route for proper API call
-      ordreMissionId.value = intervention.ordre_mission_id; 
+      ordreMissionId.value = intervention.ordre_mission_id;
     }
   } catch (err: any) {
     error.value = "Erreur lors du chargement des données. " + (err.response?.data?.message || err.message);
@@ -231,10 +233,13 @@ const handleSubmit = async () => {
   try {
     let response;
     if (isEditing.value && interventionId.value) {
-      // Placeholder for update API call - needs to be implemented in interventionService
-      // response = await interventionService.update(interventionId.value, payload);
-      notificationStore.info("La fonction de mise à jour d\'intervention n\'est pas encore implémentée.");
-      response = { id: interventionId.value }; // Mock response
+      // Update existing intervention using the modifier method
+      await interventionService.modifier(interventionId.value, {
+        type_intervention: payload.type_intervention,
+        date_intervention: payload.date_debut,
+        instructions: payload.instructions
+      });
+      notificationStore.success("Intervention modifiée avec succès !");
     } else {
       response = await interventionService.creerIntervention(ordreMissionId.value!, payload);
       notificationStore.success("Intervention ajoutée avec succès !");
