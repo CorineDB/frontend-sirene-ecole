@@ -331,7 +331,7 @@
 
           <template #Interventions>
             <!-- Interventions Section -->
-            <div v-if="!isCandidaturesEnCours" class="bg-white rounded-xl border border-gray-200 p-6">
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
               <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
                   <Wrench :size="24" class="text-orange-600" />
