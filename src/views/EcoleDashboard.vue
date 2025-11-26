@@ -276,102 +276,11 @@
       </div>
     </div>
 
-    <!-- Modal Déclaration Panne -->
-    <div
-      v-if="showDeclarationModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      @click="showDeclarationModal = false"
-    >
-      <div
-        class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
-        @click.stop
-      >
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold text-gray-900">Déclarer une panne</h3>
-          <button
-            @click="showDeclarationModal = false"
-            class="p-2 hover:bg-gray-100 rounded-lg"
-          >
-            <X :size="20" class="text-gray-600" />
-          </button>
-        </div>
-
-        <form @submit.prevent="handleDeclarer" class="space-y-4">
-          <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-2">
-              Sirène <span class="text-red-600">*</span>
-            </label>
-            <select
-              v-model="declarationForm.sirene_id"
-              required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Sélectionnez une sirène</option>
-              <option v-for="sirene in sirenes" :key="sirene.id" :value="sirene.id">
-                {{ sirene.numero_serie }} - {{ sirene.site?.nom }}
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-2">
-              Titre <span class="text-red-600">*</span>
-            </label>
-            <input
-              v-model="declarationForm.titre"
-              type="text"
-              required
-              placeholder="Ex: Sirène ne fonctionne plus"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-2">
-              Description <span class="text-red-600">*</span>
-            </label>
-            <textarea
-              v-model="declarationForm.description"
-              rows="4"
-              required
-              placeholder="Décrivez le problème en détail..."
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-2">
-              Priorité
-            </label>
-            <select
-              v-model="declarationForm.priorite"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="basse">Basse</option>
-              <option value="moyenne">Moyenne</option>
-              <option value="haute">Haute</option>
-              <option value="urgente">Urgente</option>
-            </select>
-          </div>
-
-          <div class="flex gap-4 pt-4">
-            <button
-              type="submit"
-              class="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold"
-            >
-              Déclarer la panne
-            </button>
-            <button
-              type="button"
-              @click="showDeclarationModal = false"
-              class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold"
-            >
-              Annuler
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <PanneDeclarationModal 
+      :show="showDeclarationModal" 
+      @close="showDeclarationModal = false"
+      @panne-declaree="handlePanneDeclaree"
+    />
   </DashboardLayout>
 </template>
 
@@ -381,10 +290,9 @@ import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import FilterBar from '../components/common/FilterBar.vue'
-import { usePannes } from '@/composables/usePannes'
+import PanneDeclarationModal from '../components/pannes/PanneDeclarationModal.vue'
 import dashboardService from '@/services/dashboardService'
 import type { InterventionFilters } from '@/services/dashboardService'
-import { PrioritePanne, StatutPanne } from '@/types/api'
 import type { ApiAbonnement, ApiPanne, ApiIntervention, ApiSirene, ApiSite } from '@/types/api'
 import {
   AlertTriangle,
@@ -396,16 +304,10 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  List,
   X
 } from 'lucide-vue-next'
 
 const router = useRouter()
-
-// Composable
-const {
-  declarerPanne
-} = usePannes()
 
 // State
 const abonnementActif = ref<ApiAbonnement | null>(null)
@@ -414,12 +316,6 @@ const interventionsEnCours = ref<ApiIntervention[]>([])
 const sirenes = ref<ApiSirene[]>([])
 const sites = ref<ApiSite[]>([])
 const showDeclarationModal = ref(false)
-const declarationForm = ref({
-  sirene_id: '',
-  titre: '',
-  description: '',
-  priorite: 'moyenne' as any
-})
 
 const stats = ref({
   totalPannes: 0,
@@ -483,27 +379,8 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const handleDeclarer = async () => {
-  try {
-    await declarerPanne(declarationForm.value.sirene_id, {
-      description: declarationForm.value.description,
-      priorite: declarationForm.value.priorite,
-      titre: declarationForm.value.titre
-    } as any)
-
-    showDeclarationModal.value = false
-    declarationForm.value = {
-      sirene_id: '',
-      titre: '',
-      description: '',
-      priorite: 'moyenne'
-    }
-
-    // Reload pannes
-    await loadData()
-  } catch (err) {
-    console.error('Error declaring panne:', err)
-  }
+const handlePanneDeclaree = () => {
+  loadData();
 }
 
 const handleFilterChange = async (filters: InterventionFilters) => {
@@ -513,7 +390,6 @@ const handleFilterChange = async (filters: InterventionFilters) => {
 
 const loadInterventions = async () => {
   try {
-    // Charger les interventions en cours avec filtres
     const interventionsResponse = await dashboardService.getInterventionsEnCours(currentFilters.value)
     if (interventionsResponse.success && interventionsResponse.data) {
       interventionsEnCours.value = interventionsResponse.data
@@ -525,16 +401,13 @@ const loadInterventions = async () => {
 
 const loadData = async () => {
   try {
-    // Charger les pannes actives depuis l'API
     const pannesResponse = await dashboardService.getPannesActives()
     if (pannesResponse.success && pannesResponse.data) {
       pannesActives.value = pannesResponse.data
     }
 
-    // Charger les interventions en cours depuis l'API
     await loadInterventions()
 
-    // Charger les statistiques depuis l'API
     const statsResponse = await dashboardService.getStatistiquesEcole()
     if (statsResponse.success && statsResponse.data) {
       stats.value = {
@@ -544,9 +417,7 @@ const loadData = async () => {
         tempsResolution: statsResponse.data.temps_resolution_moyen || 0
       }
     }
-
-    // TODO: Charger les sirènes, sites et abonnement (utiliser les services existants)
-    // Ces endpoints existent déjà dans ecoleService
+    
   } catch (error) {
     console.error('Erreur lors du chargement des données:', error)
   }

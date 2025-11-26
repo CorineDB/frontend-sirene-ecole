@@ -161,6 +161,22 @@ class InterventionService {
     return response.data
   }
 
+  /**
+   * Confirmer le programme d'une intervention (placeholder)
+   */
+  async confirmerProgramme(interventionId: string): Promise<ApiResponse> {
+    console.warn("InterventionService.confirmerProgramme is a placeholder and does not call a real API endpoint yet.");
+    // Simulate API call
+    // const response = await apiClient.put(`/interventions/${interventionId}/confirmer-programme`);
+    // return response.data;
+
+    // For now, let's just return a mock success response
+    return Promise.resolve({
+      success: true,
+      message: "Programme confirmed successfully (mocked).",
+    });
+  }
+
   // ==================== Cycle de Vie ====================
 
   /**

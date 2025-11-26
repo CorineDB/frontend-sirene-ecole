@@ -121,18 +121,25 @@
 
             <div class="flex gap-2">
               <button
-                v-if="panne.statut === StatutPanne.DECLAREE"
+                v-if="isAdmin && panne.statut === StatutPanne.DECLAREE"
                 @click="handleValider(panne.id)"
                 class="text-sm text-green-600 hover:text-green-700 font-semibold px-3 py-1 rounded hover:bg-green-50"
               >
                 Valider
               </button>
               <button
-                v-if="panne.statut === StatutPanne.RESOLUE"
+                v-if="isAdmin && panne.statut === StatutPanne.RESOLUE"
                 @click="handleCloturer(panne.id)"
                 class="text-sm text-blue-600 hover:text-blue-700 font-semibold px-3 py-1 rounded hover:bg-blue-50"
               >
                 Clôturer
+              </button>
+              <button
+                v-if="isAdmin && panne.statut !== StatutPanne.CLOTUREE"
+                @click="handleEdit(panne)"
+                class="text-sm text-yellow-600 hover:text-yellow-700 font-semibold px-3 py-1 rounded hover:bg-yellow-50"
+              >
+                Modifier
               </button>
               <button
                 @click="router.push(`/pannes/${panne.id}`)"
@@ -161,7 +168,28 @@
         </p>
       </div>
 
-      <!-- Modal Déclaration de panne -->
+      <ValiderPanneModal
+        :show="showValiderPanneModal"
+        :panne-id="panneToValidateId"
+        @close="showValiderPanneModal = false"
+        @success="handleValidationSuccess"
+      />
+
+      <ValiderPanneModal
+        :show="showValiderPanneModal"
+        :panne-id="panneToValidateId"
+        @close="showValiderPanneModal = false"
+        @success="handleValidationSuccess"
+      />
+
+      <PanneDeclarationModal
+        :show="showEditModal"
+        :panne-to-edit="panneToEdit"
+        @close="showEditModal = false"
+        @panne-updated="handlePanneUpdated"
+      />
+
+      <!-- Modal Déclaration de panne (existing) -->
       <div
         v-if="showDeclarationModal"
         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -282,10 +310,12 @@ import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import StatusBadge from '../components/common/StatusBadge.vue'
 import FilterBar from '../components/common/FilterBar.vue'
+import PanneDeclarationModal from '../components/pannes/PanneDeclarationModal.vue'
+import ValiderPanneModal from '../components/pannes/ValiderPanneModal.vue'
 import { usePannes } from '@/composables/usePannes'
 import type { PanneFilters } from '@/services/panneService'
 import { StatutPanne, PrioritePanne } from '@/types/api'
-import type { ApiEcole, ApiSite } from '@/types/api'
+import type { ApiEcole, ApiSite, ApiPanne } from '@/types/api'
 import sireneService from '@/services/sireneService'
 import type { Sirene } from '@/services/sireneService'
 import { useAuthStore } from '@/stores/auth'
@@ -295,7 +325,8 @@ import {
   MapPin,
   Bell,
   Plus,
-  X
+  X,
+  Edit
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -304,14 +335,10 @@ const authStore = useAuthStore()
 // Composable
 const {
   pannes,
-  pannesUrgentes,
-  pannesNonResolues,
   isLoading,
   hasError,
   error,
   fetchAllPannes,
-  fetchPannesByStatut,
-  fetchPannesByPriorite,
   declarerPanne,
   validerPanne,
   cloturerPanne
@@ -320,11 +347,15 @@ const {
 // Local state
 const currentFilters = ref<PanneFilters>({})
 const showDeclarationModal = ref(false)
+const showEditModal = ref(false)
+const showValiderPanneModal = ref(false)
+const panneToValidateId = ref<string | null>(null)
+const panneToEdit = ref<ApiPanne | null>(null)
 const sirenes = ref<Sirene[]>([])
 const ecoles = ref<ApiEcole[]>([])
 const sites = ref<ApiSite[]>([])
 
-// Form state for declaration
+// Form state for declaration (existing inline modal)
 const declarationForm = ref({
   sirene_id: '',
   objet: '',
@@ -336,6 +367,8 @@ const declarationForm = ref({
 const showEcoleFilter = computed(() => {
   return authStore.user?.type === 'admin'
 })
+
+const isAdmin = computed(() => authStore.isAdmin)
 
 const displayedPannes = computed(() => {
   return pannes.value
@@ -413,24 +446,13 @@ const showNonCloturees = async () => {
   await fetchAllPannes(currentFilters.value)
 }
 
-const handleValider = async (panneId: string) => {
-  // Simple validation - in real app, would open a modal for more details
-  const nombreTechniciens = prompt('Nombre de techniciens requis:', '1')
-  const dateDebut = prompt('Date début candidature (YYYY-MM-DD):')
-  const dateFin = prompt('Date fin candidature (YYYY-MM-DD):')
-  const commentaire = prompt('Description de la mission:')
+const handleValider = (panneId: string) => {
+  panneToValidateId.value = panneId;
+  showValiderPanneModal.value = true;
+}
 
-  if (nombreTechniciens) {
-  if (commentaire) {
-    await validerPanne(panneId, {
-      nombre_techniciens_requis: parseInt(nombreTechniciens),
-      date_debut_candidature: dateDebut || undefined,
-      date_fin_candidature: dateFin || undefined,
-      commentaire: commentaire || undefined
-    })
-    await fetchAllPannes()
-  }
-  }
+const handleValidationSuccess = () => {
+  fetchAllPannes(currentFilters.value);
 }
 
 const handleCloturer = async (panneId: string) => {
@@ -452,7 +474,6 @@ const handleDeclarer = async () => {
     priorite: declarationForm.value.priorite
   })
 
-  // Reset form and close modal
   declarationForm.value = {
     sirene_id: '',
     objet: '',
@@ -460,22 +481,25 @@ const handleDeclarer = async () => {
     priorite: PrioritePanne.MOYENNE
   }
   showDeclarationModal.value = false
-
-  // Refresh list
   await fetchAllPannes()
+}
+
+const handleEdit = (panne: ApiPanne) => {
+  panneToEdit.value = panne;
+  showEditModal.value = true;
+}
+
+const handlePanneUpdated = () => {
+  fetchAllPannes(currentFilters.value);
 }
 
 // Lifecycle
 onMounted(async () => {
   await fetchAllPannes()
-
-  // Charger les sirènes installées pour le formulaire de déclaration
-  // L'endpoint retourne automatiquement les sirènes selon l'utilisateur authentifié
   try {
     const response = await sireneService.getSirenesInstallees()
     if (response.success && response.data) {
       sirenes.value = response.data
-      console.log(`Sirènes installées chargées: ${response.data.length}`)
     }
   } catch (err) {
     console.error('Erreur lors du chargement des sirènes installées:', err)

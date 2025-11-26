@@ -88,6 +88,27 @@ export function useOrdresMission() {
   }
 
   /**
+   * Assigner un technicien à un ordre de mission
+   */
+  const assignerTechnicien = async (ordreMissionId: string, technicienId: string, role?: string) => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+      const response = await ordreMissionService.assignerTechnicien(ordreMissionId, technicienId, role);
+      if (response.success && ordreMission.value && ordreMission.value.id === ordreMissionId) {
+        // Optimistically update the local state or refetch details
+        await fetchById(ordreMissionId);
+      }
+      return response;
+    } catch (err) {
+      handleError(err);
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  /**
    * Mettre à jour un ordre de mission
    */
   const update = async (id: string, data: Partial<ApiOrdreMission>) => {
@@ -256,6 +277,7 @@ export function useOrdresMission() {
     fetchAll,
     fetchById,
     create,
+    assignerTechnicien,
     update,
     deleteOrdreMission,
     fetchCandidatures,

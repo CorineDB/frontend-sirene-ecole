@@ -39,6 +39,22 @@ class OrdreMissionService {
   }
 
   /**
+   * Assigner un technicien à un ordre de mission (placeholder)
+   */
+  async assignerTechnicien(ordreMissionId: string, technicienId: string, role?: string): Promise<ApiResponse> {
+    console.warn("OrdreMissionService.assignerTechnicien is a placeholder and does not call a real API endpoint yet.");
+    // Simulate API call
+    // const response = await apiClient.post(`/ordres-mission/${ordreMissionId}/assigner-technicien`, { technicien_id: technicienId, role });
+    // return response.data;
+
+    // For now, let's just return a mock success response
+    return Promise.resolve({
+      success: true,
+      message: `Technicien ${technicienId} assigned to mission ${ordreMissionId} (mocked).`,
+    });
+  }
+
+  /**
    * Mettre à jour un ordre de mission
    */
   async update(id: string, data: Partial<ApiOrdreMission>): Promise<ApiOrdreMissionResponse> {

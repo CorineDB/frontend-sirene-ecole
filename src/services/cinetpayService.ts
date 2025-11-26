@@ -1,4 +1,5 @@
 import apiClient from './api'
+import { logger } from '../utils/logger'
 
 // Declare CinetPay global object
 declare global {
@@ -124,7 +125,7 @@ class CinetPayService {
       notify_url: config.notifyUrl,
     })
 
-    console.log('CinetPay configuré:', {
+    logger.debug('CinetPay configuré:', {
       site_id: config.siteId,
       mode: config.mode,
       notify_url: config.notifyUrl
@@ -191,7 +192,7 @@ class CinetPayService {
         checkoutData.invoice_data = paymentData.invoice_data
       }
 
-      console.log('Données envoyées au SDK CinetPay:', checkoutData)
+      logger.debug('Données envoyées au SDK CinetPay:', checkoutData)
 
       // Open payment checkout
       window.CinetPay.getCheckout(checkoutData)
@@ -238,7 +239,7 @@ class CinetPayService {
 
     // Valider le format final
     if (cleaned.length < 10) {
-      console.warn('Phone number too short:', cleaned, '- using default')
+      logger.warn('Phone number too short:', cleaned, '- using default')
       return '+2290000000000'
     }
 
@@ -263,7 +264,10 @@ class CinetPayService {
     amount: number
     metadata?: any
   }): Promise<CinetPayResponse> {
-    console.log('🎭 SIMULATION: Paiement simulé', paymentData)
+    if (import.meta.env.MODE === 'production') {
+      throw new Error('Payment simulation not allowed in production environment.')
+    }
+    logger.debug('🎭 SIMULATION: Paiement simulé', paymentData)
 
     // Simuler un délai de traitement (2 secondes)
     await new Promise(resolve => setTimeout(resolve, 2000))
@@ -281,7 +285,7 @@ class CinetPayService {
       payment_date: new Date().toISOString(),
     }
 
-    console.log('✅ SIMULATION: Paiement accepté', simulatedResponse)
+    logger.debug('✅ SIMULATION: Paiement accepté', simulatedResponse)
 
     // Envoyer la notification simulée au backend
     try {
@@ -299,9 +303,9 @@ class CinetPayService {
         payment_date: new Date().toISOString(),
         metadata: JSON.stringify(paymentData.metadata || {}),
       })
-      console.log('📡 SIMULATION: Notification envoyée au backend')
+      logger.debug('📡 SIMULATION: Notification envoyée au backend')
     } catch (error) {
-      console.error('❌ SIMULATION: Erreur envoi notification', error)
+      logger.error('❌ SIMULATION: Erreur envoi notification', error)
     }
 
     return simulatedResponse

@@ -223,6 +223,31 @@ export function useInterventions() {
   }
 
   /**
+   * Confirmer le programme d'une intervention
+   */
+  const confirmerProgramme = async (interventionId: string) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await interventionService.confirmerProgramme(interventionId);
+      // Assuming confirmerProgramme might return the updated intervention or just a success message
+      // If it returns the intervention, update the local state
+      // if (response.data) {
+      //   const index = interventions.value.findIndex(i => i.id === interventionId);
+      //   if (index !== -1) {
+      //     interventions.value[index] = response.data;
+      //   }
+      // }
+      return response;
+    } catch (err) {
+      handleError(err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
    * Assigner un technicien
    */
   const assignerTechnicien = async (interventionId: string, technicienId: string, role?: string) => {
@@ -601,6 +626,7 @@ export function useInterventions() {
     // Méthodes - Création & Gestion
     creer,
     planifier,
+    confirmerProgramme,
     assignerTechnicien,
     retirerTechnicien,
 

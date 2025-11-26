@@ -182,7 +182,7 @@
 
                 <!-- Terminer la mission (Admin/Technicien) -->
                 <button
-                  v-if="(isAdmin || isTechnicien) && ordreMission.statut === StatutOrdreMission.EN_COURS"
+                  v-if="(isAdmin || isTechnicien) && ordreMission.statut === StatutOrdreMission.EN_COURS && allInterventionsTerminees"
                   @click="handleTerminerMission"
                   class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold transition-colors flex items-center justify-center gap-2"
                 >
@@ -212,7 +212,7 @@
 
                 <!-- Stipuler panne résolue (Admin/École) -->
                 <button
-                  v-if="(isAdmin || isEcole) && ordreMission.panne?.statut !== 'resolue'"
+                  v-if="(isAdmin || isEcole) && ordreMission.panne?.statut !== 'resolue' && ordreMission.statut === StatutOrdreMission.CLOTURE"
                   @click="handleStipulerPanneResolue"
                   class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center justify-center gap-2"
                 >
@@ -245,7 +245,7 @@
                 <div class="flex gap-2">
                   <!-- Ajouter un technicien -->
                   <button
-                    v-if="isAdmin"
+                    v-if="isAdmin && isMissionNotCloturee"
                     @click="handleAjouterTechnicien"
                     class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center gap-2"
                   >
@@ -299,6 +299,7 @@
                       <!-- Actions sur intervenant -->
                       <div v-if="isAdmin" class="flex gap-2 mt-2">
                         <button
+                          v-if="isMissionActive"
                           @click="handleSuspendreIntervenant(intervenant.id)"
                           class="px-3 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 font-semibold flex items-center gap-1"
                           title="Suspendre l'intervenant"
@@ -307,6 +308,7 @@
                           Suspendre
                         </button>
                         <button
+                          v-if="isMissionActive"
                           @click="handleRetirerIntervenant(intervenant.id)"
                           class="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 font-semibold flex items-center gap-1"
                           title="Retirer l'intervenant"
@@ -338,7 +340,7 @@
 
                 <!-- Bouton Ajouter une intervention -->
                 <button
-                  v-if="isAdmin"
+                  v-if="isAdmin && isMissionNotCloturee"
                   @click="handleAjouterIntervention"
                   class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center gap-2"
                 >
@@ -394,7 +396,7 @@
                       <div class="grid grid-cols-2 gap-2">
                         <!-- Modifier (Admin) -->
                         <button
-                          v-if="isAdmin"
+                          v-if="isAdmin && isMissionActive"
                           @click="handleModifierIntervention(intervention.id)"
                           class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 font-semibold flex items-center gap-1 justify-center"
                         >
@@ -404,7 +406,7 @@
 
                         <!-- Planifier (Admin/Technicien) -->
                         <button
-                          v-if="(isAdmin || isTechnicien) && intervention.statut === 'non_planifiee'"
+                          v-if="(isAdmin || isTechnicien) && intervention.statut === 'en_attente'"
                           @click="handlePlanifierIntervention(intervention.id)"
                           class="px-3 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-semibold flex items-center gap-1 justify-center"
                         >
@@ -414,7 +416,7 @@
 
                         <!-- Démarrer (Admin/Technicien) -->
                         <button
-                          v-if="(isAdmin || isTechnicienAssigne(intervention)) && intervention.statut === 'planifiee'"
+                          v-if="(isAdmin || isTechnicienAssigne(intervention)) && (intervention.statut === 'planifiee' || intervention.statut === 'en_attente')"
                           @click="handleDemarrerIntervention(intervention.id)"
                           class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 font-semibold flex items-center gap-1 justify-center"
                         >
@@ -424,7 +426,7 @@
 
                         <!-- Reporter -->
                         <button
-                          v-if="isAdmin && intervention.statut === 'planifiee'"
+                          v-if="isAdmin && (intervention.statut === 'planifiee' || intervention.statut === 'en_cours')"
                           @click="handleReporterIntervention(intervention.id)"
                           class="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 font-semibold flex items-center gap-1 justify-center"
                         >
@@ -474,7 +476,7 @@
 
                         <!-- Ajouter intervenant (Admin) -->
                         <button
-                          v-if="isAdmin"
+                          v-if="isAdmin && isMissionNotCloturee"
                           @click="handleAjouterIntervenantIntervention(intervention.id)"
                           class="px-3 py-1 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700 font-semibold flex items-center gap-1 justify-center"
                         >
@@ -484,7 +486,7 @@
 
                         <!-- Retirer intervenant (Admin) -->
                         <button
-                          v-if="isAdmin"
+                          v-if="isAdmin && isMissionActive"
                           @click="handleRetirerIntervenantIntervention(intervention.id)"
                           class="px-3 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 font-semibold flex items-center gap-1 justify-center"
                         >
@@ -494,7 +496,7 @@
 
                         <!-- Supprimer (Admin) -->
                         <button
-                          v-if="isAdmin"
+                          v-if="isAdmin && isMissionActive"
                           @click="handleSupprimerIntervention(intervention.id)"
                           class="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 font-semibold flex items-center gap-1 justify-center"
                         >
@@ -637,6 +639,34 @@
         </Tabs>
       </div>
     </div>
+    <ReporterInterventionModal
+      :show="showReporterInterventionModal"
+      :intervention-id="interventionToReportId"
+      @close="showReporterInterventionModal = false"
+      @success="handleReporterSuccess"
+    />
+
+    <ConfirmerProgrammeModal
+      :show="showConfirmerProgrammeModal"
+      :intervention-id="interventionToConfirmId"
+      @close="showConfirmerProgrammeModal = false"
+      @success="handleConfirmationSuccess"
+    />
+
+    <AvisInterventionModal
+      :show="showAvisInterventionModal"
+      :intervention-id="interventionToAvisId"
+      @close="showAvisInterventionModal = false"
+      @success="handleAvisSuccess"
+    />
+
+    <AjouterTechnicienModal
+      :show="showAjouterTechnicienModal"
+      :mission-id="missionToAjouterTechnicienId"
+      @close="showAjouterTechnicienModal = false"
+      @success="handleAjouterTechnicienSuccess"
+    />
+
     <Modal
       :show="showRefusModal"
       title="Refuser la candidature"
@@ -700,6 +730,10 @@ import {
   Clock,
   FileText
 } from 'lucide-vue-next'
+import ReporterInterventionModal from '@/components/interventions/ReporterInterventionModal.vue';
+import ConfirmerProgrammeModal from '@/components/interventions/ConfirmerProgrammeModal.vue';
+import AvisInterventionModal from '@/components/interventions/AvisInterventionModal.vue';
+import AjouterTechnicienModal from '@/components/missions/AjouterTechnicienModal.vue'; // New import
 
 const router = useRouter()
 const route = useRoute()
@@ -721,6 +755,19 @@ const showConfirmModal = ref(false)
 const confirmTitle = ref('')
 const confirmMessage = ref('')
 const confirmAction = ref<() => void>(() => {})
+
+const showReporterInterventionModal = ref(false);
+const interventionToReportId = ref<string | null>(null);
+
+const showConfirmerProgrammeModal = ref(false);
+const interventionToConfirmId = ref<string | null>(null);
+
+const showAvisInterventionModal = ref(false);
+const interventionToAvisId = ref<string | null>(null);
+
+const showAjouterTechnicienModal = ref(false); // New state
+const missionToAjouterTechnicienId = ref<string | null>(null); // New state
+
 
 // Composables
 const {
@@ -744,6 +791,18 @@ const {
 // Computed
 const interventions = computed(() => {
   return ordreMission.value?.interventions || []
+})
+
+const allInterventionsTerminees = computed(() => {
+  return interventions.value.length > 0 && interventions.value.every(i => i.statut === 'termine')
+})
+
+const isMissionNotCloturee = computed(() => {
+  return ordreMission.value?.statut !== StatutOrdreMission.CLOTURE
+})
+
+const isMissionActive = computed(() => {
+  return ordreMission.value?.statut !== StatutOrdreMission.TERMINE && ordreMission.value?.statut !== StatutOrdreMission.CLOTURE
 })
 
 const intervenants = computed(() => {
@@ -1033,8 +1092,9 @@ const handleRedigerRapport = (interventionId: string) => {
 
 // Vue d'ensemble - Actions Mission
 const handleModifierMission = () => {
-  // TODO: Implémenter la modification de la mission
-  notificationStore.info('Fonctionnalité "Modifier la mission" à implémenter')
+  if (ordreMission.value) {
+    router.push(`/ordres-mission/${ordreMission.value.id}/modifier`)
+  }
 }
 
 const handleDemarrerMission = () => {
@@ -1104,8 +1164,14 @@ const handleSupprimerMission = () => {
 
 // Intervenants - Actions
 const handleAjouterTechnicien = () => {
-  // TODO: Ouvrir un modal pour sélectionner et ajouter un technicien
-  notificationStore.info('Fonctionnalité "Ajouter un technicien" à implémenter')
+  if (ordreMission.value) {
+    missionToAjouterTechnicienId.value = ordreMission.value.id;
+    showAjouterTechnicienModal.value = true;
+  }
+}
+
+const handleAjouterTechnicienSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
 }
 
 const handleSuspendreIntervenant = (intervenantId: string) => {
@@ -1127,13 +1193,13 @@ const handleRetirerIntervenant = (intervenantId: string) => {
 
 // Interventions - Actions
 const handleAjouterIntervention = () => {
-  // TODO: Ouvrir un modal pour créer une nouvelle intervention
-  notificationStore.info('Fonctionnalité "Ajouter une intervention" à implémenter')
+  if (ordreMission.value) {
+    router.push(`/ordres-mission/${ordreMission.value.id}/interventions/nouvelle`);
+  }
 }
 
 const handleModifierIntervention = (interventionId: string) => {
-  // TODO: Ouvrir un modal de modification
-  notificationStore.info(`Fonctionnalité "Modifier l'intervention ${interventionId}" à implémenter`)
+  router.push(`/interventions/${interventionId}/modifier`);
 }
 
 const handlePlanifierIntervention = (interventionId: string) => {
@@ -1142,30 +1208,39 @@ const handlePlanifierIntervention = (interventionId: string) => {
 }
 
 const handleReporterIntervention = (interventionId: string) => {
-  // TODO: Ouvrir un modal pour sélectionner la nouvelle date
-  notificationStore.info(`Fonctionnalité "Reporter l'intervention ${interventionId}" à implémenter`)
+  interventionToReportId.value = interventionId;
+  showReporterInterventionModal.value = true;
+}
+
+const handleReporterSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
 }
 
 const handleConfirmerProgramme = (interventionId: string) => {
-  showConfirmation(
-    'Confirmer le programme',
-    'Voulez-vous confirmer ce programme d\'intervention ?',
-    async () => {
-      // TODO: Appeler l'API pour confirmer
-      notificationStore.info(`Fonctionnalité "Confirmer le programme ${interventionId}" à implémenter`)
-      showConfirmModal.value = false
-    }
-  )
+  interventionToConfirmId.value = interventionId;
+  showConfirmerProgrammeModal.value = true;
+}
+
+const handleConfirmationSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
 }
 
 const handleDonnerAvisIntervention = (interventionId: string) => {
-  // TODO: Ouvrir un modal pour saisir l'avis et la note
-  notificationStore.info(`Fonctionnalité "Donner un avis sur l'intervention ${interventionId}" à implémenter`)
+  interventionToAvisId.value = interventionId;
+  showAvisInterventionModal.value = true;
+}
+
+const handleAvisSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
 }
 
 const handleAjouterIntervenantIntervention = (interventionId: string) => {
-  // TODO: Ouvrir un modal pour sélectionner un technicien
-  notificationStore.info(`Fonctionnalité "Ajouter un intervenant à l'intervention ${interventionId}" à implémenter`)
+  interventionToAjouterIntervenantId.value = interventionId;
+  showAjouterIntervenantModal.value = true;
+}
+
+const handleAjouterIntervenantSuccess = () => {
+  fetchById(route.params.id as string); // Refresh mission data
 }
 
 const handleRetirerIntervenantIntervention = (interventionId: string) => {

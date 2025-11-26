@@ -114,6 +114,32 @@ export function usePannes() {
   }
 
   /**
+   * Mettre à jour une panne
+   */
+  const updatePanne = async (panneId: string, data: Partial<DeclarerPanneRequest>) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await panneService.update(panneId, data);
+      if (response.data) {
+        const index = pannes.value.findIndex(p => p.id === panneId);
+        if (index !== -1) {
+          pannes.value[index] = { ...pannes.value[index], ...response.data };
+        }
+        if(panne.value && panne.value.id === panneId) {
+          panne.value = { ...panne.value, ...response.data };
+        }
+      }
+      return response;
+    } catch (err) {
+      handleError(err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
    * Valider une panne
    */
   const validerPanne = async (panneId: string, data: ValiderPanneRequest) => {
@@ -429,6 +455,7 @@ export function usePannes() {
     fetchAllPannes,
     fetchPanneById,
     declarerPanne,
+    updatePanne,
     validerPanne,
     cloturerPanne,
     fetchPannesByEcole,

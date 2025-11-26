@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { API_CONFIG, AUTH_CONFIG } from '../config/api'
 import router from '../router'
+import { logger } from '../utils/logger'
 
 /**
  * Create Axios instance with default configuration
@@ -16,12 +17,21 @@ const apiClient: AxiosInstance = axios.create({
  */
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Add JWT token to Authorization header
     const token = localStorage.getItem(AUTH_CONFIG.tokenKey)
-
     if (token && config.headers) {
       config.headers.Authorization = `${AUTH_CONFIG.tokenPrefix} ${token}`
     }
 
+    // For non-GET requests, attempt to retrieve and set the X-CSRF-Token header
+    if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+      const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]')
+      if (csrfTokenMeta && csrfTokenMeta.getAttribute('content')) {
+        config.headers['X-CSRF-TOKEN'] = csrfTokenMeta.getAttribute('content')
+      } else {
+        logger.warn('CSRF token meta tag not found. CSRF protection might be incomplete.')
+      }
+    }
     return config
   },
   (error: AxiosError) => {
@@ -48,24 +58,24 @@ apiClient.interceptors.response.use(
         const isAuthRoute = currentPath.includes('/login') || currentPath.includes('/auth/otp')
 
         if (!isAuthRoute) {
-          console.log('401 Error: Clearing auth and redirecting to login')
+          logger.debug('401 Error: Clearing auth and redirecting to login')
           localStorage.removeItem(AUTH_CONFIG.tokenKey)
           localStorage.removeItem(AUTH_CONFIG.userKey)
           router.push('/login')
         } else {
-          console.log('401 Error during auth flow: Not clearing tokens')
+          logger.debug('401 Error during auth flow: Not clearing tokens')
         }
       }
     }
 
     // Handle 403 Forbidden
     if (error.response?.status === 403) {
-      console.error('Access forbidden:', error.response.data)
+      logger.error('Access forbidden:', error.response.data)
     }
 
     // Handle 500 Server Error
     if (error.response?.status === 500) {
-      console.error('Server error:', error.response.data)
+      logger.error('Server error:', error.response.data)
     }
 
     return Promise.reject(error)

@@ -131,6 +131,18 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/RapportFormPage.vue'),
     meta: { requiresAuth: true }
   },
+  {
+    path: '/ordres-mission/:ordreMissionId/interventions/nouvelle',
+    name: 'NewIntervention',
+    component: () => import('../views/InterventionFormPage.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN'] } // Assuming only admins can add interventions
+  },
+  {
+    path: '/interventions/:id/modifier',
+    name: 'EditIntervention',
+    component: () => import('../views/InterventionFormPage.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN'] } // Assuming only admins can edit interventions
+  },
   // New Ordres de Mission Routes (with composables)
   {
     path: '/ordres-mission',
@@ -143,6 +155,18 @@ const routes: RouteRecordRaw[] = [
     name: 'OrdreMissionDetail',
     component: () => import('../views/OrdreMissionDetailPage.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/ordres-mission/nouveau',
+    name: 'NewOrdreMission',
+    component: () => import('../views/OrdreMissionFormPage.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN'] }
+  },
+  {
+    path: '/ordres-mission/:id/modifier',
+    name: 'EditOrdreMission',
+    component: () => import('../views/OrdreMissionFormPage.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN'] }
   },
   {
     path: '/technicians',

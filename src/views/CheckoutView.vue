@@ -239,6 +239,7 @@
 
                       <!-- Simulate Payment Button (DEV ONLY) -->
                       <button
+                        v-if="import.meta.env.DEV"
                         @click="simulateSuccessfulPayment"
                         class="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold text-lg hover:from-green-700 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg border-2 border-green-300"
                       >
@@ -557,6 +558,11 @@ const proceedToPayment = async () => {
 }
 
 const simulateSuccessfulPayment = async () => {
+  if (import.meta.env.MODE === 'production') {
+    notificationStore.error('Accès refusé', 'La simulation de paiement n\'est pas autorisée en production.')
+    return
+  }
+
   if (!abonnement.value || !ecole.value) {
     notificationStore.error('Erreur', 'Données manquantes')
     return

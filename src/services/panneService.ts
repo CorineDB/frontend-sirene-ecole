@@ -53,6 +53,26 @@ class PanneService {
   }
 
   /**
+   * Mettre à jour une panne (placeholder)
+   */
+  async update(panneId: string, data: Partial<DeclarerPanneRequest>): Promise<ApiPanneResponse> {
+    console.warn("PanneService.update is a placeholder and does not call a real API endpoint yet.");
+    // Simulate API call
+    // const response = await apiClient.put(`/pannes/${panneId}`, data);
+    // return response.data;
+
+    // For now, let's just return a mock response
+    return Promise.resolve({
+      success: true,
+      data: {
+        id: panneId,
+        ...data
+      } as ApiPanne,
+      message: "Panne updated successfully (mocked).",
+    });
+  }
+
+  /**
    * Valider une panne et créer un ordre de mission
    */
   async valider(panneId: string, data: ValiderPanneRequest): Promise<ApiResponse<{
