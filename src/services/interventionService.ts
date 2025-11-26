@@ -162,19 +162,48 @@ class InterventionService {
   }
 
   /**
-   * Confirmer le programme d'une intervention (placeholder)
+   * Confirmer le programme d'une intervention
    */
-  async confirmerProgramme(interventionId: string): Promise<ApiResponse> {
-    console.warn("InterventionService.confirmerProgramme is a placeholder and does not call a real API endpoint yet.");
-    // Simulate API call
-    // const response = await apiClient.put(`/interventions/${interventionId}/confirmer-programme`);
-    // return response.data;
+  async confirmer(interventionId: string): Promise<ApiResponse> {
+    const response = await apiClient.post(`/interventions/${interventionId}/confirmer`)
+    return response.data
+  }
 
-    // For now, let's just return a mock success response
-    return Promise.resolve({
-      success: true,
-      message: "Programme confirmed successfully (mocked).",
-    });
+  /**
+   * Modifier une intervention
+   */
+  async modifier(
+    interventionId: string,
+    data: {
+      type_intervention?: string
+      date_intervention?: string
+      instructions?: string
+    }
+  ): Promise<ApiInterventionResponse> {
+    const response = await apiClient.patch(`/interventions/${interventionId}`, data)
+    return response.data
+  }
+
+  /**
+   * Reporter une intervention
+   */
+  async reporter(
+    interventionId: string,
+    data: {
+      nouvelle_date: string
+      motif?: string
+    }
+  ): Promise<ApiInterventionResponse> {
+    const response = await apiClient.post(`/interventions/${interventionId}/reporter`, data)
+    return response.data
+  }
+
+  /**
+   * Supprimer une intervention
+   */
+  async supprimer(interventionId: string): Promise<ApiResponse> {
+    const response = await apiClient.delete(`/interventions/${interventionId}`)
+    return response.data
   }
 
   // ==================== Cycle de Vie ====================

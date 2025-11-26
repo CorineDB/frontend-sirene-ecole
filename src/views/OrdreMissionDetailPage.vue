@@ -792,12 +792,23 @@ const {
   fetchById,
   fetchCandidatures,
   cloturerCandidatures,
-  rouvrirCandidatures
+  rouvrirCandidatures,
+  demarrerMission,
+  terminer: terminerMission,
+  cloturer: cloturerMission,
+  donnerAvis: donnerAvisMission,
+  ajouterTechnicien,
+  deleteOrdreMission
 } = useOrdresMission()
 
 const {
   accepterCandidature,
-  refuserCandidature
+  refuserCandidature,
+  modifier: modifierIntervention,
+  reporter: reporterIntervention,
+  confirmer: confirmerIntervention,
+  supprimer: supprimerIntervention,
+  ajouterAvis: ajouterAvisIntervention
 } = useInterventions()
 
 // Computed
@@ -1127,44 +1138,94 @@ const handleModifierMission = () => {
 }
 
 const handleDemarrerMission = () => {
+  if (!ordreMission.value) return
+
   showConfirmation(
     'Démarrer la mission',
     'Voulez-vous démarrer cette mission ?',
     async () => {
-      // TODO: Appeler l'API pour démarrer la mission
-      notificationStore.info('Fonctionnalité "Démarrer la mission" à implémenter')
-      showConfirmModal.value = false
+      try {
+        await demarrerMission(ordreMission.value!.id)
+        notificationStore.success('Mission démarrée avec succès!')
+        await fetchById(route.params.id as string)
+      } catch (error: any) {
+        console.error('Erreur lors du démarrage de la mission:', error)
+        notificationStore.error(error.message || 'Erreur lors du démarrage de la mission')
+      } finally {
+        showConfirmModal.value = false
+      }
     }
   )
 }
 
 const handleTerminerMission = () => {
+  if (!ordreMission.value) return
+
   showConfirmation(
     'Terminer la mission',
     'Voulez-vous terminer cette mission ?',
     async () => {
-      // TODO: Appeler l'API pour terminer la mission
-      notificationStore.info('Fonctionnalité "Terminer la mission" à implémenter')
-      showConfirmModal.value = false
+      try {
+        await terminerMission(ordreMission.value!.id)
+        notificationStore.success('Mission terminée avec succès!')
+        await fetchById(route.params.id as string)
+      } catch (error: any) {
+        console.error('Erreur lors de la terminaison de la mission:', error)
+        notificationStore.error(error.message || 'Erreur lors de la terminaison de la mission')
+      } finally {
+        showConfirmModal.value = false
+      }
     }
   )
 }
 
 const handleCloturerMission = () => {
+  if (!ordreMission.value) return
+
   showConfirmation(
     'Clôturer la mission',
     'Voulez-vous clôturer cette mission ?',
     async () => {
-      // TODO: Appeler l'API pour clôturer la mission
-      notificationStore.info('Fonctionnalité "Clôturer la mission" à implémenter')
-      showConfirmModal.value = false
+      try {
+        await cloturerMission(ordreMission.value!.id)
+        notificationStore.success('Mission clôturée avec succès!')
+        await fetchById(route.params.id as string)
+      } catch (error: any) {
+        console.error('Erreur lors de la clôture de la mission:', error)
+        notificationStore.error(error.message || 'Erreur lors de la clôture de la mission')
+      } finally {
+        showConfirmModal.value = false
+      }
     }
   )
 }
 
 const handleDonnerAvisMission = () => {
-  // TODO: Ouvrir un modal pour saisir l'avis
-  notificationStore.info('Fonctionnalité "Donner un avis sur la mission" à implémenter')
+  if (!ordreMission.value) return
+
+  const avis = prompt('Votre avis sur la mission :')
+  const noteStr = prompt('Note (1-5) :')
+
+  if (!avis) return
+
+  const note = noteStr ? parseInt(noteStr) : undefined
+
+  showConfirmation(
+    'Donner un avis',
+    'Confirmer l\'envoi de votre avis ?',
+    async () => {
+      try {
+        await donnerAvisMission(ordreMission.value!.id, { avis, note })
+        notificationStore.success('Avis ajouté avec succès!')
+        await fetchById(route.params.id as string)
+      } catch (error: any) {
+        console.error('Erreur lors de l\'ajout de l\'avis:', error)
+        notificationStore.error(error.message || 'Erreur lors de l\'ajout de l\'avis')
+      } finally {
+        showConfirmModal.value = false
+      }
+    }
+  )
 }
 
 const handleStipulerPanneResolue = () => {
@@ -1180,13 +1241,21 @@ const handleStipulerPanneResolue = () => {
 }
 
 const handleSupprimerMission = () => {
+  if (!ordreMission.value) return
+
   showConfirmation(
     'Supprimer la mission',
     'ATTENTION: Voulez-vous vraiment supprimer cette mission ? Cette action est irréversible.',
     async () => {
-      // TODO: Appeler l'API pour supprimer la mission puis rediriger
-      notificationStore.info('Fonctionnalité "Supprimer la mission" à implémenter')
-      showConfirmModal.value = false
+      try {
+        await deleteOrdreMission(ordreMission.value!.id)
+        notificationStore.success('Mission supprimée avec succès!')
+        router.push('/ordres-mission')
+      } catch (error: any) {
+        console.error('Erreur lors de la suppression de la mission:', error)
+        notificationStore.error(error.message || 'Erreur lors de la suppression de la mission')
+        showConfirmModal.value = false
+      }
     }
   )
 }
@@ -1286,9 +1355,16 @@ const handleSupprimerIntervention = (interventionId: string) => {
     'Supprimer l\'intervention',
     'ATTENTION: Voulez-vous vraiment supprimer cette intervention ?',
     async () => {
-      // TODO: Appeler l'API pour supprimer l'intervention
-      notificationStore.info(`Fonctionnalité "Supprimer l'intervention ${interventionId}" à implémenter`)
-      showConfirmModal.value = false
+      try {
+        await supprimerIntervention(interventionId)
+        notificationStore.success('Intervention supprimée avec succès!')
+        await fetchById(route.params.id as string)
+      } catch (error: any) {
+        console.error('Erreur lors de la suppression de l\'intervention:', error)
+        notificationStore.error(error.message || 'Erreur lors de la suppression de l\'intervention')
+      } finally {
+        showConfirmModal.value = false
+      }
     }
   )
 }

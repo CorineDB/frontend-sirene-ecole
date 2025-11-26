@@ -287,6 +287,94 @@ export function useOrdresMission() {
     }
   }
 
+  // Gestion du cycle de vie des missions
+
+  /**
+   * Terminer un ordre de mission
+   */
+  const terminer = async (id: string) => {
+    try {
+      isLoading.value = true
+      error.value = null
+      const response = await ordreMissionService.terminer(id)
+      if (response.success) {
+        await fetchById(id)
+      }
+      return response
+    } catch (err) {
+      handleError(err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Clôturer un ordre de mission
+   */
+  const cloturer = async (id: string) => {
+    try {
+      isLoading.value = true
+      error.value = null
+      const response = await ordreMissionService.cloturer(id)
+      if (response.success) {
+        await fetchById(id)
+      }
+      return response
+    } catch (err) {
+      handleError(err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Donner un avis sur un ordre de mission
+   */
+  const donnerAvis = async (
+    id: string,
+    data: {
+      avis: string
+      note?: number
+    }
+  ) => {
+    try {
+      isLoading.value = true
+      error.value = null
+      const response = await ordreMissionService.donnerAvis(id, data)
+      if (response.success) {
+        await fetchById(id)
+      }
+      return response
+    } catch (err) {
+      handleError(err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Ajouter un technicien à un ordre de mission
+   */
+  const ajouterTechnicien = async (ordreMissionId: string, technicienId: string) => {
+    try {
+      isLoading.value = true
+      error.value = null
+      const response = await ordreMissionService.ajouterTechnicien(ordreMissionId, technicienId)
+      if (response.success) {
+        await fetchById(ordreMissionId)
+      }
+      return response
+    } catch (err) {
+      handleError(err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     // State
     ordresMission,
@@ -302,13 +390,27 @@ export function useOrdresMission() {
     fetchAll,
     fetchById,
     create,
-    demarrerMission,
-    assignerTechnicien,
     update,
     deleteOrdreMission,
+
+    // Cycle de vie
+    demarrerMission,
+    terminer,
+    cloturer,
+
+    // Techniciens
+    assignerTechnicien,
+    ajouterTechnicien,
+
+    // Candidatures
     fetchCandidatures,
     cloturerCandidatures,
     rouvrirCandidatures,
+
+    // Avis
+    donnerAvis,
+
+    // Filtres
     fetchByVille,
     fetchByStatut,
     fetchDisponibles
