@@ -10,6 +10,16 @@
           <h1 class="text-3xl font-bold text-gray-900">Détail de l'école</h1>
           <p class="text-gray-600 mt-1">Informations complètes de l'établissement</p>
         </div>
+        <Can permission="manage_schools">
+          <button
+            v-if="ecole"
+            @click="openEditModal"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center gap-2"
+          >
+            <Edit :size="20" />
+            Modifier l'école
+          </button>
+        </Can>
       </div>
 
       <!-- Loading State -->
@@ -122,7 +132,7 @@
               <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <MapPin :size="20" class="text-blue-600" />
               </div>
-              <p class="text-sm text-gray-600">Sites Annexes</p>
+              <p class="text-sm text-gray-600">Sites Annexes fdf</p>
             </div>
             <p class="text-3xl font-bold text-gray-900">{{ ecole.sites_annexe?.length || 0 }}</p>
           </div>
@@ -172,14 +182,25 @@
         <div v-if="ecole.site_principal" class="bg-white rounded-xl border border-gray-200">
           <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
             <div class="flex items-center justify-between">
-              <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Building2 :size="24" class="text-blue-600" />
-                Site Principal
-              </h3>
-              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">
-                <Star :size="16" />
-                Principal
-              </span>
+              <div class="flex items-center gap-3">
+                <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Building2 :size="24" class="text-blue-600" />
+                  Site Principal
+                </h3>
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">
+                  <Star :size="16" />
+                  Principal
+                </span>
+              </div>
+              <Can permission="manage_schools">
+                <button
+                  @click="openSitePrincipalModal"
+                  class="px-3 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center gap-2 text-sm"
+                >
+                  <Edit :size="16" />
+                  Modifier
+                </button>
+              </Can>
             </div>
           </div>
 
@@ -371,20 +392,31 @@
         </div>
 
         <!-- Sites Annexes -->
-        <div v-if="ecole.sites_annexe && ecole.sites_annexe.length > 0" class="bg-white rounded-xl border border-gray-200">
+        <div class="bg-white rounded-xl border border-gray-200">
           <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
             <div class="flex items-center justify-between">
-              <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <MapPin :size="24" class="text-green-600" />
-                Sites Annexes
-              </h3>
-              <span class="text-sm font-semibold text-gray-600">
-                {{ ecole.sites_annexe.length }} site{{ ecole.sites_annexe.length > 1 ? 's' : '' }}
-              </span>
+              <div class="flex items-center gap-3">
+                <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <MapPin :size="24" class="text-green-600" />
+                  Sites Annexes
+                </h3>
+                <span v-if="ecole.sites_annexe && ecole.sites_annexe.length > 0" class="text-sm font-semibold text-gray-600">
+                  {{ ecole.sites_annexe.length }} site{{ ecole.sites_annexe.length > 1 ? 's' : '' }}
+                </span>
+              </div>
+              <Can permission="manage_schools">
+                <button
+                  @click="openAddSiteModal"
+                  class="px-3 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all flex items-center gap-2 text-sm"
+                >
+                  <Plus :size="16" />
+                  Ajouter un site
+                </button>
+              </Can>
             </div>
           </div>
 
-          <div class="p-6">
+          <div v-if="ecole.sites_annexe && ecole.sites_annexe.length > 0" class="p-6">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div
                 v-for="site in ecole.sites_annexe"
@@ -401,6 +433,15 @@
                       <h4 class="font-bold text-gray-900 mb-1">{{ site.nom }}</h4>
                     </div>
                   </div>
+                  <Can permission="manage_schools">
+                    <button
+                      @click="openSiteAnnexeModal(site)"
+                      class="px-2 py-1 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1"
+                      title="Modifier le site"
+                    >
+                      <Edit :size="16" />
+                    </button>
+                  </Can>
                 </div>
 
                 <!-- Details -->
@@ -458,7 +499,7 @@
 
                   <!-- Abonnement en attente -->
                   <div
-                    v-if="site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente"
+                    v-if="(!site.sirene.abonnementEnAttente && !site.sirene.abonnementActif) || ((site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente))"
                     class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-4 border-2 border-amber-300"
                   >
                     <div class="flex items-start justify-between mb-3">
@@ -483,7 +524,7 @@
                     </div>
                     <div class="mt-3 flex gap-2">
                       <button
-                        @click="goToCheckout(ecole.id, (site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id)"
+                        @click="goToCheckout(ecole.id, (site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)?.id)"
                         class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold transition-colors text-sm"
                       >
                         <CreditCard :size="16" />
@@ -497,14 +538,14 @@
                         <Share2 :size="16" />
                       </button>
                       <button
-                        @click="regenererQrCode((site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id)"
-                        :disabled="regeneratingQrCode[(site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id]"
+                        @click="regenererQrCode((site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)?.id)"
+                        :disabled="regeneratingQrCode[(site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)?.id]"
                         class="px-3 py-2 bg-white border-2 border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Régénérer le QR code"
                       >
                         <RefreshCw
                           :size="16"
-                          :class="{ 'animate-spin': regeneratingQrCode[(site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)!.id] }"
+                          :class="{ 'animate-spin': regeneratingQrCode[(site.sirene.abonnementEnAttente || site.sirene.abonnement_en_attente)?.id] }"
                         />
                       </button>
                     </div>
@@ -586,6 +627,24 @@
           Retour à la liste
         </button>
       </div>
+
+      <!-- École Form Modal -->
+      <EcoleFormModal
+        :is-open="editModalOpen"
+        :ecole="ecole"
+        @close="closeEditModal"
+        @updated="handleEcoleUpdated"
+      />
+
+      <!-- Site Form Modal -->
+      <SiteFormModal
+        :is-open="siteModalOpen"
+        :site="selectedSite"
+        :ecole-id="ecole?.id || ''"
+        :is-principal="isPrincipalSite"
+        @close="closeSiteModal"
+        @saved="handleSiteSaved"
+      />
     </div>
   </DashboardLayout>
 </template>
@@ -594,10 +653,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
+import Can from '../components/permissions/Can.vue'
+import EcoleFormModal from '../components/schools/EcoleFormModal.vue'
+import SiteFormModal from '../components/schools/SiteFormModal.vue'
 import {
   Building2, MapPin, Phone, Mail, ArrowLeft, Info, User,
   Calendar, Bell, CheckCircle, FileText, Hash, Star, Navigation, AlertCircle,
-  Clock, CreditCard, RefreshCw, Share2, Download
+  Clock, CreditCard, RefreshCw, Share2, Download, Edit, Plus
 } from 'lucide-vue-next'
 import ecoleService, { type Ecole } from '../services/ecoleService'
 import abonnementService from '../services/abonnementService'
@@ -610,6 +672,10 @@ const notificationStore = useNotificationStore()
 const ecole = ref<Ecole | null>(null)
 const loading = ref(true)
 const regeneratingQrCode = ref<Record<string, boolean>>({})
+const editModalOpen = ref(false)
+const siteModalOpen = ref(false)
+const selectedSite = ref<any | null>(null)
+const isPrincipalSite = ref(false)
 
 const activeSubscriptionsCount = computed(() => {
   let count = 0
@@ -769,6 +835,47 @@ const partagerQrCode = async (abonnement: any) => {
     }
     notificationStore.error('Erreur', 'Impossible de partager le QR code')
   }
+}
+
+const openEditModal = () => {
+  editModalOpen.value = true
+}
+
+const closeEditModal = () => {
+  editModalOpen.value = false
+}
+
+const handleEcoleUpdated = async () => {
+  await loadEcole()
+  closeEditModal()
+}
+
+const openSitePrincipalModal = () => {
+  selectedSite.value = ecole.value?.site_principal
+  isPrincipalSite.value = true
+  siteModalOpen.value = true
+}
+
+const openSiteAnnexeModal = (site: any) => {
+  selectedSite.value = site
+  isPrincipalSite.value = false
+  siteModalOpen.value = true
+}
+
+const openAddSiteModal = () => {
+  selectedSite.value = null
+  isPrincipalSite.value = false
+  siteModalOpen.value = true
+}
+
+const closeSiteModal = () => {
+  siteModalOpen.value = false
+  selectedSite.value = null
+}
+
+const handleSiteSaved = async () => {
+  await loadEcole()
+  closeSiteModal()
 }
 
 onMounted(() => {

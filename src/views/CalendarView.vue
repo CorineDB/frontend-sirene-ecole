@@ -11,7 +11,7 @@
 
       <!-- Filtres -->
       <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div :class="['grid grid-cols-1 gap-4', isEcoleUser ? 'md:grid-cols-2' : 'md:grid-cols-3']">
           <!-- Pays -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">Pays</label>
@@ -41,15 +41,14 @@
                 v-for="annee in annesScolairesDisponibles"
                 :key="annee.annee"
                 :value="annee.annee"
-                :class="{ 'font-semibold': annee.hasCalendrier }"
               >
-                {{ annee.annee }}{{ annee.hasCalendrier ? ' ✓' : '' }}
+                {{ annee.annee }}
               </option>
             </select>
           </div>
 
-          <!-- École -->
-          <div>
+          <!-- École (masqué pour les utilisateurs de type École) -->
+          <div v-if="!isEcoleUser">
             <label class="block text-sm font-semibold text-gray-700 mb-2">
               École <span class="text-xs text-gray-500">(optionnel, pour jours fériés spécifiques)</span>
             </label>
@@ -102,6 +101,19 @@
 
       <!-- Calendrier principal -->
       <template v-else>
+        <!-- Bouton Modifier Calendrier -->
+        <div class="flex justify-end mb-4">
+          <Can permission="modifier_calendrier_scolaire">
+            <button
+              @click="openEditCalendrierModal"
+              class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Edit :size="16" />
+              Modifier le calendrier
+            </button>
+          </Can>
+        </div>
+
         <!-- Statistiques -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div class="bg-white rounded-xl border border-gray-200 p-4">
@@ -226,31 +238,53 @@
                   <div class="animate-spin w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full"></div>
                 </span>
               </h2>
-              <button
-                @click="openAddJourFerieModal"
-                class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
-              >
-                <Plus :size="14" />
-                Ajouter
-              </button>
+              <Can permission="creer_jour_ferie">
+                <button
+                  @click="openAddJourFerieModal"
+                  class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                >
+                  <Plus :size="14" />
+                  Ajouter
+                </button>
+              </Can>
             </div>
             <div class="space-y-3 max-h-96 overflow-y-auto">
               <div
                 v-for="jourFerie in joursFeriesSorted"
                 :key="jourFerie.id"
-                class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
               >
                 <div class="flex items-start justify-between gap-2">
                   <div class="flex-1">
                     <p class="font-semibold text-gray-900 text-sm">{{ jourFerie.intitule_journee }}</p>
                     <p class="text-xs text-gray-600 mt-1">{{ formatDateShort(jourFerie.date) }}</p>
                   </div>
-                  <span
-                    :class="getJourFerieTypeClass(jourFerie)"
-                    class="text-xs px-2 py-0.5 rounded-full font-semibold whitespace-nowrap"
-                  >
-                    {{ getJourFerieTypeLabel(jourFerie) }}
-                  </span>
+                  <div class="flex items-center gap-2">
+                    <span
+                      :class="getJourFerieTypeClass(jourFerie)"
+                      class="text-xs px-2 py-0.5 rounded-full font-semibold whitespace-nowrap"
+                    >
+                      {{ getJourFerieTypeLabel(jourFerie) }}
+                    </span>
+                    <Can permission="modifier_jour_ferie">
+                      <button
+                        @click="openEditJourFerieModal(jourFerie)"
+                        class="opacity-0 group-hover:opacity-100 p-1 hover:bg-blue-100 rounded transition-all"
+                        title="Modifier"
+                      >
+                        <Edit :size="14" class="text-blue-600" />
+                      </button>
+                    </Can>
+                    <Can permission="supprimer_jour_ferie">
+                      <button
+                        @click="deleteJourFerie(jourFerie)"
+                        class="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-all"
+                        title="Supprimer"
+                      >
+                        <Trash2 :size="14" class="text-red-600" />
+                      </button>
+                    </Can>
+                  </div>
                 </div>
                 <div v-if="jourFerie.recurrent" class="mt-2">
                   <span class="text-xs text-purple-600 flex items-center gap-1">
@@ -268,10 +302,21 @@
 
         <!-- Périodes de vacances en bas -->
         <div class="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Palmtree :size="20" class="text-green-600" />
-            Périodes de vacances
-          </h2>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Palmtree :size="20" class="text-green-600" />
+              Périodes de vacances
+            </h2>
+            <Can permission="modifier_calendrier_scolaire">
+              <button
+                @click="openEditPeriodesModal"
+                class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+              >
+                <Edit :size="14" />
+                Modifier
+              </button>
+            </Can>
+          </div>
           <div class="space-y-3">
             <div
               v-for="periode in periodesSorted"
@@ -302,10 +347,12 @@
       </template>
     </div>
 
-    <!-- Modal Créer Calendrier -->
+    <!-- Modal Créer/Modifier Calendrier -->
     <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Créer un calendrier pour {{ selectedAnneeScolaire }}</h2>
+        <h2 class="text-xl font-bold text-gray-900 mb-4">
+          {{ isEditCalendrierMode ? 'Modifier le calendrier' : `Créer un calendrier pour ${selectedAnneeScolaire}` }}
+        </h2>
 
         <div class="space-y-4">
           <!-- Dates -->
@@ -353,8 +400,10 @@
         </div>
 
         <div class="flex justify-end gap-3 mt-6">
-          <button @click="showCreateModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
-          <button @click="submitCreateCalendrier" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Créer</button>
+          <button @click="showCreateModal = false; isEditCalendrierMode = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
+          <button @click="submitCreateCalendrier" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            {{ isEditCalendrierMode ? 'Modifier' : 'Créer' }}
+          </button>
         </div>
       </div>
     </div>
@@ -362,7 +411,7 @@
     <!-- Modal Ajouter Jour Férié -->
     <div v-if="showAddJourFerieModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl p-6 w-full max-w-md">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Ajouter un jour férié</h2>
+        <h2 class="text-xl font-bold text-gray-900 mb-4">{{ isEditMode ? 'Modifier un jour férié' : 'Ajouter un jour férié' }}</h2>
 
         <div class="space-y-4">
           <div>
@@ -378,7 +427,7 @@
               <option v-for="pays in paysList" :key="pays.id" :value="pays.id">{{ pays.nom }}</option>
             </select>
           </div>
-          <div>
+          <div v-if="!isEcoleUser">
             <label class="block text-sm font-medium text-gray-700 mb-1">École <span class="text-xs text-gray-500">(optionnel)</span></label>
             <select v-model="newJourFerie.ecole_id" class="w-full px-3 py-2 border rounded-lg">
               <option value="">Aucune école</option>
@@ -406,14 +455,86 @@
         </div>
 
         <div class="flex items-center justify-between mt-6">
-          <label class="flex items-center gap-2">
+          <label v-if="!isEditMode" class="flex items-center gap-2">
             <input type="checkbox" v-model="continueAddingJourFerie" />
             <span class="text-sm text-gray-600">Continuer à ajouter</span>
           </label>
-          <div class="flex gap-3">
+          <div :class="isEditMode ? 'ml-auto' : ''" class="flex gap-3">
             <button @click="showAddJourFerieModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
-            <button @click="submitAddJourFerie" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Ajouter</button>
+            <button @click="submitAddJourFerie" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              {{ isEditMode ? 'Modifier' : 'Ajouter' }}
+            </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Modifier Périodes de Vacances -->
+    <div v-if="showEditPeriodesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Modifier les périodes de vacances</h2>
+
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-sm text-gray-600">Année scolaire: <span class="font-semibold">{{ currentCalendrier?.annee_scolaire }}</span></p>
+            <button @click="addTempPeriodeVacances" class="text-blue-600 text-sm hover:underline flex items-center gap-1">
+              <Plus :size="14" />
+              Ajouter une période
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            <div
+              v-for="(periode, index) in tempPeriodes"
+              :key="index"
+              class="flex gap-2 p-3 bg-gray-50 rounded-lg"
+            >
+              <div class="flex-1 space-y-2">
+                <input
+                  type="text"
+                  v-model="periode.nom"
+                  placeholder="Nom de la période (ex: Vacances de Noël)"
+                  class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-xs text-gray-600 mb-1">Date de début</label>
+                    <input
+                      type="date"
+                      v-model="periode.date_debut"
+                      class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-600 mb-1">Date de fin</label>
+                    <input
+                      type="date"
+                      v-model="periode.date_fin"
+                      class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+              <button
+                @click="removeTempPeriodeVacances(index)"
+                class="p-2 text-red-500 hover:bg-red-50 rounded transition-colors h-fit"
+                title="Supprimer"
+              >
+                <Trash2 :size="18" />
+              </button>
+            </div>
+
+            <div v-if="tempPeriodes.length === 0" class="text-center py-8 text-gray-500">
+              Aucune période de vacances. Cliquez sur "Ajouter une période" pour commencer.
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <button @click="showEditPeriodesModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
+          <button @click="submitEditPeriodes" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Enregistrer les périodes
+          </button>
         </div>
       </div>
     </div>
@@ -424,15 +545,18 @@
 import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import {
-  Calendar, CalendarDays, Plus, Clock, Palmtree, School, Star, ChevronLeft, ChevronRight
+  Calendar, CalendarDays, Plus, Clock, Palmtree, School, Star, ChevronLeft, ChevronRight, Edit, Trash2
 } from 'lucide-vue-next'
 import calendrierScolaireService, { type CalendrierScolaire, type PeriodeVacances, type JourFerie } from '../services/calendrierScolaireService'
 import ecoleService, { type Ecole } from '../services/ecoleService'
 import paysService, { type Pays } from '../services/paysService'
 import jourFerieService from '../services/jourFerieService'
 import { useNotificationStore } from '../stores/notifications'
+import { useAuthStore } from '../stores/auth'
+import { Can } from '../components/permissions'
 
 const notificationStore = useNotificationStore()
+const authStore = useAuthStore()
 
 const paysList = ref<Pays[]>([])
 const calendriers = ref<CalendrierScolaire[]>([])
@@ -448,7 +572,12 @@ const schoolDays = ref<number>(0)
 const loading = ref(false)
 const loadingJoursFeries = ref(false)
 const showCreateModal = ref(false)
+const isEditCalendrierMode = ref(false)
 const showAddJourFerieModal = ref(false)
+const showEditPeriodesModal = ref(false)
+const isEditMode = ref(false)
+const editingJourFerieId = ref<string>('')
+const tempPeriodes = ref<{ nom: string; date_debut: string; date_fin: string }[]>([])
 const newJourFerie = ref({
   lier_calendrier: true,
   pays_id: '',
@@ -470,6 +599,19 @@ const newCalendrier = ref({
 const currentMonth = ref(new Date().getMonth())
 const currentYear = ref(new Date().getFullYear())
 const weekDays = ref(['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'])
+
+// Computed: Vérifier si l'utilisateur est de type École
+const isEcoleUser = computed(() => {
+  return authStore.user?.user_account_type_type === 'App\\Models\\Ecole'
+})
+
+// Computed: ID de l'école effective (user école ou sélection manuelle)
+const effectiveEcoleId = computed(() => {
+  if (isEcoleUser.value && authStore.user?.user_account_type_id) {
+    return authStore.user.user_account_type_id
+  }
+  return selectedEcoleId.value || undefined
+})
 
 // Utility function to format dates in local time (avoid timezone issues)
 const formatLocalDate = (date: Date | string): string => {
@@ -653,32 +795,25 @@ const getPeriodeStatusClass = (periode: PeriodeVacances) => {
   return 'bg-gray-100 text-gray-700'
 }
 
-// Générer une liste d'années scolaires disponibles
+// Lister les années scolaires disponibles depuis les calendriers chargés
 const annesScolairesDisponibles = computed(() => {
+  // Extraire les années scolaires uniques depuis les calendriers chargés
   const annees: Array<{ annee: string, hasCalendrier: boolean, calendrierId?: string }> = []
-  const now = new Date()
-  const currentYear = now.getFullYear()
-  const currentMonth = now.getMonth() + 1 // 1-12
 
-  // Déterminer jusqu'à quelle année on peut aller dans le futur
-  // Si on est entre septembre et décembre, on peut avoir l'année N+1
-  // Sinon, on reste sur l'année en cours maximum
-  const maxFutureYear = currentMonth >= 9 ? 1 : 0
-
-  // Générer de 5 ans avant à maxFutureYear après l'année actuelle
-  for (let i = -5; i <= maxFutureYear; i++) {
-    const year = currentYear + i
-    const anneeScolaire = `${year}-${year + 1}`
-
-    // Vérifier si un calendrier existe pour cette année
-    const calendrier = calendriers.value.find(cal => cal.annee_scolaire === anneeScolaire)
-
+  calendriers.value.forEach(calendrier => {
     annees.push({
-      annee: anneeScolaire,
-      hasCalendrier: !!calendrier,
-      calendrierId: calendrier?.id
+      annee: calendrier.annee_scolaire,
+      hasCalendrier: true,
+      calendrierId: calendrier.id
     })
-  }
+  })
+
+  // Trier par année (décroissant - plus récent en premier)
+  annees.sort((a, b) => {
+    const [yearA] = a.annee.split('-').map(Number)
+    const [yearB] = b.annee.split('-').map(Number)
+    return yearB - yearA
+  })
 
   return annees
 })
@@ -731,23 +866,13 @@ const loadPays = async () => {
 const onAnneeScolaireChange = async () => {
   if (!selectedAnneeScolaire.value || !selectedPaysId.value) return
 
-  // Get selected pays object
-  const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
-  if (!selectedPays) return
-
   loading.value = true
   try {
-    // Charger le calendrier avec code_iso ET annee_scolaire
-    const response = await calendrierScolaireService.getAll(
-      1,
-      selectedPays.code_iso,
-      selectedAnneeScolaire.value,
-      true
-    )
+    // Trouver le calendrier dans les calendriers déjà chargés
+    const calendrier = calendriers.value.find(c => c.annee_scolaire === selectedAnneeScolaire.value)
 
-    if (response.success && response.data && response.data.length > 0) {
+    if (calendrier) {
       // Calendrier trouvé
-      const calendrier = response.data[0]
       selectedCalendrierId.value = calendrier.id
       currentCalendrier.value = calendrier
       periodes.value = calendrier.periodes_vacances || []
@@ -778,9 +903,92 @@ const onAnneeScolaireChange = async () => {
   }
 }
 
+const openEditCalendrierModal = () => {
+  if (!currentCalendrier.value) return
+
+  isEditCalendrierMode.value = true
+
+  // Pré-remplir le modal avec les données actuelles
+  newCalendrier.value = {
+    date_rentree: currentCalendrier.value.date_rentree.split('T')[0],
+    date_fin_annee: currentCalendrier.value.date_fin_annee.split('T')[0],
+    periodes_vacances: currentCalendrier.value.periodes_vacances.map(p => ({
+      nom: p.nom,
+      date_debut: p.date_debut.split('T')[0],
+      date_fin: p.date_fin.split('T')[0]
+    })),
+    jours_feries_defaut: currentCalendrier.value.jours_feries_defaut.map(jf => ({
+      intitule_journee: jf.intitule_journee,
+      date: jf.date.split('T')[0],
+      recurrent: jf.recurrent,
+      isLoaded: true // Marquer comme chargé pour éviter suppression accidentelle
+    }))
+  }
+
+  showCreateModal.value = true
+}
+
+const openEditPeriodesModal = () => {
+  if (!currentCalendrier.value) return
+
+  // Copier les périodes actuelles dans tempPeriodes pour modification
+  tempPeriodes.value = currentCalendrier.value.periodes_vacances.map(p => ({
+    nom: p.nom,
+    date_debut: p.date_debut.split('T')[0],
+    date_fin: p.date_fin.split('T')[0]
+  }))
+
+  showEditPeriodesModal.value = true
+}
+
+const addTempPeriodeVacances = () => {
+  tempPeriodes.value.push({ nom: '', date_debut: '', date_fin: '' })
+}
+
+const removeTempPeriodeVacances = (index: number) => {
+  tempPeriodes.value.splice(index, 1)
+}
+
+const submitEditPeriodes = async () => {
+  if (!currentCalendrier.value) return
+
+  // Valider que toutes les périodes ont les champs requis
+  const validPeriodes = tempPeriodes.value.filter(p => p.nom && p.date_debut && p.date_fin)
+
+  if (validPeriodes.length === 0) {
+    notificationStore.warning('Attention', 'Veuillez ajouter au moins une période de vacances valide')
+    return
+  }
+
+  try {
+    loading.value = true
+
+    // Mettre à jour uniquement les périodes de vacances
+    const response = await calendrierScolaireService.update(currentCalendrier.value.id, {
+      periodes_vacances: validPeriodes
+    })
+
+    if (response.success) {
+      notificationStore.success('Succès', 'Périodes de vacances modifiées avec succès')
+      showEditPeriodesModal.value = false
+
+      // Recharger les calendriers pour mettre à jour la liste
+      await loadCalendriers()
+      await onAnneeScolaireChange()
+    }
+  } catch (error: any) {
+    console.error('Failed to update periodes:', error)
+    notificationStore.error('Erreur', 'Impossible de modifier les périodes de vacances')
+  } finally {
+    loading.value = false
+  }
+}
+
 const createCalendrier = async () => {
   console.log('createCalendrier appelé', { selectedPaysId: selectedPaysId.value, selectedAnneeScolaire: selectedAnneeScolaire.value })
   if (!selectedPaysId.value || !selectedAnneeScolaire.value) return
+
+  isEditCalendrierMode.value = false
 
   // Initialiser avec dates par défaut
   const [startYear] = selectedAnneeScolaire.value.split('-').map(Number)
@@ -856,42 +1064,105 @@ const removeJourFerie = (index: number) => {
 const submitCreateCalendrier = async () => {
   try {
     loading.value = true
-    const response = await calendrierScolaireService.create({
-      pays_id: selectedPaysId.value,
-      annee_scolaire: selectedAnneeScolaire.value,
+    let response
+
+    const calendrierData = {
       date_rentree: newCalendrier.value.date_rentree,
       date_fin_annee: newCalendrier.value.date_fin_annee,
       periodes_vacances: newCalendrier.value.periodes_vacances.filter(p => p.nom && p.date_debut && p.date_fin),
       jours_feries_defaut: newCalendrier.value.jours_feries_defaut
         .filter(j => j.intitule_journee && j.date)
-        .map(j => ({ nom: j.intitule_journee, date: j.date })),
+        .map(j => ({ nom: j.intitule_journee, date: j.date, recurrent: j.recurrent || false })),
       actif: true
-    })
+    }
+
+    if (isEditCalendrierMode.value && currentCalendrier.value) {
+      // Mode édition
+      response = await calendrierScolaireService.update(currentCalendrier.value.id, calendrierData)
+    } else {
+      // Mode création
+      response = await calendrierScolaireService.create({
+        pays_id: selectedPaysId.value,
+        annee_scolaire: selectedAnneeScolaire.value,
+        ...calendrierData
+      })
+    }
 
     if (response.success && response.data) {
-      notificationStore.success('Succès', 'Calendrier créé avec succès')
+      notificationStore.success(
+        'Succès',
+        isEditCalendrierMode.value ? 'Calendrier modifié avec succès' : 'Calendrier créé avec succès'
+      )
       showCreateModal.value = false
+      isEditCalendrierMode.value = false
+
+      // Recharger les calendriers pour mettre à jour la liste
+      await loadCalendriers()
       await onAnneeScolaireChange()
     }
   } catch (error: any) {
-    console.error('Failed to create calendrier:', error)
-    notificationStore.error('Erreur', 'Impossible de créer le calendrier')
+    console.error('Failed to save calendrier:', error)
+    notificationStore.error(
+      'Erreur',
+      isEditCalendrierMode.value ? 'Impossible de modifier le calendrier' : 'Impossible de créer le calendrier'
+    )
   } finally {
     loading.value = false
   }
 }
 
 const openAddJourFerieModal = () => {
+  isEditMode.value = false
+  editingJourFerieId.value = ''
   newJourFerie.value = {
     lier_calendrier: true,
     pays_id: selectedPaysId.value,
-    ecole_id: selectedEcoleId.value || '',
+    ecole_id: effectiveEcoleId.value || '',
     intitule_journee: '',
     date: '',
     est_national: false,
     recurrent: false
   }
   showAddJourFerieModal.value = true
+}
+
+const openEditJourFerieModal = (jourFerie: JourFerie) => {
+  isEditMode.value = true
+  editingJourFerieId.value = jourFerie.id
+  newJourFerie.value = {
+    lier_calendrier: !!jourFerie.calendrier_id,
+    pays_id: jourFerie.pays_id || '',
+    ecole_id: jourFerie.ecole_id || '',
+    intitule_journee: jourFerie.intitule_journee,
+    date: jourFerie.date.split('T')[0], // Format YYYY-MM-DD pour input date
+    est_national: jourFerie.est_national || false,
+    recurrent: jourFerie.recurrent || false
+  }
+  showAddJourFerieModal.value = true
+}
+
+const deleteJourFerie = async (jourFerie: JourFerie) => {
+  if (!confirm(`Voulez-vous vraiment supprimer le jour férié "${jourFerie.intitule_journee}" ?`)) {
+    return
+  }
+
+  try {
+    loading.value = true
+    const response = await jourFerieService.deleteJourFerie(jourFerie.id)
+
+    if (response.success) {
+      notificationStore.success('Succès', 'Jour férié supprimé avec succès')
+
+      // Recharger les jours fériés
+      await loadJoursFeriesFromAPI()
+      await calculateSchoolDays()
+    }
+  } catch (error: any) {
+    console.error('Failed to delete jour ferie:', error)
+    notificationStore.error('Erreur', 'Impossible de supprimer le jour férié')
+  } finally {
+    loading.value = false
+  }
 }
 
 const submitAddJourFerie = async () => {
@@ -903,35 +1174,84 @@ const submitAddJourFerie = async () => {
 
   try {
     loading.value = true
-    const response = await jourFerieService.createJourFerie({
-      calendrier_id: newJourFerie.value.lier_calendrier ? selectedCalendrierId.value : null,
-      pays_id: newJourFerie.value.lier_calendrier ? null : (newJourFerie.value.pays_id || null),
-      ecole_id: newJourFerie.value.ecole_id || null,
-      intitule_journee: newJourFerie.value.intitule_journee,
-      date: newJourFerie.value.date,
-      est_national: newJourFerie.value.est_national,
-      recurrent: newJourFerie.value.recurrent,
-      actif: true
-    })
+    let response
+
+    if (isEditMode.value && editingJourFerieId.value) {
+      // Mode édition
+      response = await jourFerieService.updateJourFerie(editingJourFerieId.value, {
+        calendrier_id: newJourFerie.value.lier_calendrier ? selectedCalendrierId.value : null,
+        pays_id: newJourFerie.value.lier_calendrier ? null : (newJourFerie.value.pays_id || null),
+        ecole_id: newJourFerie.value.ecole_id || null,
+        intitule_journee: newJourFerie.value.intitule_journee,
+        date: newJourFerie.value.date,
+        est_national: newJourFerie.value.est_national,
+        recurrent: newJourFerie.value.recurrent,
+        actif: true
+      })
+    } else {
+      // Mode création
+      response = await jourFerieService.createJourFerie({
+        calendrier_id: newJourFerie.value.lier_calendrier ? selectedCalendrierId.value : null,
+        pays_id: newJourFerie.value.lier_calendrier ? null : (newJourFerie.value.pays_id || null),
+        ecole_id: newJourFerie.value.ecole_id || null,
+        intitule_journee: newJourFerie.value.intitule_journee,
+        date: newJourFerie.value.date,
+        est_national: newJourFerie.value.est_national,
+        recurrent: newJourFerie.value.recurrent,
+        actif: true
+      })
+    }
 
     if (response.success) {
-      notificationStore.success('Succès', 'Jour férié ajouté avec succès')
+      notificationStore.success('Succès', isEditMode.value ? 'Jour férié modifié avec succès' : 'Jour férié ajouté avec succès')
       newJourFerie.value = { lier_calendrier: true, pays_id: selectedPaysId.value, ecole_id: '', intitule_journee: '', date: '', est_national: false, recurrent: false }
 
       // Recharger les jours fériés
-      if (selectedEcoleId.value) {
-        await loadJoursFeriesPanel()
-      } else {
-        await onAnneeScolaireChange()
-      }
+      await loadJoursFeriesFromAPI()
+      await calculateSchoolDays()
 
-      if (!continueAddingJourFerie.value) {
+      if (!continueAddingJourFerie.value || isEditMode.value) {
         showAddJourFerieModal.value = false
+        isEditMode.value = false
+        editingJourFerieId.value = ''
       }
     }
   } catch (error: any) {
-    console.error('Failed to add jour ferie:', error)
-    notificationStore.error('Erreur', 'Impossible d\'ajouter le jour férié')
+    console.error('Failed to save jour ferie:', error)
+    notificationStore.error('Erreur', isEditMode.value ? 'Impossible de modifier le jour férié' : 'Impossible d\'ajouter le jour férié')
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadCalendriers = async () => {
+  if (!selectedPaysId.value) {
+    calendriers.value = []
+    return
+  }
+
+  // Get selected pays object
+  const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
+  if (!selectedPays) return
+
+  try {
+    loading.value = true
+    // Charger tous les calendriers du pays sélectionné
+    const response = await calendrierScolaireService.getAll(
+      100,
+      selectedPays.code_iso,
+      undefined, // Ne pas filtrer par année scolaire
+      true // Uniquement les calendriers actifs
+    )
+
+    if (response.success && response.data) {
+      calendriers.value = response.data
+    } else {
+      calendriers.value = []
+    }
+  } catch (error: any) {
+    console.error('Failed to load calendriers:', error)
+    calendriers.value = []
   } finally {
     loading.value = false
   }
@@ -952,9 +1272,8 @@ const onPaysChange = async () => {
     return
   }
 
-  // Get selected pays object
-  const selectedPays = paysList.value.find(p => p.id === selectedPaysId.value)
-  if (!selectedPays) return
+  // Charger tous les calendriers du pays sélectionné
+  await loadCalendriers()
 
   // Auto-select calendrier de l'année en cours pour ce pays
   const now = new Date()
@@ -971,9 +1290,14 @@ const onPaysChange = async () => {
     targetYear = `${year - 1}-${year}`
   }
 
-  // Auto-select année en cours
+  // Auto-select année en cours (même si elle n'a pas de calendrier)
+  // Cela permettra d'afficher le bouton "Créer un calendrier" si besoin
   selectedAnneeScolaire.value = targetYear
-  await onAnneeScolaireChange()
+
+  const currentYearCalendrier = calendriers.value.find(c => c.annee_scolaire === targetYear)
+  if (currentYearCalendrier) {
+    await onAnneeScolaireChange()
+  }
 }
 
 const loadEcoles = async () => {
@@ -994,7 +1318,7 @@ const loadJoursFeriesFromAPI = async () => {
 
   loadingJoursFeries.value = true
   try {
-    if (selectedEcoleId.value) {
+    if (effectiveEcoleId.value) {
       // École sélectionnée: charger jours fériés du calendrier + école
       const [calendrierResponse, ecoleResponse] = await Promise.all([
         // Jours fériés du calendrier uniquement (sans écoles)
@@ -1006,7 +1330,7 @@ const loadJoursFeriesFromAPI = async () => {
         // Jours fériés spécifiques à l'école
         jourFerieService.getJoursFeries({
           calendrier_id: selectedCalendrierId.value,
-          ecole_id: selectedEcoleId.value,
+          ecole_id: effectiveEcoleId.value,
           per_page: 1000
         })
       ])
@@ -1056,7 +1380,7 @@ const loadJoursFeriesFromAPI = async () => {
 }
 
 const loadJoursFeriesPanel = async () => {
-  if (!selectedCalendrierId.value || !selectedEcoleId.value) return
+  if (!selectedCalendrierId.value || !effectiveEcoleId.value) return
   await loadJoursFeriesFromAPI()
 }
 
@@ -1076,7 +1400,7 @@ const calculateSchoolDays = async () => {
   try {
     const response = await calendrierScolaireService.calculateSchoolDays(
       selectedCalendrierId.value,
-      selectedEcoleId.value || undefined
+      effectiveEcoleId.value
     )
     if (response.success && response.data) {
       schoolDays.value = response.data.school_days
@@ -1088,10 +1412,19 @@ const calculateSchoolDays = async () => {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    loadPays(),
-    loadEcoles()
-  ])
+  // Charger les pays et les écoles (seulement si pas utilisateur École)
+  const promises = [loadPays()]
+
+  if (!isEcoleUser.value) {
+    promises.push(loadEcoles())
+  }
+
+  await Promise.all(promises)
+
+  // Log pour utilisateur École
+  if (isEcoleUser.value && authStore.user?.user_account_type_id) {
+    console.log('Utilisateur École détecté - ID école:', authStore.user.user_account_type_id)
+  }
 
   // Sélectionner le premier pays par défaut
   if (paysList.value.length > 0) {

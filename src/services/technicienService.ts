@@ -136,9 +136,13 @@ class TechnicienService {
   /**
    * Get all technicians (admin only)
    */
-  async getAll(perPage: number = 15): Promise<ApiResponse<PaginatedResponse<Technicien>>> {
+  async getAll(perPage?: number): Promise<ApiResponse<PaginatedResponse<Technicien>>> {
+    const params: { per_page?: number } = {};
+    if (perPage !== undefined) {
+      params.per_page = perPage;
+    }
     const response = await apiClient.get('/techniciens', {
-      params: { per_page: perPage }
+      params: params
     })
     return response.data
   }

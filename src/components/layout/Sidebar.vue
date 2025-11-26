@@ -48,7 +48,7 @@ import { useAuthStore } from '../../stores/auth'
 import {
   Bell, LayoutDashboard, Building2, Users, Wrench,
   AlertCircle, CreditCard, Calendar, Settings,
-  Globe, ShieldCheck, FileText, BarChart3, Package
+  Globe, ShieldCheck, FileText, BarChart3, Package, Clock
 } from 'lucide-vue-next'
 
 interface NavItem {
@@ -65,19 +65,21 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'user', 'ecole', 'technicien'] },
   { label: 'Pays', to: '/countries', icon: Globe, roles: ['admin'] },
   { label: 'Écoles', to: '/schools', icon: Building2, roles: ['admin'] },
-  { label: 'Mon école', to: '/my-school', icon: Building2, roles: ['ecole'] },
+  { label: 'Mon Ecole', to: '/my-school', icon: Building2, roles: ['ecole'] },
   { label: 'Utilisateurs', to: '/users', icon: Users, roles: ['admin', 'ecole'] },
-  { label: 'Rôles & Permissions', to: '/roles', icon: ShieldCheck, roles: ['admin'] },
+  { label: 'Rôles & Permissions', to: '/roles', icon: ShieldCheck, roles: ['admin', 'ecole'] },
   { label: 'Techniciens', to: '/technicians', icon: Wrench, roles: ['admin'] },
   { label: 'Mes missions', to: '/my-missions', icon: Wrench, roles: ['technicien'] },
   { label: 'Modèles de sirène', to: '/siren-models', icon: Package, roles: ['admin'] },
   { label: 'Sirènes', to: '/sirens', icon: Bell, roles: ['admin', 'user', 'ecole', 'technicien'] },
-  { label: 'Pannes', to: '/breakdowns', icon: AlertCircle, roles: ['admin', 'ecole', 'technicien'] },
-  { label: 'Ordres de mission', to: '/work-orders', icon: FileText, roles: ['admin', 'technicien'] },
-  { label: 'Abonnements', to: '/subscriptions', icon: CreditCard, roles: ['admin', 'ecole'] },
+  { label: 'Programmations', to: '/programmations', icon: Clock, roles: ['admin', 'ecole'] },
+  { label: 'Pannes', to: "/pannes" /*'/breakdowns'*/, icon: AlertCircle, roles: ['admin', 'ecole', 'technicien'] },
+  { label: 'Ordres de mission', to: "/ordres-mission" /*'/work-orders'*/, icon: FileText, roles: ['admin', 'technicien'] },
+  { label: 'Abonnements', to: "/abonnements" /*'/subscriptions'*/, icon: CreditCard, roles: ['admin', 'ecole'] },
   { label: 'Calendrier scolaire', to: '/calendar', icon: Calendar, roles: ['admin', 'ecole'] },
   { label: 'Rapports', to: '/reports', icon: BarChart3, roles: ['admin'] },
   { label: 'Paramètres', to: '/settings', icon: Settings, roles: ['admin'] },
+  { label: 'Profil', to: '/profile', icon: Settings, roles: ['ecole', 'technicien'] },
 ]
 
 const filteredNavItems = computed(() => {

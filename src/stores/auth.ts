@@ -5,6 +5,7 @@ import type { ApiUser, ApiAxiosError } from '../types/api'
 import { AUTH_CONFIG } from '../config/api'
 import router from '../router'
 import { useNotificationStore } from './notifications'
+import { logger } from '../utils/logger'
 
 export interface Permission {
   id: string
@@ -31,6 +32,9 @@ export interface User {
   roleSlug?: string // Le slug du rôle pour compatibilité
   doit_changer_mot_de_passe: boolean
   mot_de_passe_change: boolean
+  // Polymorphic relationship fields
+  user_account_type_id?: string | null
+  user_account_type_type?: string | null // Ex: "App\Models\Ecole", "App\Models\Technicien"
   created_at?: string
 }
 
@@ -52,7 +56,7 @@ const mapUserTypeToRole = (type: string): string => {
   }
 
   const mappedRole = typeMapping[type.toUpperCase()] || 'user'
-  console.log('Mapping type:', type, 'to role:', mappedRole)
+  logger.debug('Mapping type:', type, 'to role:', mappedRole)
   return mappedRole
 }
 
@@ -70,6 +74,8 @@ const transformApiUser = (apiUser: ApiUser): User => {
     roleSlug: apiUser.role?.slug || mapUserTypeToRole(apiUser.type),
     doit_changer_mot_de_passe: apiUser.doit_changer_mot_de_passe || false,
     mot_de_passe_change: apiUser.mot_de_passe_change || false,
+    user_account_type_id: apiUser.user_account_type_id || null,
+    user_account_type_type: apiUser.user_account_type_type || null,
   }
 }
 
@@ -93,7 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = JSON.parse(savedUser)
         isAuthenticated.value = true
       } catch (e) {
-        console.error('Failed to parse saved user:', e)
+        logger.error('Failed to parse saved user:', e)
         clearAuth()
       }
     }
@@ -154,36 +160,36 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const response = await authService.verifyOtp(data)
-      console.log('VerifyOtp response:', response)
+      logger.debug('VerifyOtp response:', response)
 
       if (response.success && response.data) {
         // Save token first
         if (response.data.access_token) {
           localStorage.setItem(AUTH_CONFIG.tokenKey, response.data.access_token)
-          console.log('Token saved:', response.data.access_token)
+          logger.debug('Token saved:', response.data.access_token)
         }
 
         // Fetch complete user data with permissions from /api/auth/me
         let userLoaded = false
         try {
-          console.log('About to call fetchUser()...')
+          logger.debug('About to call fetchUser()...')
           await fetchUser()
           userLoaded = true
-          console.log('fetchUser() completed. User loaded from /me:', user.value)
-          console.log('Token still in localStorage?', localStorage.getItem(AUTH_CONFIG.tokenKey))
+          logger.debug('fetchUser() completed. User loaded from /me:', user.value)
+          logger.debug('Token still in localStorage?', localStorage.getItem(AUTH_CONFIG.tokenKey))
         } catch (meError) {
-          console.error('CATCH: Error fetching user details from /me:', meError)
+          logger.error('CATCH: Error fetching user details from /me:', meError)
           // Si échec, utiliser les données de base
           if (response.data.user) {
-            console.log('Using fallback: response.data.user:', response.data.user)
+            logger.debug('Using fallback: response.data.user:', response.data.user)
             const transformedUser = transformApiUser(response.data.user)
             user.value = transformedUser
             localStorage.setItem(AUTH_CONFIG.userKey, JSON.stringify(transformedUser))
             isAuthenticated.value = true
             userLoaded = true
-            console.log('User loaded from OTP response (fallback):', user.value)
+            logger.debug('User loaded from OTP response (fallback):', user.value)
           } else {
-            console.error('No user data in OTP response!', response.data)
+            logger.error('No user data in OTP response!', response.data)
           }
         }
 
@@ -200,18 +206,20 @@ export const useAuthStore = defineStore('auth', () => {
         const notificationStore = useNotificationStore()
         notificationStore.success('Connexion réussie', 'Bienvenue dans votre espace')
 
-        console.log('=== BEFORE REDIRECT ===')
-        console.log('user.value:', user.value)
-        console.log('isAuthenticated.value:', isAuthenticated.value)
-        console.log('Token in localStorage:', localStorage.getItem(AUTH_CONFIG.tokenKey))
-        console.log('User in localStorage:', localStorage.getItem(AUTH_CONFIG.userKey))
-        console.log('About to redirect to /dashboard...')
+        logger.debug('=== BEFORE REDIRECT ===')
+        logger.debug('user.value:', user.value)
+        logger.debug('isAuthenticated.value:', isAuthenticated.value)
+        // Token is now managed by httpOnly cookies, no need to log it from localStorage
+        // logger.debug('Token in localStorage:', localStorage.getItem(AUTH_CONFIG.tokenKey))
+        // User is not stored in localStorage, so no need to log it from there
+        // logger.debug('User in localStorage:', localStorage.getItem(AUTH_CONFIG.userKey))
+        logger.debug('About to redirect to /dashboard...')
 
         // Redirect to dashboard
         await router.push('/dashboard')
 
-        console.log('=== AFTER REDIRECT ===')
-        console.log('Current route:', router.currentRoute.value.path)
+        logger.debug('=== AFTER REDIRECT ===')
+        logger.debug('Current route:', router.currentRoute.value.path)
 
         return { success: true, message: response.message }
       } else {
@@ -250,7 +258,7 @@ export const useAuthStore = defineStore('auth', () => {
         try {
           await fetchUser()
         } catch (meError) {
-          console.error('Error fetching user details:', meError)
+          logger.error('Error fetching user details:', meError)
           // Si échec, utiliser les données de base
           if (response.data.user) {
             const transformedUser = transformApiUser(response.data.user)
@@ -286,44 +294,42 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const token = localStorage.getItem(AUTH_CONFIG.tokenKey)
-      console.log('=== fetchUser() START ===')
-      console.log('Fetching user from /api/auth/me...')
-      console.log('Current token:', token)
-      console.log('Token length:', token?.length)
-      console.log('Token starts with:', token?.substring(0, 20) + '...')
+      logger.debug('=== fetchUser() START ===')
+      logger.debug('Fetching user from /api/auth/me...')
 
       const userData = await authService.me()
-      console.log('✓ /me request succeeded!')
-      console.log('Raw response from /me:', userData)
+      logger.debug('✓ /me request succeeded!')
+      logger.debug('Raw response from /me:', userData)
 
-      // L'API me() peut retourner directement l'utilisateur ou dans data
-      const apiUser = userData.data || userData
-      console.log('apiUser extracted:', apiUser)
-      console.log('apiUser.type:', apiUser?.type)
-      console.log('apiUser.role:', apiUser?.role)
+      // L'API me() retourne { success: true, data: { user: {...} } }
+      const apiUser = userData.data?.user || userData.data || userData
+      logger.debug('apiUser extracted:', apiUser)
+      logger.debug('apiUser.type:', apiUser?.type)
+      logger.debug('apiUser.role:', apiUser?.role)
+      logger.debug('apiUser.user_account_type_type:', apiUser?.user_account_type_type)
+      logger.debug('apiUser.user_account_type_id:', apiUser?.user_account_type_id)
 
       const transformedUser = transformApiUser(apiUser)
-      console.log('transformedUser:', transformedUser)
-      console.log('transformedUser.roleSlug:', transformedUser.roleSlug)
+      logger.debug('transformedUser:', transformedUser)
+      logger.debug('transformedUser.roleSlug:', transformedUser.roleSlug)
 
       user.value = transformedUser
-      console.log('user.value after assignment:', user.value)
-      console.log('user.value is null?', user.value === null)
+      logger.debug('user.value after assignment:', user.value)
+      logger.debug('user.value is null?', user.value === null)
 
       localStorage.setItem(AUTH_CONFIG.userKey, JSON.stringify(transformedUser))
       isAuthenticated.value = true
-      console.log('✓ User successfully loaded and saved. isAuthenticated:', isAuthenticated.value)
-      console.log('=== fetchUser() END SUCCESS ===')
+      logger.debug('✓ User successfully loaded and saved. isAuthenticated:', isAuthenticated.value)
+      logger.debug('=== fetchUser() END SUCCESS ===')
       return { success: true }
     } catch (err) {
       const axiosError = err as ApiAxiosError
-      console.error('=== fetchUser() ERROR ===')
-      console.error('Error type:', axiosError.name)
-      console.error('Error message:', axiosError.message)
-      console.error('HTTP Status:', axiosError.response?.status)
-      console.error('Error response data:', axiosError.response?.data)
-      console.error('Full error:', axiosError)
+      logger.error('=== fetchUser() ERROR ===')
+      logger.error('Error type:', axiosError.name)
+      logger.error('Error message:', axiosError.message)
+      logger.error('HTTP Status:', axiosError.response?.status)
+      logger.error('Error response data:', axiosError.response?.data)
+      logger.error('Full error:', axiosError)
 
       const message = axiosError.response?.data?.message || 'Erreur lors du chargement du profil'
       error.value = message
@@ -346,7 +352,7 @@ export const useAuthStore = defineStore('auth', () => {
       const notificationStore = useNotificationStore()
       notificationStore.info('Déconnexion', 'À bientôt!')
     } catch (err) {
-      console.error('Logout error:', err)
+      logger.error('Logout error:', err)
     } finally {
       clearAuth()
       router.push('/login')

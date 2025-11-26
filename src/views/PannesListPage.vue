@@ -1,0 +1,508 @@
+<template>
+  <DashboardLayout>
+    <div class="p-6 space-y-6">
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Gestion des pannes</h1>
+          <p class="text-gray-600 mt-1">Suivre et gérer les pannes signalées</p>
+        </div>
+        <button
+          @click="showDeclarationModal = true"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors flex items-center gap-2"
+        >
+          <Plus :size="20" />
+          Déclarer une panne
+        </button>
+      </div>
+
+      <!-- Statistics Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div
+          v-for="stat in statsCards"
+          :key="stat.label"
+          class="bg-white rounded-xl p-6 border border-gray-200"
+        >
+          <p class="text-sm text-gray-600 mb-2">{{ stat.label }}</p>
+          <p class="text-3xl font-bold text-gray-900">{{ stat.count }}</p>
+          <div :class="`mt-3 h-1 rounded-full bg-gradient-to-r ${stat.color}`"></div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <FilterBar
+        :show-statut="true"
+        :show-ecole="showEcoleFilter"
+        :show-site="true"
+        :show-priorite="true"
+        :show-date-debut="true"
+        :show-date-fin="true"
+        :ecoles="ecoles"
+        :sites="sites"
+        @filter-change="handleFilterChange"
+      />
+
+      <!-- Quick Actions -->
+      <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <div class="flex gap-4 flex-wrap">
+          <button
+            @click="showUrgentOnly"
+            class="px-4 py-2 border border-red-300 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 font-semibold transition-colors"
+          >
+            <AlertTriangle :size="16" class="inline mr-2" />
+            Urgentes uniquement
+          </button>
+
+          <button
+            @click="showNonCloturees"
+            class="px-4 py-2 border border-blue-300 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 font-semibold transition-colors"
+          >
+            Pannes actives
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="isLoading" class="flex items-center justify-center h-96">
+        <div class="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+      </div>
+
+      <!-- Error State -->
+      <div v-if="hasError" class="bg-red-50 border border-red-200 rounded-xl p-4">
+        <div class="flex items-center gap-3">
+          <AlertCircle :size="24" class="text-red-600" />
+          <div>
+            <h3 class="font-semibold text-red-900">Erreur</h3>
+            <p class="text-sm text-red-700">{{ error }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pannes Grid -->
+      <div v-if="!isLoading && !hasError" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div
+          v-for="panne in displayedPannes"
+          :key="panne.id"
+          class="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
+          @click="router.push(`/pannes/${panne.id}`)"
+        >
+          <!-- Header -->
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-start gap-3 flex-1">
+              <div :class="`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${getPriorityBgColor(panne.priorite)}`">
+                <AlertTriangle :size="20" :class="getPriorityTextColor(panne.priorite)" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-bold text-gray-900 mb-1">{{ panne.objet || 'Panne sans objet' }}</h3>
+                <p v-if="panne.ecole" class="text-sm text-gray-600 truncate">{{ panne.ecole.nom }}</p>
+              </div>
+            </div>
+            <StatusBadge type="priorite" :status="panne.priorite" />
+          </div>
+
+          <!-- Description -->
+          <p class="text-sm text-gray-700 mb-4 line-clamp-2">{{ panne.description || 'Aucune description' }}</p>
+
+          <!-- Info -->
+          <div class="space-y-2 mb-4">
+            <div v-if="panne.site" class="flex items-center gap-2 text-sm text-gray-600">
+              <MapPin :size="16" class="text-gray-400 flex-shrink-0" />
+              <span class="truncate">{{ panne.site.nom }}</span>
+            </div>
+            <div v-if="panne.sirene" class="flex items-center gap-2 text-sm text-gray-600">
+              <Bell :size="16" class="text-gray-400 flex-shrink-0" />
+              <span class="truncate">Sirène {{ panne.sirene.numero_serie }}</span>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-between pt-4 border-t border-gray-100" @click.stop>
+            <StatusBadge type="panne" :status="panne.statut" />
+
+            <div class="flex gap-2">
+              <button
+                v-if="isAdmin && panne.statut === StatutPanne.DECLAREE"
+                @click="handleValider(panne.id)"
+                class="text-sm text-green-600 hover:text-green-700 font-semibold px-3 py-1 rounded hover:bg-green-50"
+              >
+                Valider
+              </button>
+              <button
+                v-if="isAdmin && panne.statut === StatutPanne.RESOLUE"
+                @click="handleCloturer(panne.id)"
+                class="text-sm text-blue-600 hover:text-blue-700 font-semibold px-3 py-1 rounded hover:bg-blue-50"
+              >
+                Clôturer
+              </button>
+              <button
+                v-if="isAdmin && panne.statut !== StatutPanne.CLOTUREE"
+                @click="handleEdit(panne)"
+                class="text-sm text-yellow-600 hover:text-yellow-700 font-semibold px-3 py-1 rounded hover:bg-yellow-50"
+              >
+                Modifier
+              </button>
+              <button
+                @click="router.push(`/pannes/${panne.id}`)"
+                class="text-sm text-gray-600 hover:text-gray-700 font-semibold px-3 py-1 rounded hover:bg-gray-50"
+              >
+                Détails
+              </button>
+            </div>
+          </div>
+
+          <!-- Timestamp -->
+          <p class="text-xs text-gray-500 mt-3">
+            Signalée le {{ formatDate(panne.created_at) }} à {{ formatTime(panne.created_at) }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div v-if="!isLoading && !hasError && displayedPannes.length === 0" class="bg-white rounded-xl p-12 text-center border border-gray-200">
+        <AlertCircle :size="64" class="text-gray-300 mx-auto mb-4" />
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Aucune panne trouvée</h3>
+        <p class="text-gray-600">
+          {{ Object.keys(currentFilters).length > 0
+            ? 'Aucune panne ne correspond à vos critères'
+            : 'Aucune panne n\'a été signalée' }}
+        </p>
+      </div>
+
+      <ValiderPanneModal
+        :show="showValiderPanneModal"
+        :panne-id="panneToValidateId"
+        @close="showValiderPanneModal = false"
+        @success="handleValidationSuccess"
+      />
+
+      <ValiderPanneModal
+        :show="showValiderPanneModal"
+        :panne-id="panneToValidateId"
+        @close="showValiderPanneModal = false"
+        @success="handleValidationSuccess"
+      />
+
+      <PanneDeclarationModal
+        :show="showEditModal"
+        :panne-to-edit="panneToEdit"
+        @close="showEditModal = false"
+        @panne-updated="handlePanneUpdated"
+      />
+
+      <!-- Modal Déclaration de panne (existing) -->
+      <div
+        v-if="showDeclarationModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        @click.self="showDeclarationModal = false"
+      >
+        <div class="bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-900">Déclarer une panne</h2>
+            <button
+              @click="showDeclarationModal = false"
+              class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X :size="24" class="text-gray-600" />
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <form @submit.prevent="handleDeclarer" class="p-6 space-y-6">
+            <!-- Sirène -->
+            <div>
+              <label for="sirene_id" class="block text-sm font-semibold text-gray-900 mb-2">
+                Sirène <span class="text-red-600">*</span>
+              </label>
+              <select
+                id="sirene_id"
+                v-model="declarationForm.sirene_id"
+                required
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              >
+                <option value="">Sélectionnez une sirène</option>
+                <option v-for="sirene in sirenes" :key="sirene.id" :value="sirene.id">
+                  {{ sirene.numero_serie }} - {{ sirene.modele?.nom || 'Modèle inconnu' }}
+                  <template v-if="sirene.site_id"> - Site: {{ sirene.site_id }}</template>
+                </option>
+              </select>
+              <p class="text-xs text-gray-500 mt-1">Sélectionnez la sirène concernée par la panne</p>
+            </div>
+
+            <!-- Titre -->
+            <div>
+              <label for="objet" class="block text-sm font-semibold text-gray-900 mb-2">
+                Titre de la panne <span class="text-red-600">*</span>
+              </label>
+              <input
+                id="objet"
+                v-model="declarationForm.objet"
+                type="text"
+                required
+                placeholder="Ex: Sirène ne fonctionne plus"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              />
+            </div>
+
+            <!-- Description -->
+            <div>
+              <label for="description" class="block text-sm font-semibold text-gray-900 mb-2">
+                Description
+              </label>
+              <textarea
+                id="description"
+                v-model="declarationForm.description"
+                rows="4"
+                placeholder="Décrivez le problème rencontré..."
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              ></textarea>
+            </div>
+
+            <!-- Priorité -->
+            <div>
+              <label for="priorite" class="block text-sm font-semibold text-gray-900 mb-2">
+                Priorité estimée
+              </label>
+              <select
+                id="priorite"
+                v-model="declarationForm.priorite"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              >
+                <option :value="PrioritePanne.BASSE">Basse</option>
+                <option :value="PrioritePanne.MOYENNE">Moyenne</option>
+                <option :value="PrioritePanne.HAUTE">Haute</option>
+                <option :value="PrioritePanne.URGENTE">Urgente</option>
+              </select>
+            </div>
+
+            <!-- Error -->
+            <div v-if="hasError" class="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p class="text-sm text-red-700">{{ error }}</p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-4 pt-4 border-t border-gray-200">
+              <button
+                type="submit"
+                :disabled="isLoading"
+                class="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {{ isLoading ? 'Déclaration en cours...' : 'Déclarer la panne' }}
+              </button>
+              <button
+                type="button"
+                @click="showDeclarationModal = false"
+                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-colors"
+              >
+                Annuler
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </DashboardLayout>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import DashboardLayout from '../components/layout/DashboardLayout.vue'
+import StatusBadge from '../components/common/StatusBadge.vue'
+import FilterBar from '../components/common/FilterBar.vue'
+import PanneDeclarationModal from '../components/pannes/PanneDeclarationModal.vue'
+import ValiderPanneModal from '../components/pannes/ValiderPanneModal.vue'
+import { usePannes } from '@/composables/usePannes'
+import type { PanneFilters } from '@/services/panneService'
+import { StatutPanne, PrioritePanne } from '@/types/api'
+import type { ApiEcole, ApiSite, ApiPanne } from '@/types/api'
+import sireneService from '@/services/sireneService'
+import type { Sirene } from '@/services/sireneService'
+import { useAuthStore } from '@/stores/auth'
+import {
+  AlertCircle,
+  AlertTriangle,
+  MapPin,
+  Bell,
+  Plus,
+  X,
+  Edit
+} from 'lucide-vue-next'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+// Composable
+const {
+  pannes,
+  isLoading,
+  hasError,
+  error,
+  fetchAllPannes,
+  declarerPanne,
+  validerPanne,
+  cloturerPanne
+} = usePannes()
+
+// Local state
+const currentFilters = ref<PanneFilters>({})
+const showDeclarationModal = ref(false)
+const showEditModal = ref(false)
+const showValiderPanneModal = ref(false)
+const panneToValidateId = ref<string | null>(null)
+const panneToEdit = ref<ApiPanne | null>(null)
+const sirenes = ref<Sirene[]>([])
+const ecoles = ref<ApiEcole[]>([])
+const sites = ref<ApiSite[]>([])
+
+// Form state for declaration (existing inline modal)
+const declarationForm = ref({
+  sirene_id: '',
+  objet: '',
+  description: '',
+  priorite: PrioritePanne.MOYENNE
+})
+
+// Computed
+const showEcoleFilter = computed(() => {
+  return authStore.user?.type === 'ADMIN'
+})
+
+const isAdmin = computed(() => authStore.user?.type === 'ADMIN')
+
+const displayedPannes = computed(() => {
+  return pannes.value
+})
+
+const statsCards = computed(() => [
+  {
+    label: 'Total',
+    count: pannes.value.length,
+    color: 'from-blue-500 to-blue-600'
+  },
+  {
+    label: 'Déclarées',
+    count: pannes.value.filter(p => p.statut === StatutPanne.DECLAREE).length,
+    color: 'from-yellow-500 to-yellow-600'
+  },
+  {
+    label: 'Validées',
+    count: pannes.value.filter(p => p.statut === StatutPanne.VALIDEE).length,
+    color: 'from-blue-500 to-blue-600'
+  },
+  {
+    label: 'En cours',
+    count: pannes.value.filter(p => p.statut === StatutPanne.EN_COURS).length,
+    color: 'from-cyan-500 to-cyan-600'
+  },
+  {
+    label: 'Résolues',
+    count: pannes.value.filter(p => p.statut === StatutPanne.RESOLUE).length,
+    color: 'from-green-500 to-green-600'
+  }
+])
+
+// Methods
+const getPriorityBgColor = (priorite: PrioritePanne | string) => {
+  const colors: Record<string, string> = {
+    [PrioritePanne.BASSE]: 'bg-gray-100',
+    [PrioritePanne.MOYENNE]: 'bg-blue-100',
+    [PrioritePanne.HAUTE]: 'bg-orange-100',
+    [PrioritePanne.URGENTE]: 'bg-red-100'
+  }
+  return colors[priorite] || 'bg-gray-100'
+}
+
+const getPriorityTextColor = (priorite: PrioritePanne | string) => {
+  const colors: Record<string, string> = {
+    [PrioritePanne.BASSE]: 'text-gray-600',
+    [PrioritePanne.MOYENNE]: 'text-blue-600',
+    [PrioritePanne.HAUTE]: 'text-orange-600',
+    [PrioritePanne.URGENTE]: 'text-red-600'
+  }
+  return colors[priorite] || 'text-gray-600'
+}
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('fr-FR')
+}
+
+const formatTime = (dateString: string) => {
+  return new Date(dateString).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+const handleFilterChange = async (filters: PanneFilters) => {
+  currentFilters.value = filters
+  await fetchAllPannes(filters)
+}
+
+const showUrgentOnly = async () => {
+  currentFilters.value = { priorite: PrioritePanne.URGENTE }
+  await fetchAllPannes(currentFilters.value)
+}
+
+const showNonCloturees = async () => {
+  currentFilters.value = { est_cloture: false }
+  await fetchAllPannes(currentFilters.value)
+}
+
+const handleValider = (panneId: string) => {
+  panneToValidateId.value = panneId;
+  showValiderPanneModal.value = true;
+}
+
+const handleValidationSuccess = () => {
+  fetchAllPannes(currentFilters.value);
+}
+
+const handleCloturer = async (panneId: string) => {
+  if (confirm('Êtes-vous sûr de vouloir clôturer cette panne ?')) {
+    await cloturerPanne(panneId)
+    await fetchAllPannes()
+  }
+}
+
+const handleDeclarer = async () => {
+  if (!declarationForm.value.sirene_id || !declarationForm.value.objet) {
+    alert('Veuillez remplir tous les champs obligatoires')
+    return
+  }
+
+  await declarerPanne(declarationForm.value.sirene_id, {
+    objet: declarationForm.value.objet,
+    description: declarationForm.value.description,
+    priorite: declarationForm.value.priorite
+  })
+
+  declarationForm.value = {
+    sirene_id: '',
+    objet: '',
+    description: '',
+    priorite: PrioritePanne.MOYENNE
+  }
+  showDeclarationModal.value = false
+  await fetchAllPannes()
+}
+
+const handleEdit = (panne: ApiPanne) => {
+  panneToEdit.value = panne;
+  showEditModal.value = true;
+}
+
+const handlePanneUpdated = () => {
+  fetchAllPannes(currentFilters.value);
+}
+
+// Lifecycle
+onMounted(async () => {
+  await fetchAllPannes()
+  try {
+    const response = await sireneService.getSirenesInstallees()
+    if (response.success && response.data) {
+      sirenes.value = response.data
+    }
+  } catch (err) {
+    console.error('Erreur lors du chargement des sirènes installées:', err)
+  }
+})
+</script>
