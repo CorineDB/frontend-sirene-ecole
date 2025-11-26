@@ -24,6 +24,97 @@ apiClient (Axios avec intercepteurs)
 
 ---
 
+## 🎯 IMPORTANT : Utilisation des Composables
+
+Dans Vue 3 avec `<script setup>`, les composables sont appelés **UNE SEULE FOIS au top-level**, pas à l'intérieur des handlers.
+
+### ✅ Approche CORRECTE
+
+```typescript
+// OrdreMissionDetailPage.vue - <script setup>
+
+// 1️⃣ Appel des composables AU TOP-LEVEL (une seule fois)
+const {
+  ordreMission,
+  candidatures,
+  isLoading,
+  error,
+  fetchById,
+  cloturerCandidatures,
+  rouvrirCandidatures,
+  // 🆕 Ajouter les nouvelles méthodes ici
+  ajouterIntervention,
+  ajouterTechnicien,
+  demarrer: demarrerMission,
+  terminer: terminerMission,
+  cloturer: cloturerMission
+} = useOrdresMission()
+
+const {
+  accepterCandidature,
+  refuserCandidature,
+  retirerCandidature,
+  // 🆕 Ajouter les nouvelles méthodes ici
+  demarrer: demarrerIntervention,
+  terminer: terminerIntervention,
+  planifier,
+  reporter,
+  modifier,
+  confirmer,
+  assignerTechnicien,
+  retirerTechnicien,
+  supprimer,
+  ajouterAvis
+} = useInterventions()
+
+// 2️⃣ Dans les handlers, utiliser DIRECTEMENT les fonctions déstructurées
+const handleDemarrerIntervention = (intervention: any) => {
+  showConfirmation(
+    'Démarrer l\'intervention',
+    `Voulez-vous démarrer l'intervention "${intervention.titre}" ?`,
+    async () => {
+      try {
+        // ✅ Utilise directement 'demarrerIntervention' (déjà déstructuré)
+        await demarrerIntervention(intervention.id, authStore.user.id)
+        notificationStore.success('Intervention démarrée avec succès')
+        await loadOrdreMission()
+        showConfirmModal.value = false
+      } catch (error: any) {
+        notificationStore.error(error.message || 'Erreur lors du démarrage')
+      }
+    }
+  )
+}
+```
+
+### ❌ Approche INCORRECTE (à éviter)
+
+```typescript
+// ❌ NE PAS faire cela
+const handleDemarrerIntervention = (intervention: any) => {
+  const { demarrer } = useInterventions()  // ❌ Appel du composable dans le handler
+  await demarrer(intervention.id, authStore.user.id)
+}
+```
+
+### 📝 Résolution des conflits de noms
+
+Quand plusieurs composables exportent des méthodes avec le même nom (ex: `demarrer`), utilisez l'alias lors de la déstructuration :
+
+```typescript
+const {
+  demarrer: demarrerMission,  // Renommé pour éviter conflit
+  terminer: terminerMission
+} = useOrdresMission()
+
+const {
+  demarrer: demarrerIntervention,  // Renommé pour éviter conflit
+  terminer: terminerIntervention
+} = useInterventions()
+```
+
+---
+
 ## 1. INTERVENTIONS (12 handlers)
 
 ### 1.1 ✅ handleDemarrerIntervention (EXISTANT)
@@ -51,16 +142,15 @@ const demarrer = async (interventionId: string, technicienId: string) => {
 
 **Handler à intégrer**: `OrdreMissionDetailPage.vue:1128`
 ```typescript
+// Note: demarrerIntervention est déjà déstructuré au top-level du script
 const handleDemarrerIntervention = (intervention: any) => {
-  const { demarrer } = useInterventions()
-  const authStore = useAuthStore()
-
   showConfirmation(
     'Démarrer l\'intervention',
     `Voulez-vous démarrer l'intervention "${intervention.titre}" ?`,
     async () => {
       try {
-        await demarrer(intervention.id, authStore.user.id)
+        // Utilise directement demarrerIntervention (déjà déstructuré)
+        await demarrerIntervention(intervention.id, authStore.user.id)
         notificationStore.success('Intervention démarrée avec succès')
         await loadOrdreMission() // Recharger la mission complète
         showConfirmModal.value = false
@@ -93,16 +183,14 @@ const terminer = async (interventionId: string, technicienId: string)
 
 **Handler à intégrer**: `OrdreMissionDetailPage.vue:1138`
 ```typescript
+// Note: terminerIntervention est déjà déstructuré au top-level du script
 const handleTerminerIntervention = (intervention: any) => {
-  const { terminer } = useInterventions()
-  const authStore = useAuthStore()
-
   showConfirmation(
     'Terminer l\'intervention',
     `Voulez-vous terminer l'intervention "${intervention.titre}" ?`,
     async () => {
       try {
-        await terminer(intervention.id, authStore.user.id)
+        await terminerIntervention(intervention.id, authStore.user.id)
         notificationStore.success('Intervention terminée avec succès')
         await loadOrdreMission()
         showConfirmModal.value = false
@@ -176,9 +264,8 @@ const ajouterAvis = async (interventionId: string, data: {
 
 **Handler à intégrer**: `OrdreMissionDetailPage.vue:1148`
 ```typescript
+// Note: ajouterAvis est déjà déstructuré au top-level du script
 const handleAvisIntervention = (intervention: any) => {
-  const { ajouterAvis } = useInterventions()
-
   // Ouvrir modal avec formulaire
   showModal.value = true
   modalContent.value = {
@@ -275,9 +362,8 @@ const ajouterIntervention = async (
 
 **Handler à intégrer**: `OrdreMissionDetailPage.vue:1088`
 ```typescript
+// Note: ajouterIntervention est déjà déstructuré au top-level du script
 const handleAjouterIntervention = () => {
-  const { ajouterIntervention } = useOrdresMission()
-
   // Ouvrir modal avec formulaire
   showModal.value = true
   modalContent.value = {
@@ -368,9 +454,8 @@ const modifier = async (interventionId: string, data: any) => {
 
 **Handler à intégrer**: `OrdreMissionDetailPage.vue:1098`
 ```typescript
+// Note: modifier est déjà déstructuré au top-level du script
 const handleModifierIntervention = (intervention: any) => {
-  const { modifier } = useInterventions()
-
   showModal.value = true
   modalContent.value = {
     title: 'Modifier l\'intervention',
@@ -410,9 +495,8 @@ async planifier(
 
 **Handler à intégrer**: `OrdreMissionDetailPage.vue:1108`
 ```typescript
+// Note: planifier est déjà déstructuré au top-level du script
 const handlePlanifierIntervention = (intervention: any) => {
-  const { planifier } = useInterventions()
-
   showModal.value = true
   modalContent.value = {
     title: 'Planifier l\'intervention',
@@ -490,9 +574,8 @@ const reporter = async (interventionId: string, data: {
 
 **Handler à intégrer**: `OrdreMissionDetailPage.vue:1118`
 ```typescript
+// Note: reporter est déjà déstructuré au top-level du script
 const handleReporterIntervention = (intervention: any) => {
-  const { reporter } = useInterventions()
-
   showModal.value = true
   modalContent.value = {
     title: 'Reporter l\'intervention',
@@ -545,9 +628,8 @@ async confirmer(interventionId: string): Promise<ApiInterventionResponse> {
 
 **Handler à intégrer**: `OrdreMissionDetailPage.vue:1168`
 ```typescript
+// Note: assignerTechnicien est déjà déstructuré au top-level du script
 const handleAjouterIntervenantIntervention = (intervention: any) => {
-  const { assignerTechnicien } = useInterventions()
-
   showModal.value = true
   modalContent.value = {
     title: 'Ajouter un intervenant',
@@ -581,9 +663,8 @@ const handleAjouterIntervenantIntervention = (intervention: any) => {
 
 **Handler à intégrer**: `OrdreMissionDetailPage.vue:1178`
 ```typescript
+// Note: retirerTechnicien est déjà déstructuré au top-level du script
 const handleRetirerIntervenantIntervention = (intervention: any, technicien: any) => {
-  const { retirerTechnicien } = useInterventions()
-
   showConfirmation(
     'Retirer l\'intervenant',
     `Voulez-vous retirer ${technicien.nom} de cette intervention ?`,
@@ -788,9 +869,8 @@ async update(id: string, data: Partial<ApiOrdreMission>): Promise<ApiOrdreMissio
 
 **Handler à intégrer**: `OrdreMissionDetailPage.vue:1198`
 ```typescript
+// Note: update est déjà déstructuré au top-level du script
 const handleModifierMission = () => {
-  const { update } = useOrdresMission()
-
   showModal.value = true
   modalContent.value = {
     title: 'Modifier la mission',
@@ -893,9 +973,8 @@ async delete(id: string): Promise<ApiResponse>
 
 **Handler**: Nouveau handler à créer dans `OrdreMissionDetailPage.vue`
 ```typescript
+// Note: deleteOrdreMission est déjà déstructuré au top-level du script
 const handleSupprimerMission = () => {
-  const { deleteOrdreMission } = useOrdresMission()
-
   showConfirmation(
     'Supprimer la mission',
     'Êtes-vous sûr de vouloir supprimer cette mission ? Cette action est irréversible.',
@@ -1077,15 +1156,14 @@ return {
 #### 4. Handler (Vue Component)
 ```typescript
 // OrdreMissionDetailPage.vue
+// Note: demarrerMission est déjà déstructuré au top-level (voir section "Utilisation des Composables")
 const handleDemarrerMission = () => {
-  const { demarrer } = useOrdresMission()
-
   showConfirmation(
     'Démarrer la mission',
     'Voulez-vous démarrer cette mission ?',
     async () => {
       try {
-        await demarrer(ordreMission.value!.id)
+        await demarrerMission(ordreMission.value!.id)
         notificationStore.success('Mission démarrée avec succès')
         await loadOrdreMission()
         showConfirmModal.value = false
@@ -1099,7 +1177,7 @@ const handleDemarrerMission = () => {
 
 ---
 
-**Document créé le**: 2025-11-25
-**Version**: 2.0 (Architecture Composable/Service)
+**Document créé le**: 2025-11-26
+**Version**: 2.1 (Architecture Composable/Service - Appels top-level)
 **Auteur**: Claude AI
 **Statut**: À valider par l'équipe
