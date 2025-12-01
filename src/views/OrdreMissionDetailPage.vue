@@ -859,6 +859,7 @@ const hasIntervenants = computed(() => intervenants.value.length > 0)
 
 // Check if current user (technicien) is assigned to a specific intervention
 const isTechnicienAssigne = (intervention: any) => {
+  console.log("Vérification de l'assignation du technicien pour l'intervention:", intervention);
   if (!isTechnicien.value || !authStore.user) return false
 
   const technicienId = authStore.user.user_account_type_id
